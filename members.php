@@ -195,7 +195,6 @@ require_once 'header.php';
                         <th class="py-4 px-4">Contact & Ward</th>
                         <th class="py-4 px-4">Life Status</th>
                         <th class="py-4 px-4">Monthly Chanda</th>
-                        <th class="py-4 px-4 text-right rounded-r-xl">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="members-table-rows" class="divide-y divide-slate-100 text-sm">
@@ -246,21 +245,6 @@ require_once 'header.php';
                                         <span class="bg-sky-100 text-sky-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Paid</span>
                                     <?php else: ?>
                                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Unpaid</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="py-4 px-4 text-right">
-                                    <?php if ($member['status'] === 'Active'): ?>
-                                        <button onclick="triggerDeceasedModal('<?php echo $member['id']; ?>')" class="inline-block text-rose-600 hover:text-rose-800 font-bold text-xs bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-all">
-                                             <i class="fa-solid fa-skull"></i> Demise
-                                        </button>
-                                    <?php else: ?>
-                                        <form method="POST" action="actions.php" class="inline-block">
-                                            <input type="hidden" name="action" value="revert_active">
-                                            <input type="hidden" name="id" value="<?php echo $member['id']; ?>">
-                                            <button type="submit" class="text-teal-700 hover:text-teal-800 font-bold text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-all">
-                                                <i class="fa-solid fa-clock-rotate-left"></i> Revert Active
-                                            </button>
-                                        </form>
                                     <?php endif; ?>
                                 </td>
                             </tr>
