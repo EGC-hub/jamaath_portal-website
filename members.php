@@ -28,7 +28,7 @@ require_once 'header.php';
                 </select>
                 <select id="filter-status" onchange="filterMembers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="All">All Statuses</option>
-                    <option value="Active">Active</option>
+                    <option value="Alive">Alive</option>
                     <option value="Deceased">Deceased (Marhoom)</option>
                 </select>
                 <select id="filter-chanda" onchange="filterMembers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -151,7 +151,7 @@ require_once 'header.php';
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Life Status *</label>
                             <select name="status" onchange="toggleFormDeceasedDate(this.value)" required class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                                <option value="Active">Active</option>
+                                <option value="Alive">Alive</option>
                                 <option value="Deceased">Deceased (Marhoom)</option>
                             </select>
                         </div>
