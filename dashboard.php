@@ -186,7 +186,7 @@ require_once 'header.php';
                     <span class="bg-emerald-800/50 w-8 h-8 rounded-xl flex items-center justify-center text-xs text-emerald-300">📞</span>
                     <div>
                         <p class="text-[10px] text-emerald-300">Administrative Hotline</p>
-                        <p class="font-semibold text-emerald-50 text-xs">+91 4652 230440</p>
+                        <p class="font-semibold text-emerald-50 text-xs">+91 0000 00000</p>
                     </div>
                 </div>
             </div>
