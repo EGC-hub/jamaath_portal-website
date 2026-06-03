@@ -65,7 +65,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
                         🕌
                     </div>
                     <div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Jamath Portal
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Jamaath Portal
                         </h1>
                         <p
                             class="text-xs md:text-sm text-emerald-300 font-semibold tracking-wider uppercase flex items-center gap-1.5">
