@@ -101,7 +101,7 @@ require_once 'header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">Father / Husband Name *</label>
+                            <label class="block font-semibold text-slate-600 mb-1">Father Name *</label>
                             <input type="text" name="father_husband_name" required placeholder="Name" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                         </div>
                     </div>
