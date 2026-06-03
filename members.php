@@ -14,7 +14,7 @@ require_once 'header.php';
     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
             <div>
-                <h3 class="text-xl font-bold text-slate-800">Jamath Register Directory</h3>
+                <h3 class="text-xl font-bold text-slate-800">Jamaath Register Directory</h3>
                 <p class="text-xs text-slate-500">Complete listing of families and individuals with automatically calculated ages</p>
             </div>
             
@@ -46,8 +46,8 @@ require_once 'header.php';
         <div id="add-member-form-section" class="hidden mb-8 border-t border-slate-100 pt-6">
             <div class="max-w-3xl mx-auto bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
                 <div class="bg-gradient-to-r from-emerald-800 to-teal-900 p-5 text-white">
-                    <h4 class="font-bold text-sm">Register New Jamath Member Console</h4>
-                    <p class="text-[11px] text-emerald-200">Log demographic and biological details.</p>
+                    <h4 class="font-bold text-sm">Register New Jamaath Member Console</h4>
+                    <p class="text-[11px] text-emerald-200">Log demographic details.</p>
                 </div>
                 <form method="POST" action="actions.php" enctype="multipart/form-data" class="p-5 space-y-4 text-xs">
                     <input type="hidden" name="action" value="add_member">
@@ -256,7 +256,7 @@ require_once 'header.php';
         
         <div id="no-members-view" class="hidden text-center py-12">
             <span class="text-3xl">🔍</span>
-            <h4 class="text-slate-700 font-bold mt-3">No matching Jamath members</h4>
+            <h4 class="text-slate-700 font-bold mt-3">No matching Jamaath members</h4>
             <p class="text-xs text-slate-400 mt-1">Please refine your directory filters or clear the search field.</p>
         </div>
     </div>
