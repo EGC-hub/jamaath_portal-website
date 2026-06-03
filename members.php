@@ -193,7 +193,7 @@ require_once 'header.php';
                         <th class="py-4 px-4">Card / Attai No</th>
                         <th class="py-4 px-4">Dependents</th>
                         <th class="py-4 px-4">Contact & Ward</th>
-                        <th class="py-4 px-4">Status</th>
+                        <th class="py-4 px-4">Life Status</th>
                         <th class="py-4 px-4">Monthly Chanda</th>
                         <th class="py-4 px-4 text-right rounded-r-xl">Actions</th>
                     </tr>
@@ -235,8 +235,8 @@ require_once 'header.php';
                                     <p class="text-[10px] text-slate-400 truncate max-w-[150px]"><?php echo htmlspecialchars($member['mahallah']); ?></p>
                                 </td>
                                 <td class="py-4 px-4">
-                                    <?php if ($member['status'] === 'Active'): ?>
-                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Active</span>
+                                    <?php if ($member['status'] === 'Alive'): ?>
+                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Alive</span>
                                     <?php else: ?>
                                         <span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Deceased</span>
                                     <?php endif; ?>
