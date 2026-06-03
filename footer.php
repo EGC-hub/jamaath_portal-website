@@ -202,7 +202,7 @@
 <!-- Footer area -->
 <footer class="bg-slate-100 border-t border-slate-200 py-6 mt-12">
     <div class="max-w-7xl mx-auto px-4 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p class="text-xs text-slate-500">&copy; <?php echo date('Y'); ?> NVK Jamath Committee, Nagercoil.</p>
+        <p class="text-xs text-slate-500">&copy; <?php echo date('Y'); ?> NVK Muslim Jamaath, Nagercoil.</p>
     </div>
 </footer>
 

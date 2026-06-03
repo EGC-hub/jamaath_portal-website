@@ -19,7 +19,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NVK Jamaath Portal</title>
+    <title>NVK Muslim Jamaath Portal</title>
     <!-- Tailwind CSS Engine -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Premium Fonts -->
@@ -65,7 +65,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
                         🕌
                     </div>
                     <div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Jamath PORTAL
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Jamath Portal
                         </h1>
                         <p
                             class="text-xs md:text-sm text-emerald-300 font-semibold tracking-wider uppercase flex items-center gap-1.5">
