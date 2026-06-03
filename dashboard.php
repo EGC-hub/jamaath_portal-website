@@ -3,9 +3,9 @@ require_once 'db.php';
 require_once 'helpers.php';
 
 // Count statistics for the interactive dashboard indicators
-$total_active = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Active'")->fetchColumn();
+$total_active = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Alive'")->fetchColumn();
 $total_deceased = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Deceased'")->fetchColumn();
-$paid_active = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Active' AND chanda_status = 'Paid'")->fetchColumn();
+$paid_active = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Alive' AND chanda_status = 'Paid'")->fetchColumn();
 $chanda_percent = ($total_active > 0) ? round(($paid_active / $total_active) * 100) : 0;
 
 $pending_welfare = $db->query("SELECT COUNT(*) FROM welfare WHERE status = 'Pending'")->fetchColumn();
@@ -18,7 +18,7 @@ $total_reserves_available = 250000 - $total_welfare_granted;
 $wards_list = ["Ward 1", "Ward 2", "Ward 3", "Ward 4", "Ward 5", "Ward 6"];
 $ward_demographics = [];
 foreach ($wards_list as $ward) {
-    $stmt = $db->prepare("SELECT COUNT(*) FROM members WHERE mahallah = ? AND status = 'Active'");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM members WHERE mahallah = ? AND status = 'Alive'");
     $stmt->execute([$ward]);
     $ward_demographics[$ward] = $stmt->fetchColumn();
 }
@@ -26,7 +26,7 @@ $max_demographics_count = max(array_values($ward_demographics)) ?: 1;
 
 // Fetch recent lists
 $deceased_recent = $db->query("SELECT * FROM members WHERE status = 'Deceased' ORDER BY deceased_date DESC LIMIT 4")->fetchAll();
-$unpaid_chanda_list = $db->query("SELECT * FROM members WHERE status = 'Active' AND chanda_status = 'Unpaid' ORDER BY first_name ASC LIMIT 4")->fetchAll();
+$unpaid_chanda_list = $db->query("SELECT * FROM members WHERE status = 'Alive' AND chanda_status = 'Unpaid' ORDER BY first_name ASC LIMIT 4")->fetchAll();
 
 require_once 'header.php';
 ?>

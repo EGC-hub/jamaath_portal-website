@@ -288,14 +288,14 @@ require_once 'header.php';
                 
                 <!-- Header Crest -->
                 <div style="text-align: center; margin-bottom: 15px;">
-                    <h1 style="margin: 0; color: #1e293b; font-size: 28px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Jamath Committee</h1>
+                    <h1 style="margin: 0; color: #1e293b; font-size: 28px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Jamaath Committee</h1>
                     <p style="margin: 5px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 4px; font-weight: bold; color: #475569;">Vadasery, Nagercoil, Kanyakumari District, Tamil Nadu</p>
                     <div style="width: 250px; height: 3px; background: linear-gradient(to right, transparent, #475569, transparent); margin: 12px auto 4px auto;"></div>
                     <div style="width: 150px; height: 1px; background: #e2e8f0; margin: 0 auto;"></div>
                 </div>
 
                 <div style="text-align: center; margin-bottom: 25px;">
-                    <h2 style="font-family: Georgia, serif; font-style: italic; color: #0f172a; font-size: 22px; margin: 5px 0;">Official Death & Burial Registration</h2>
+                    <h2 style="font-family: Georgia, serif; font-style: italic; color: #0f172a; font-size: 22px; margin: 5px 0;">Official Burial Registration</h2>
                     <p style="font-size: 11px; color: #64748b; margin: 0; font-family: sans-serif;">This is to certify that the demise and final burial details of the following individual have been officially recorded within our jamaath registries.</p>
                 </div>
 

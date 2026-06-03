@@ -19,7 +19,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NVK Jamath Portal</title>
+    <title>NVK Jamaath Portal</title>
     <!-- Tailwind CSS Engine -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Premium Fonts -->
