@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $last_name = trim($_POST['last_name']);
             $father = trim($_POST['father_husband_name']);
             $card = trim($_POST['card_no']);
-            $dependents = (int)$_POST['dependents_count'];
+            $dependents = (int) $_POST['dependents_count'];
             $dob = $_POST['dob'];
             $gender = $_POST['gender'];
             $blood = $_POST['blood_group'];
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Action: Collect Chanda Directly
         if ($_POST['action'] === 'collect_chanda') {
-            $id = (int)$_POST['id'];
+            $id = (int) $_POST['id'];
             $stmt = $db->prepare("UPDATE members SET chanda_status = 'Paid' WHERE id = ?");
             $stmt->execute([$id]);
 
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Action: Record Member Demise & Register automatically to Burial Registry
         if ($_POST['action'] === 'mark_deceased') {
-            $id = (int)$_POST['id'];
+            $id = (int) $_POST['id'];
             $burial_datetime = $_POST['burial_datetime'];
             $plot = trim($_POST['plot_details']);
 
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Action: Revert status to Active
         if ($_POST['action'] === 'revert_active') {
-            $id = (int)$_POST['id'];
+            $id = (int) $_POST['id'];
             $stmt = $db->prepare("UPDATE members SET status = 'Active', deceased_date = NULL WHERE id = ?");
             $stmt->execute([$id]);
 
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_POST['action'] === 'add_welfare') {
             $name = trim($_POST['name']);
             $type = $_POST['type'];
-            $amount = (int)$_POST['amount'];
+            $amount = (int) $_POST['amount'];
 
             $stmt = $db->prepare("INSERT INTO welfare (name, type, amount, status) VALUES (?, ?, ?, 'Pending')");
             $stmt->execute([$name, $type, $amount]);
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Action: Approve Welfare aid
         if ($_POST['action'] === 'approve_welfare') {
-            $id = (int)$_POST['id'];
+            $id = (int) $_POST['id'];
             $stmt = $db->prepare("UPDATE welfare SET status = 'Approved' WHERE id = ?");
             $stmt->execute([$id]);
 
@@ -117,10 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $groom = trim($_POST['groom_name']);
             $bride = trim($_POST['bride_name']);
             $datetime = $_POST['nikah_datetime'];
+            $venue = trim($_POST['venue']);
+            // Capture checkbox: if checked it sends "1", if unchecked it's empty, so default to "0"
+            $conducted_by_jamath = isset($_POST['conducted_by_jamath']) ? 1 : 0;
             $details = trim($_POST['details']);
 
-            $stmt = $db->prepare("INSERT INTO nikah_registry (groom_name, bride_name, nikah_datetime, details) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$groom, $bride, $datetime, $details]);
+            $stmt = $db->prepare("INSERT INTO nikah_registry (groom_name, bride_name, venue, conducted_by_jamath, nikah_datetime, details) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$groom, $bride, $venue, $conducted_by_jamath, $datetime, $details]);
 
             header("Location: nikah.php?msg=Marriage certified registry logged");
             exit;
@@ -129,11 +132,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Action: Add Direct Burial log
         if ($_POST['action'] === 'add_burial') {
             $name = trim($_POST['deceased_name']);
-            $datetime = $_POST['burial_datetime'];
+            $death_datetime = !empty($_POST['death_datetime']) ? $_POST['death_datetime'] : null;
+            $burial_datetime = $_POST['burial_datetime'];
             $plot = trim($_POST['plot_details']);
 
-            $stmt = $db->prepare("INSERT INTO burial_registry (deceased_name, burial_datetime, plot_details) VALUES (?, ?, ?)");
-            $stmt->execute([$name, $datetime, $plot]);
+            // Check if reported by active member
+            $reported_by_member = isset($_POST['reported_by_member']) ? 1 : 0;
+            $reporter_member_id = ($reported_by_member && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
+
+            // Otherwise gather fallback informant details
+            $reporter_name = (!$reported_by_member && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
+            $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+            $reporter_relationship = (!$reported_by_member && !empty($_POST['reporter_relationship'])) ? trim($_POST['reporter_relationship']) : null;
+
+            $stmt = $db->prepare("INSERT INTO burial_registry (deceased_name, death_datetime, reported_by_member, reporter_member_id, reporter_name, reporter_phone, reporter_relationship, burial_datetime, plot_details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $death_datetime, $reported_by_member, $reporter_member_id, $reporter_name, $reporter_phone, $reporter_relationship, $burial_datetime, $plot]);
 
             header("Location: burial.php?msg=Burial plot logged to archives");
             exit;

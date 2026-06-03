@@ -47,14 +47,14 @@ require_once 'header.php';
             <div class="max-w-3xl mx-auto bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
                 <div class="bg-gradient-to-r from-emerald-800 to-teal-900 p-5 text-white">
                     <h4 class="font-bold text-sm">Register New Jamath Member Console</h4>
-                    <p class="text-[11px] text-emerald-200">Log demographic and biological details directly to MySQL.</p>
+                    <p class="text-[11px] text-emerald-200">Log demographic and biological details.</p>
                 </div>
                 <form method="POST" action="actions.php" enctype="multipart/form-data" class="p-5 space-y-4 text-xs">
                     <input type="hidden" name="action" value="add_member">
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div class="flex flex-col items-center justify-center p-3 border border-dashed border-slate-200 rounded-xl bg-white">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Member Portrait</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Member Photo</label>
                             <div class="relative w-28 h-28 bg-slate-100 rounded-2xl overflow-hidden mb-2 border border-slate-200 flex items-center justify-center">
                                 <img id="photo-preview" src="https://placehold.co/150x150/0f766e/ffffff?text=No+Photo" class="object-cover w-full h-full" alt="Preview">
                             </div>
@@ -112,7 +112,7 @@ require_once 'header.php';
                             <select name="mahallah" required class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 <option value="">Select Mahallah</option>
                                 <?php foreach ($wards_list as $w_nm): ?>
-                                    <option value="<?php echo $w_nm; ?>"><?php echo $w_nm; ?> Ward</option>
+                                    <option value="<?php echo $w_nm; ?>"><?php echo $w_nm; ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -159,7 +159,7 @@ require_once 'header.php';
                             <label class="block font-semibold text-slate-600 mb-1">Subscription (Chanda) *</label>
                             <select name="chanda_status" required class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 <option value="Paid">Paid (Current Month)</option>
-                                <option value="Unpaid">Unpaid / Defaulter</option>
+                                <option value="Unpaid">Unpaid</option>
                             </select>
                         </div>
                         <div id="form-deceased-date-container" class="hidden">
@@ -170,7 +170,7 @@ require_once 'header.php';
 
                     <div class="flex justify-end space-x-2 pt-2">
                         <button type="button" onclick="toggleAddMemberForm()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold">Close Panel</button>
-                        <button type="submit" class="bg-emerald-700 text-white px-5 py-2 rounded-lg font-bold shadow-sm">Save Register</button>
+                        <button type="submit" class="bg-emerald-700 text-white px-5 py-2 rounded-lg font-bold shadow-sm"> Register</button>
                     </div>
                 </form>
             </div>
