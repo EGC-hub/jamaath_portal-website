@@ -15,28 +15,33 @@ require_once 'header.php';
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
             <div>
                 <h3 class="text-xl font-bold text-slate-800">Jamaath Register Directory</h3>
-                <p class="text-xs text-slate-500">Complete listing of families and individuals with automatically calculated ages</p>
+                <p class="text-xs text-slate-500">Complete listing of families and individuals with automatically
+                    calculated ages</p>
             </div>
-            
+
             <!-- Filter Actions and Add Member Direct toggle -->
             <div class="flex flex-wrap gap-2.5">
-                <select id="filter-mahallah" onchange="filterMembers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <select id="filter-mahallah" onchange="filterMembers()"
+                    class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="All">All Mahallahs</option>
-                    <?php foreach($wards_list as $w_opt): ?>
+                    <?php foreach ($wards_list as $w_opt): ?>
                         <option value="<?php echo $w_opt; ?>"><?php echo $w_opt; ?></option>
                     <?php endforeach; ?>
                 </select>
-                <select id="filter-status" onchange="filterMembers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <select id="filter-status" onchange="filterMembers()"
+                    class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="All">All Statuses</option>
                     <option value="Alive">Alive</option>
                     <option value="Deceased">Deceased (Marhoom)</option>
                 </select>
-                <select id="filter-chanda" onchange="filterMembers()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <select id="filter-chanda" onchange="filterMembers()"
+                    class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="All">All Chanda</option>
                     <option value="Paid">Paid Only</option>
                     <option value="Unpaid">Unpaid Only</option>
                 </select>
-                <button onclick="toggleAddMemberForm()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition-colors flex items-center gap-1.5">
+                <button onclick="toggleAddMemberForm()"
+                    class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition-colors flex items-center gap-1.5">
                     <i class="fa-solid fa-user-plus"></i> <span id="toggle-form-btn-text">Register New Member</span>
                 </button>
             </div>
@@ -51,15 +56,21 @@ require_once 'header.php';
                 </div>
                 <form method="POST" action="actions.php" enctype="multipart/form-data" class="p-5 space-y-4 text-xs">
                     <input type="hidden" name="action" value="add_member">
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div class="flex flex-col items-center justify-center p-3 border border-dashed border-slate-200 rounded-xl bg-white">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Member Photo</label>
-                            <div class="relative w-28 h-28 bg-slate-100 rounded-2xl overflow-hidden mb-2 border border-slate-200 flex items-center justify-center">
-                                <img id="photo-preview" src="https://placehold.co/150x150/0f766e/ffffff?text=No+Photo" class="object-cover w-full h-full" alt="Preview">
+                        <div
+                            class="flex flex-col items-center justify-center p-3 border border-dashed border-slate-200 rounded-xl bg-white">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Member
+                                Photo</label>
+                            <div
+                                class="relative w-28 h-28 bg-slate-100 rounded-2xl overflow-hidden mb-2 border border-slate-200 flex items-center justify-center">
+                                <img id="photo-preview" src="https://placehold.co/150x150/0f766e/ffffff?text=No+Photo"
+                                    class="object-cover w-full h-full" alt="Preview">
                             </div>
-                            <input type="file" name="photo" id="member-photo-input" accept="image/*" onchange="handlePhotoChange(event)" class="hidden">
-                            <button type="button" onclick="document.getElementById('member-photo-input').click()" class="bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-100">
+                            <input type="file" name="photo" id="member-photo-input" accept="image/*"
+                                onchange="handlePhotoChange(event)" class="hidden">
+                            <button type="button" onclick="document.getElementById('member-photo-input').click()"
+                                class="bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-100">
                                 <i class="fa-solid fa-camera mr-1"></i> Upload
                             </button>
                         </div>
@@ -68,21 +79,29 @@ require_once 'header.php';
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-600 mb-1">First Name *</label>
-                                    <input type="text" name="first_name" required placeholder="First Name" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                    <input type="text" name="first_name" required placeholder="First Name"
+                                        class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-600 mb-1">Last Name *</label>
-                                    <input type="text" name="last_name" required placeholder="Last Name" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                    <input type="text" name="last_name" required placeholder="Last Name"
+                                        class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-600 mb-1">Card No (Attai No) *</label>
-                                    <input type="text" name="card_no" required placeholder="e.g. K-104" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                    <input type="text" name="card_no" required placeholder="e.g. K-104"
+                                        class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-slate-600 mb-1">Dependents (Count) *</label>
-                                    <input type="number" name="dependents_count" required min="0" max="15" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                    <div class="flex gap-2">
+                                        <input type="number" id="dependents_count" name="dependents_count" oninput="checkDependents()" required min="0" max="15" value="0" class="w-20 bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                        <button type="button" id="add-dependent-btn" onclick="openDependentModal()" class="hidden bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all">
+                                            <i class="fa-solid fa-people-roof"></i> Add Dependent
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -112,7 +131,7 @@ require_once 'header.php';
                             <select name="mahallah" required class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 <option value="">Select Mahallah</option>
                                 <?php foreach ($wards_list as $w_nm): ?>
-                                    <option value="<?php echo $w_nm; ?>"><?php echo $w_nm; ?></option>
+                                        <option value="<?php echo $w_nm; ?>"><?php echo $w_nm; ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -136,14 +155,79 @@ require_once 'header.php';
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Occupation</label>
                             <input type="text" name="occupation" placeholder="Merchant, Software Engineer etc." class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">Residential Address</label>
-                            <textarea name="address" placeholder="Residential details..." rows="1" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none"></textarea>
+                            <label class="block font-semibold text-slate-600 mb-1">Designation within Jamaath *</label>
+                            <select name="designation" required class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                <option value="Ordinary Member">Ordinary Member</option>
+                                <option value="President">President</option>
+                                <option value="Vice President">Vice President</option>
+                                <option value="Secretary">Secretary</option>
+                                <option value="Joint-Secretary">Joint-Secretary</option>
+                                <option value="Treasurer">Treasurer</option>
+                                <option value="Executive Member">Executive Member</option>
+                            </select>
+                        </div>
+                        <div></div>
+                    </div>
+
+                    <!-- Split Residential Address Fields -->
+                    <div class="bg-slate-100/50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5"><i class="fa-solid fa-house text-emerald-700"></i> Residential Address</h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Address Line 1 *</label>
+                                <input type="text" id="res_address_line1" name="res_address_line1" required placeholder="Street / Door No" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Address Line 2</label>
+                                <input type="text" id="res_address_line2" name="res_address_line2" placeholder="Locality / Landmark" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">City *</label>
+                                <input type="text" id="res_city" name="res_city" required placeholder="e.g. Nagercoil" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pincode *</label>
+                                <input type="text" id="res_pincode" name="res_pincode" required placeholder="e.g. 629002" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Split Communication Address Fields -->
+                    <div class="bg-slate-100/50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5"><i class="fa-solid fa-envelope-open-text text-teal-700"></i> Communication Address</h5>
+                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 cursor-pointer select-none">
+                                <input type="checkbox" id="same-address-check" onchange="syncAddresses()" class="h-3.5 w-3.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> Same as Residential Address
+                            </label>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Address Line 1 *</label>
+                                <input type="text" id="comm_address_line1" name="comm_address_line1" required placeholder="Street / Door No" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Address Line 2</label>
+                                <input type="text" id="comm_address_line2" name="comm_address_line2" placeholder="Locality / Landmark" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">City *</label>
+                                <input type="text" id="comm_city" name="comm_city" required placeholder="e.g. Nagercoil" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pincode *</label>
+                                <input type="text" id="comm_pincode" name="comm_pincode" required placeholder="e.g. 629002" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
                         </div>
                     </div>
 
@@ -199,56 +283,60 @@ require_once 'header.php';
                 </thead>
                 <tbody id="members-table-rows" class="divide-y divide-slate-100 text-sm">
                     <?php if (empty($members)): ?>
-                        <tr id="empty-members-row">
-                            <td colspan="7" class="py-12 text-center text-slate-400 text-xs">No registered members found in the database.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($members as $member): 
-                            $age = calculateAge($member['dob']);
-                        ?>
-                            <tr class="member-record-row hover:bg-slate-50/70 transition-colors"
-                                data-fname="<?php echo htmlspecialchars(strtolower($member['first_name'])); ?>"
-                                data-lname="<?php echo htmlspecialchars(strtolower($member['last_name'])); ?>"
-                                data-card="<?php echo htmlspecialchars(strtolower($member['card_no'])); ?>"
-                                data-father="<?php echo htmlspecialchars(strtolower($member['father_husband_name'])); ?>"
-                                data-phone="<?php echo htmlspecialchars($member['phone']); ?>"
-                                data-mahallah="<?php echo htmlspecialchars($member['mahallah']); ?>"
-                                data-status="<?php echo htmlspecialchars($member['status']); ?>"
-                                data-chanda="<?php echo htmlspecialchars($member['chanda_status']); ?>">
-                                <td class="py-4 px-4 flex items-center space-x-3">
-                                    <img src="<?php echo htmlspecialchars($member['photo']); ?>" class="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm" onerror="this.src='https://placehold.co/150x150/0f766e/ffffff?text=<?php echo urlencode($member['first_name']); ?>'">
-                                    <div>
-                                        <p class="font-bold text-slate-800 leading-tight">
-                                            <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
-                                        </p>
-                                        <p class="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
-                                            <span class="bg-teal-50 text-teal-800 px-1.5 py-0.2 rounded font-mono">Age: <?php echo $age; ?></span>
-                                            <span class="text-slate-400">S/O: <?php echo htmlspecialchars($member['father_husband_name']); ?></span>
-                                        </p>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-4 font-mono font-bold text-slate-600 text-xs"><?php echo htmlspecialchars($member['card_no']); ?></td>
-                                <td class="py-4 px-4 font-semibold text-slate-500 text-xs"><?php echo htmlspecialchars($member['dependents_count']); ?> Dependents</td>
-                                <td class="py-4 px-4">
-                                    <p class="text-xs font-semibold text-slate-700"><?php echo htmlspecialchars($member['phone']); ?></p>
-                                    <p class="text-[10px] text-slate-400 truncate max-w-[150px]"><?php echo htmlspecialchars($member['mahallah']); ?></p>
-                                </td>
-                                <td class="py-4 px-4">
-                                    <?php if ($member['status'] === 'Alive'): ?>
-                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Alive</span>
-                                    <?php else: ?>
-                                        <span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Deceased</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="py-4 px-4">
-                                    <?php if ($member['chanda_status'] === 'Paid'): ?>
-                                        <span class="bg-sky-100 text-sky-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Paid</span>
-                                    <?php else: ?>
-                                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Unpaid</span>
-                                    <?php endif; ?>
-                                </td>
+                            <tr id="empty-members-row">
+                                <td colspan="7" class="py-12 text-center text-slate-400 text-xs">No registered members found in the database.</td>
                             </tr>
-                        <?php endforeach; ?>
+                    <?php else: ?>
+                            <?php foreach ($members as $member):
+                                $age = calculateAge($member['dob']);
+                                ?>
+                                    <tr class="member-record-row hover:bg-slate-50/70 transition-colors"
+                                        data-fname="<?php echo htmlspecialchars(strtolower($member['first_name'])); ?>"
+                                        data-lname="<?php echo htmlspecialchars(strtolower($member['last_name'])); ?>"
+                                        data-card="<?php echo htmlspecialchars(strtolower($member['card_no'])); ?>"
+                                        data-father="<?php echo htmlspecialchars(strtolower($member['father_husband_name'])); ?>"
+                                        data-phone="<?php echo htmlspecialchars($member['phone']); ?>"
+                                        data-mahallah="<?php echo htmlspecialchars($member['mahallah']); ?>"
+                                        data-status="<?php echo htmlspecialchars($member['status']); ?>"
+                                        data-chanda="<?php echo htmlspecialchars($member['chanda_status']); ?>">
+                                        <td class="py-4 px-4 flex items-center space-x-3">
+                                            <img src="<?php echo htmlspecialchars($member['photo']); ?>" class="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm" onerror="this.src='https://placehold.co/150x150/0f766e/ffffff?text=<?php echo urlencode($member['first_name']); ?>'">
+                                            <div>
+                                                <p class="font-bold text-slate-800 leading-tight">
+                                                    <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
+                                                </p>
+                                                <p class="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                                                    <span class="bg-teal-50 text-teal-800 px-1.5 py-0.2 rounded font-mono">Age: <?php echo $age; ?></span>
+                                                    <span class="text-slate-400">S/O: <?php echo htmlspecialchars($member['father_husband_name']); ?></span>
+                                                </p>
+                                                <!-- Designations Rendering -->
+                                                <?php if (!empty($member['designation']) && $member['designation'] !== 'Ordinary Member'): ?>
+                                                        <span class="mt-1 inline-block bg-teal-100 text-teal-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase"><?php echo htmlspecialchars($member['designation']); ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                        <td class="py-4 px-4 font-mono font-bold text-slate-600 text-xs"><?php echo htmlspecialchars($member['card_no']); ?></td>
+                                        <td class="py-4 px-4 font-semibold text-slate-500 text-xs"><?php echo htmlspecialchars($member['dependents_count']); ?> Dependents</td>
+                                        <td class="py-4 px-4">
+                                            <p class="text-xs font-semibold text-slate-700"><?php echo htmlspecialchars($member['phone']); ?></p>
+                                            <p class="text-[10px] text-slate-400 truncate max-w-[150px]"><?php echo htmlspecialchars($member['mahallah']); ?></p>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <?php if ($member['status'] === 'Alive'): ?>
+                                                    <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Alive</span>
+                                            <?php else: ?>
+                                                    <span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Deceased</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <?php if ($member['chanda_status'] === 'Paid'): ?>
+                                                    <span class="bg-sky-100 text-sky-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Paid</span>
+                                            <?php else: ?>
+                                                    <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Unpaid</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                            <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -259,6 +347,20 @@ require_once 'header.php';
             <h4 class="text-slate-700 font-bold mt-3">No matching Jamaath members</h4>
             <p class="text-xs text-slate-400 mt-1">Please refine your directory filters or clear the search field.</p>
         </div>
+    </div>
+</div>
+
+<!-- Modal Dialog: Trigger Add Dependents Placeholder -->
+<div id="dependent-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 text-center">
+        <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-solid fa-people-roof"></i>
+        </div>
+        <h4 class="text-base font-bold text-slate-800 mb-2">Add Family Dependents</h4>
+        <p class="text-xs text-slate-500 mb-6">Here's where you will add your dependent.</p>
+        <button type="button" onclick="closeDependentModal()" class="w-full bg-slate-950 text-white py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors">
+            Understood
+        </button>
     </div>
 </div>
 
@@ -274,6 +376,52 @@ require_once 'header.php';
             btnText.textContent = "Register New Member";
         }
     }
+
+    function checkDependents() {
+        const dependentsCount = parseInt(document.getElementById('dependents_count').value) || 0;
+        const addBtn = document.getElementById('add-dependent-btn');
+        if (dependentsCount >= 1) {
+            addBtn.classList.remove('hidden');
+        } else {
+            addBtn.classList.add('hidden');
+        }
+    }
+
+    function openDependentModal() {
+        document.getElementById('dependent-modal').classList.remove('hidden');
+    }
+
+    function closeDependentModal() {
+        document.getElementById('dependent-modal').classList.add('hidden');
+    }
+
+    function syncAddresses() {
+        const isChecked = document.getElementById('same-address-check').checked;
+        const fields = ['address_line1', 'address_line2', 'city', 'pincode'];
+        
+        fields.forEach(field => {
+            const resInput = document.getElementById('res_' + field);
+            const commInput = document.getElementById('comm_' + field);
+            
+            if (isChecked) {
+                commInput.value = resInput.value;
+                commInput.readOnly = true;
+                commInput.classList.add('bg-slate-100', 'cursor-not-allowed');
+            } else {
+                commInput.readOnly = false;
+                commInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            }
+        });
+    }
+
+    // Mirror updates in real time if "same-address-check" is active
+    ['address_line1', 'address_line2', 'city', 'pincode'].forEach(field => {
+        document.getElementById('res_' + field).addEventListener('input', () => {
+            if (document.getElementById('same-address-check').checked) {
+                syncAddresses();
+            }
+        });
+    });
 
     function filterMembers() {
         const filterMahallah = document.getElementById('filter-mahallah').value;
