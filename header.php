@@ -69,8 +69,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
                         </h1>
                         <p
                             class="text-xs md:text-sm text-emerald-300 font-semibold tracking-wider uppercase flex items-center gap-1.5">
-                            <i class="fa-solid fa-map-location-dot"></i> Nagercoilal Municipal Registry (Active
-                            Database)
+                            <i class="fa-solid fa-map-location-dot"></i> NVK Jamaath Registry
                         </p>
                     </div>
                 </div>
