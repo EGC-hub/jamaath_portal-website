@@ -7,9 +7,9 @@ error_reporting(E_ALL);
 
 // MySQL Server configuration defaults (standard XAMPP credentials)
 $db_host = 'localhost';
-$db_user = 'root';
-$db_pass = '';
-$db_name = 'jamath_portal';
+$db_user = 'u184821809_nvk_admin';
+$db_pass = 'Nvk@2026!';
+$db_name = 'u184821809_nvk_portal_db';
 
 try {
     // Connect to the database server
