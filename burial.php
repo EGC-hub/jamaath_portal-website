@@ -91,7 +91,7 @@ require_once 'header.php';
                                     </td>
                                     <td class="py-4 px-4 text-xs">
                                         <?php if ($burial['reported_by_member'] == 1): ?>
-                                                <span class="bg-teal-100 text-teal-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider block w-max mb-1">Jamath Member</span>
+                                                <span class="bg-teal-100 text-teal-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider block w-max mb-1">Jamaath Member</span>
                                                 <p class="font-semibold text-slate-700"><?php echo htmlspecialchars($burial['rep_first'] . ' ' . $burial['rep_last']); ?></p>
                                                 <p class="text-[10px] text-slate-400">Card: <?php echo htmlspecialchars($burial['rep_card']); ?></p>
                                         <?php else: ?>
@@ -164,7 +164,7 @@ require_once 'header.php';
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                 <div class="flex items-center space-x-2">
                     <input type="checkbox" name="reported_by_member" value="1" checked id="reported_by_member_check" onchange="toggleReporterFields()" class="h-4 w-4 text-rose-600 focus:ring-rose-500 border-slate-300 rounded">
-                    <label for="reported_by_member_check" class="text-xs text-slate-700 font-bold select-none">Reported by an active Jamath Member</label>
+                    <label for="reported_by_member_check" class="text-xs text-slate-700 font-bold select-none">Reported by an active Jamaath Member</label>
                 </div>
 
                 <!-- Case A: Reporter is an active database member -->
@@ -303,7 +303,7 @@ require_once 'header.php';
                     <tr>
                         <td colspan="2" style="padding: 10px; vertical-align: top;">
                             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px;">
-                                <strong style="color: #475569; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Deceased Subject (Marhoom)</strong>
+                                <strong style="color: #475569; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Deceased Name (Marhoom)</strong>
                                 <span style="font-size: 16px; color: #0f172a; font-weight: bold;">🕊️ ${deceased}</span>
                             </div>
                         </td>

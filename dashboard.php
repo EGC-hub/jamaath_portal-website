@@ -37,7 +37,7 @@ require_once 'header.php';
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div class="flex justify-between items-start">
             <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Jamath Members</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Jamaath Members</p>
                 <h3 class="text-3xl font-extrabold text-emerald-800 mt-2"><?php echo $total_active; ?></h3>
                 <p class="text-xs text-slate-500 mt-1">Alive registered families</p>
             </div>
@@ -172,7 +172,7 @@ require_once 'header.php';
         <!-- Nagercoil Main Office Banner -->
         <div class="bg-gradient-to-br from-teal-900 to-emerald-950 text-white p-6 rounded-2xl shadow-md relative overflow-hidden">
             <div class="absolute -right-16 -bottom-16 w-44 h-44 bg-emerald-800/10 rounded-full"></div>
-            <h3 class="text-xl font-bold serif-title mb-2">NVK Jamath Registry</h3>
+            <h3 class="text-xl font-bold serif-title mb-2">NVK Jamaath Registry</h3>
             <p class="text-xs text-emerald-200 leading-relaxed mb-4">Official administrative portal governing demographic registrations, Baitul-Mal support initiatives, Nikah certifications, and burial records in Vadasery.</p>
             <div class="border-t border-teal-800/60 pt-4 space-y-3.5">
                 <div class="flex items-center space-x-3 text-sm">
