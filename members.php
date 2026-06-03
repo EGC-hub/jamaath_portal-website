@@ -194,7 +194,7 @@ require_once 'header.php';
                         <th class="py-4 px-4">Dependents</th>
                         <th class="py-4 px-4">Contact & Ward</th>
                         <th class="py-4 px-4">Life Status</th>
-                        <th class="py-4 px-4">Monthly Chanda</th>
+                        <th class="py-4 px-4">Chanda Status</th>
                     </tr>
                 </thead>
                 <tbody id="members-table-rows" class="divide-y divide-slate-100 text-sm">
