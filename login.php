@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NVK Jamath Portal - Sign In</title>
+    <title>NVK Muslim Jamaath Portal - Sign In</title>
     <!-- Tailwind CSS Engine -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Premium Fonts -->
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
             <a href="index.html" class="flex items-center space-x-2.5 hover:opacity-90 transition-opacity">
                 <span class="bg-emerald-700/60 p-1.5 rounded-lg">🕌</span>
-                <span class="font-bold serif-title text-sm tracking-wide">NVK Jamath Portal</span>
+                <span class="font-bold serif-title text-sm tracking-wide">NVK Muslim Jamaath Portal</span>
             </a>
             <a href="index.html" class="text-xs text-emerald-300 hover:text-white font-semibold transition-colors">
                 <i class="fa-solid fa-arrow-left mr-1"></i> Back to Home
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Footer area -->
     <footer class="bg-slate-200 text-slate-500 text-center py-4 border-t border-slate-300 text-[10px]">
-        <p>&copy; 2026 NVK Jamath, Nagercoil. Secure Management Access.</p>
+        <p>&copy; 2026 NVK Muslim Jamaath, Nagercoil. Secure Management Access.</p>
     </footer>
 
 </body>

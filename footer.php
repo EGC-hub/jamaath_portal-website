@@ -46,7 +46,7 @@
     class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">
         <h4 class="text-lg font-bold text-slate-800 mb-2">New Baitul-Mal Aid Application</h4>
-        <p class="text-xs text-slate-500 mb-4">Log a petition on behalf of an active under-privileged Jamath family.</p>
+        <p class="text-xs text-slate-500 mb-4">Log a petition on behalf of an active under-privileged Jamaath family.</p>
 
         <form method="POST" action="actions.php" class="space-y-4">
             <input type="hidden" name="action" value="add_welfare">
@@ -128,7 +128,7 @@
                 <input type="checkbox" name="conducted_by_jamath" value="1" checked id="conducted-by-jamath-check"
                     class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-slate-300 rounded">
                 <label for="conducted-by-jamath-check" class="text-xs text-slate-700 font-medium select-none">Wedding
-                    was conducted/officiated by this Jamath</label>
+                    was conducted/officiated by this Jamaath</label>
             </div>
             <div>
                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Book &

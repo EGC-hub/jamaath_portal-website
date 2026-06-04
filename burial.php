@@ -35,7 +35,7 @@ require_once 'header.php';
         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
             <i class="fa-solid fa-magnifying-glass"></i>
         </span>
-        <input type="text" id="search-burial" onkeyup="filterBurial()" placeholder="Search by Deceased Name, Plot, Informant..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs focus:ring-2 focus:ring-rose-500 focus:bg-white focus:outline-none transition-all">
+        <input type="text" id="search-burial" onkeyup="filterBurial()" placeholder="Search by Deceased Name, Location, Informant..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs focus:ring-2 focus:ring-rose-500 focus:bg-white focus:outline-none transition-all">
     </div>
 
     <div class="overflow-x-auto">
@@ -340,13 +340,13 @@ require_once 'header.php';
 
                 <div style="margin-top: 35px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 30px;">
                     <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 11px; color: #475569; font-weight: 600; font-family: sans-serif;">Burial Registrar Signature</div>
+                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 11px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary Signature</div>
                     </div>
                     <div style="text-align: center; width: 140px;">
                         <div style="border: 2px solid #334155; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; margin: 0 auto; color: #334155; font-size: 10px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif;">Registry Seal</div>
                     </div>
                     <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 11px; color: #475569; font-weight: 600; font-family: sans-serif;">Chief Imam Inspector</div>
+                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 11px; color: #475569; font-weight: 600; font-family: sans-serif;">Treasurer Signature</div>
                     </div>
                 </div>
             </div>

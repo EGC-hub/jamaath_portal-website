@@ -4,7 +4,7 @@ require_once 'db.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
 
-        // Action: Register New Member
+        // Action: Register New Member (actions.php update)
         if ($_POST['action'] === 'add_member') {
             $first_name = trim($_POST['first_name']);
             $last_name = trim($_POST['last_name']);
@@ -17,12 +17,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mahallah = $_POST['mahallah'];
             $phone = trim($_POST['phone']);
             $occupation = trim($_POST['occupation']);
-            $address = trim($_POST['address']);
+            $designation = $_POST['designation'];
+
+            // Addresses
+            $res_address_line1 = trim($_POST['res_address_line1']);
+            $res_address_line2 = trim($_POST['res_address_line2']);
+            $res_city = trim($_POST['res_city']);
+            $res_pincode = trim($_POST['res_pincode']);
+
+            $comm_address_line1 = trim($_POST['comm_address_line1']);
+            $comm_address_line2 = trim($_POST['comm_address_line2']);
+            $comm_city = trim($_POST['comm_city']);
+            $comm_pincode = trim($_POST['comm_pincode']);
+
             $status = $_POST['status'];
             $chanda = $_POST['chanda_status'];
             $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-            // Handle Photo upload conversions to base64
+            // Handle Photo upload base64 formatting
             $photo_data = "https://placehold.co/150x150/0f766e/ffffff?text=" . urlencode($first_name . '+' . $last_name);
             if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
                 $file_tmp = $_FILES['photo']['tmp_name'];
@@ -31,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $photo_data = 'data:' . $file_type . ';base64,' . base64_encode($data);
             }
 
-            $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, father_husband_name, dob, gender, mahallah, address, phone, blood_group, occupation, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$card, $first_name, $last_name, $father, $dob, $gender, $mahallah, $address, $phone, $blood, $occupation, $status, $dec_date, $chanda, $photo_data, $dependents]);
+            $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, father_husband_name, dob, gender, mahallah, phone, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, comm_address_line1, comm_address_line2, comm_city, comm_pincode, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$card, $first_name, $last_name, $father, $dob, $gender, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $chanda, $photo_data, $dependents]);
 
             header("Location: members.php?msg=Member registered successfully");
             exit;

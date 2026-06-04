@@ -216,7 +216,7 @@ require_once 'header.php';
 
                 <div style="margin-top: 45px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 30px;">
                     <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Groom's Signature</div>
+                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary Signature</div>
                     </div>
                     <div style="text-align: center; width: 140px;">
                         <div style="border: 2px solid #0d9488; border-radius: 50%; width: 75px; height: 75px; line-height: 75px; margin: 0 auto; color: #0d9488; font-size: 10px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif;">Registry Seal</div>
