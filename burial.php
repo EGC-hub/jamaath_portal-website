@@ -346,7 +346,7 @@ require_once 'header.php';
                         <div style="border: 2px solid #334155; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; margin: 0 auto; color: #334155; font-size: 10px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif;">Registry Seal</div>
                     </div>
                     <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 11px; color: #475569; font-weight: 600; font-family: sans-serif;">Treasurer Signature</div>
+                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 11px; color: #475569; font-weight: 600; font-family: sans-serif;">President Signature</div>
                     </div>
                 </div>
             </div>
