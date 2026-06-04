@@ -8,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_POST['action'] === 'add_member') {
             $first_name = trim($_POST['first_name']);
             $last_name = trim($_POST['last_name']);
+            $family_name = trim($_POST['family_name']);
             $father = trim($_POST['father_husband_name']);
             $card = trim($_POST['card_no']);
             $dependents = (int) $_POST['dependents_count'];
@@ -43,8 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $photo_data = 'data:' . $file_type . ';base64,' . base64_encode($data);
             }
 
-            $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, father_husband_name, dob, gender, mahallah, phone, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, comm_address_line1, comm_address_line2, comm_city, comm_pincode, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$card, $first_name, $last_name, $father, $dob, $gender, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $chanda, $photo_data, $dependents]);
+            $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, mahallah, phone, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, comm_address_line1, comm_address_line2, comm_city, comm_pincode, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $chanda, $photo_data, $dependents]);
 
             header("Location: members.php?msg=Member registered successfully");
             exit;

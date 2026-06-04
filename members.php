@@ -95,7 +95,7 @@ require_once 'header.php';
                         </div>
 
                         <div class="md:col-span-2 space-y-3">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block font-semibold text-slate-600 mb-1">First Name *</label>
                                     <input type="text" name="first_name" required placeholder="First Name"
@@ -104,6 +104,11 @@ require_once 'header.php';
                                 <div>
                                     <label class="block font-semibold text-slate-600 mb-1">Last Name *</label>
                                     <input type="text" name="last_name" required placeholder="Last Name"
+                                        class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold text-slate-600 mb-1">Family Name</label>
+                                    <input type="text" name="family_name" placeholder="e.g. Kottar House"
                                         class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                                 </div>
                             </div>
@@ -376,6 +381,7 @@ require_once 'header.php';
                             <tr class="member-record-row hover:bg-slate-50/70 transition-colors"
                                 data-fname="<?php echo htmlspecialchars(strtolower($member['first_name'])); ?>"
                                 data-lname="<?php echo htmlspecialchars(strtolower($member['last_name'])); ?>"
+                                data-family="<?php echo htmlspecialchars(strtolower($member['family_name'] ?? '')); ?>"
                                 data-card="<?php echo htmlspecialchars(strtolower($member['card_no'])); ?>"
                                 data-father="<?php echo htmlspecialchars(strtolower($member['father_husband_name'])); ?>"
                                 data-phone="<?php echo htmlspecialchars($member['phone']); ?>"
@@ -539,6 +545,7 @@ require_once 'header.php';
         rows.forEach(row => {
             const rowFname = row.getAttribute('data-fname');
             const rowLname = row.getAttribute('data-lname');
+            const rowFamily = row.getAttribute('data-family') || '';
             const rowCard = row.getAttribute('data-card');
             const rowFather = row.getAttribute('data-father');
             const rowPhone = row.getAttribute('data-phone');
@@ -553,6 +560,7 @@ require_once 'header.php';
             const matchesSearch = searchVal === '' ||
                 rowFname.includes(searchVal) ||
                 rowLname.includes(searchVal) ||
+                rowFamily.includes(searchVal) ||
                 rowCard.includes(searchVal) ||
                 rowFather.includes(searchVal) ||
                 rowPhone.includes(searchVal);
