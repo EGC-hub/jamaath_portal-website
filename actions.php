@@ -127,18 +127,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Action: Register Nikah Ceremony Registry
         if ($_POST['action'] === 'add_nikah') {
-            $groom = trim($_POST['groom_name']);
-            $bride = trim($_POST['bride_name']);
+            $groom_name = trim($_POST['groom_name']);
+            $groom_father = trim($_POST['groom_father']);
+            $groom_age = (int) $_POST['groom_age'];
+            $groom_marriage_status = $_POST['groom_marriage_status'];
+            $groom_jamath = trim($_POST['groom_jamath']) ?: 'NVK Jamath (Vadasery)';
+
+            $bride_name = trim($_POST['bride_name']);
+            $bride_father = trim($_POST['bride_father']);
+            $bride_age = (int) $_POST['bride_age'];
+            $bride_marriage_status = $_POST['bride_marriage_status'];
+            $bride_jamath = trim($_POST['bride_jamath']) ?: 'NVK Jamath (Vadasery)';
+
             $datetime = $_POST['nikah_datetime'];
             $venue = trim($_POST['venue']);
-            // Capture checkbox: if checked it sends "1", if unchecked it's empty, so default to "0"
+            $book_reference = trim($_POST['book_reference']);
             $conducted_by_jamath = isset($_POST['conducted_by_jamath']) ? 1 : 0;
-            $details = trim($_POST['details']);
 
-            $stmt = $db->prepare("INSERT INTO nikah_registry (groom_name, bride_name, venue, conducted_by_jamath, nikah_datetime, details) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$groom, $bride, $venue, $conducted_by_jamath, $datetime, $details]);
+            // Strict Server-Side Legal Age Validation
+            if ($groom_age < 21) {
+                die("Validation Failed: The Groom must be at least 21 years of age according to Indian legal marriage boundaries.");
+            }
+            if ($bride_age < 18) {
+                die("Validation Failed: The Bride must be at least 18 years of age according to Indian legal marriage boundaries.");
+            }
 
-            header("Location: nikah.php?msg=Marriage certified registry logged");
+            $stmt = $db->prepare("INSERT INTO nikah_registry (groom_name, groom_father, groom_age, groom_marriage_status, groom_jamath, bride_name, bride_father, bride_age, bride_marriage_status, bride_jamath, venue, conducted_by_jamath, nikah_datetime, book_reference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$groom_name, $groom_father, $groom_age, $groom_marriage_status, $groom_jamath, $bride_name, $bride_father, $bride_age, $bride_marriage_status, $bride_jamath, $venue, $conducted_by_jamath, $datetime, $book_reference]);
+
+            header("Location: nikah.php?msg=Marriage certified registry logged with dynamic validations");
+            exit;
+        }
+
+        // Action: Update Existing Nikah Record
+        if ($_POST['action'] === 'edit_nikah') {
+            $id = (int) $_POST['id'];
+            $groom_name = trim($_POST['groom_name']);
+            $groom_father = trim($_POST['groom_father']);
+            $groom_age = (int) $_POST['groom_age'];
+            $groom_marriage_status = $_POST['groom_marriage_status'];
+            $groom_jamath = trim($_POST['groom_jamath']) ?: 'NVK Jamath (Vadasery)';
+
+            $bride_name = trim($_POST['bride_name']);
+            $bride_father = trim($_POST['bride_father']);
+            $bride_age = (int) $_POST['bride_age'];
+            $bride_marriage_status = $_POST['bride_marriage_status'];
+            $bride_jamath = trim($_POST['bride_jamath']) ?: 'NVK Jamath (Vadasery)';
+
+            $datetime = $_POST['nikah_datetime'];
+            $venue = trim($_POST['venue']);
+            $book_reference = trim($_POST['book_reference']);
+            $conducted_by_jamath = isset($_POST['conducted_by_jamath']) ? 1 : 0;
+
+            if ($groom_age < 21 || $bride_age < 18) {
+                die("Validation Failed: Legal marriage ages (21 for Grooms, 18 for Brides) must be met.");
+            }
+
+            $stmt = $db->prepare("UPDATE nikah_registry SET groom_name = ?, groom_father = ?, groom_age = ?, groom_marriage_status = ?, groom_jamath = ?, bride_name = ?, bride_father = ?, bride_age = ?, bride_marriage_status = ?, bride_jamath = ?, venue = ?, conducted_by_jamath = ?, nikah_datetime = ?, book_reference = ? WHERE id = ?");
+            $stmt->execute([$groom_name, $groom_father, $groom_age, $groom_marriage_status, $groom_jamath, $bride_name, $bride_father, $bride_age, $bride_marriage_status, $bride_jamath, $venue, $conducted_by_jamath, $datetime, $book_reference, $id]);
+
+            header("Location: nikah.php?msg=Certified marriage record updated successfully");
+            exit;
+        }
+
+        // Action: Permanent Delete Nikah Record
+        if ($_POST['action'] === 'delete_nikah') {
+            $id = (int) $_POST['id'];
+            $stmt = $db->prepare("DELETE FROM nikah_registry WHERE id = ?");
+            $stmt->execute([$id]);
+
+            header("Location: nikah.php?msg=Certified marriage record permanently deleted");
             exit;
         }
 
