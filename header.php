@@ -30,8 +30,16 @@ $active_script = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* Globally scale base font size to be larger and more legible */
+        html {
+            font-size: 16px;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            /* Upgraded base size from standard 14px */
+            line-height: 1.6;
         }
 
         .serif-title {
@@ -65,7 +73,8 @@ $active_script = basename($_SERVER['PHP_SELF']);
                         🕌
                     </div>
                     <div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Muslim Jamaath Portal
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Muslim Jamaath
+                            Portal
                         </h1>
                         <p
                             class="text-xs md:text-sm text-emerald-300 font-semibold tracking-wider uppercase flex items-center gap-1.5">

@@ -518,7 +518,7 @@ require_once 'header.php';
                                 class="member-record-row hover:bg-slate-50/75 transition-colors cursor-pointer">
                                 <td class="py-4 px-4 flex items-center space-x-3">
                                     <img src="<?php echo htmlspecialchars($member['photo']); ?>"
-                                        class="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm"
+                                        class="w-16 h-16 rounded-full border border-slate-200 object-cover shadow-sm"
                                         onerror="this.src='[https://placehold.co/150x150/0f766e/ffffff?text=](https://placehold.co/150x150/0f766e/ffffff?text=)<?php echo urlencode($member['first_name']); ?>'">
                                     <div>
                                         <div class="flex flex-wrap items-center gap-1.5 leading-tight">
@@ -629,7 +629,7 @@ require_once 'header.php';
 
             <div class="flex items-center space-x-4">
                 <img id="card-photo" src=""
-                    class="w-16 h-16 rounded-full border-2 border-white/80 object-cover shadow-md" alt="Avatar">
+                    class="w-28 h-28 rounded-full border-2 border-white/80 object-cover shadow-md" alt="Avatar">
                 <div>
                     <div class="flex items-center gap-2">
                         <h4 id="card-fullname" class="text-lg font-bold serif-title leading-none">---</h4>
