@@ -10,7 +10,7 @@ error_reporting(E_ALL);
 // Production MySQL Database connection credentials
 $db_host = 'localhost';
 $db_user = 'u184821809_nvk_admin';
-$db_pass = $config['db_password'];
+$db_pass = $config['dbPassword'];
 $db_name = 'u184821809_nvk_portal_db';
 
 try {
