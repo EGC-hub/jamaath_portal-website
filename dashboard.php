@@ -184,11 +184,14 @@ require_once 'header.php';
                                             <?php echo htmlspecialchars($m_dec['father_husband_name']); ?></span>
                                     </td>
                                     <td class="py-3.5 px-4 text-slate-600 font-bold text-xs">
-                                        <?php echo htmlspecialchars($m_dec['card_no']); ?></td>
+                                        <?php echo htmlspecialchars($m_dec['card_no']); ?>
+                                    </td>
                                     <td class="py-3.5 px-4 text-xs text-slate-500">
-                                        <?php echo htmlspecialchars($m_dec['mahallah']); ?></td>
+                                        <?php echo htmlspecialchars($m_dec['mahallah']); ?>
+                                    </td>
                                     <td class="py-3.5 px-4 text-rose-600 font-semibold text-xs">
-                                        <?php echo htmlspecialchars($m_dec['deceased_date']); ?></td>
+                                        <?php echo htmlspecialchars($m_dec['deceased_date']); ?>
+                                    </td>
                                     <td class="py-3.5 px-4 text-right">
                                         <form method="POST" action="actions.php">
                                             <input type="hidden" name="action" value="revert_active">
@@ -203,6 +206,76 @@ require_once 'header.php';
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- System Modules Quick Navigation Desk -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">System Modules Directory</h3>
+                    <p class="text-xs text-slate-500">Quick administrative gateway to all active system modules</p>
+                </div>
+            </div>
+
+            <!-- Grid Layout representing all Navbar links with creative tracking cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+
+                <!-- Core Modules -->
+                <a href="dashboard.php"
+                    class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-chart-line text-sm"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Dashboard</p>
+                        <p class="text-[10px] text-slate-400 font-medium">Core Metrics</p>
+                    </div>
+                </a>
+
+                <a href="members.php"
+                    class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-users text-sm"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Members Directory</p>
+                        <p class="text-[10px] text-slate-400 font-medium">Family Archives</p>
+                    </div>
+                </a>
+
+                <a href="baitul_mal.php"
+                    class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-handshake-angle text-sm"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Baitul-Mal</p>
+                        <p class="text-[10px] text-slate-400 font-medium">Welfare Ledger</p>
+                    </div>
+                </a>
+
+                <a href="nikah.php"
+                    class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-ring text-sm"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Nikah</p>
+                        <p class="text-[10px] text-slate-400 font-medium">Marriage Register</p>
+                    </div>
+                </a>
+
+                <a href="burial.php"
+                    class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-monument text-sm"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Burial</p>
+                        <p class="text-[10px] text-slate-400 font-medium">Burial Records</p>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
@@ -255,7 +328,8 @@ require_once 'header.php';
                         <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <div>
                                 <p class="text-xs font-bold text-slate-800">
-                                    <?php echo htmlspecialchars($unpaid['first_name'] . ' ' . $unpaid['last_name']); ?></p>
+                                    <?php echo htmlspecialchars($unpaid['first_name'] . ' ' . $unpaid['last_name']); ?>
+                                </p>
                                 <p class="text-[10px] text-slate-400">
                                     <?php if (!empty($unpaid['chanda_paid_to'])): ?>
                                         Paid up to: <span

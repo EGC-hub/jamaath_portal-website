@@ -87,7 +87,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
                     <div
                         class="hidden sm:flex items-center space-x-2 bg-emerald-950/60 backdrop-blur px-4 py-2 rounded-xl border border-emerald-700/50 shadow-inner">
                         <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                        <span class="text-xs text-emerald-100 font-semibold">Authorized Session</span>
+                        <span class="text-xs text-emerald-100 font-semibold">Welcome <?= htmlspecialchars($_SESSION['display_name']) ?></span>
                     </div>
                     <a href="logout.php"
                         class="bg-rose-700/90 hover:bg-rose-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow flex items-center space-x-1.5">
@@ -100,35 +100,36 @@ $active_script = basename($_SERVER['PHP_SELF']);
     </header>
 
     <!-- Navigation Tabs pointing directly to modular php pages -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex space-x-1 overflow-x-auto py-2.5 scrollbar-none">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm relative group">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center">
+
+            <div id="scrolling-navbar-strip"
+                class="flex space-x-1 overflow-x-auto py-2.5 flex-row flex-nowrap scroll-smooth w-full style-custom-scrollbar pr-10">
 
                 <a href="dashboard.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'dashboard.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'dashboard.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
                 </a>
 
                 <a href="members.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'members.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'members.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-users"></i> <span>Members Directory</span>
                 </a>
 
                 <a href="baitul_mal.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'baitul_mal.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'baitul_mal.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-handshake-angle"></i> <span>Baitul-Mal (Welfare)</span>
                 </a>
 
                 <a href="nikah.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'nikah.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'nikah.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-ring"></i> <span>Nikah Registry</span>
                 </a>
 
                 <a href="burial.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'burial.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'burial.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-monument"></i> <span>Burial Registry</span>
                 </a>
-
             </div>
         </div>
     </nav>

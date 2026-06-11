@@ -46,7 +46,8 @@
     class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">
         <h4 class="text-lg font-bold text-slate-800 mb-2">New Baitul-Mal Aid Application</h4>
-        <p class="text-xs text-slate-500 mb-4">Log a petition on behalf of an active under-privileged Jamaath family.</p>
+        <p class="text-xs text-slate-500 mb-4">Log a petition on behalf of an active under-privileged Jamaath family.
+        </p>
 
         <form method="POST" action="actions.php" class="space-y-4">
             <input type="hidden" name="action" value="add_welfare">
@@ -202,7 +203,15 @@
 <!-- Footer area -->
 <footer class="bg-slate-100 border-t border-slate-200 py-6 mt-12">
     <div class="max-w-7xl mx-auto px-4 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- Left Side: Copyright -->
         <p class="text-xs text-slate-500">&copy; <?php echo date('Y'); ?> NVK Muslim Jamaath, Nagercoil.</p>
+
+        <!-- Right Side: Powered By Credit -->
+        <p class="text-xs text-slate-500 font-medium">
+            Powered by <a href="https://euroglobalconsultancy.com" target="_blank"
+                class="text-blue-800 hover:text-blue-900 hover:underline font-bold transition-colors">Euro Global
+                Consultancy</a>
+        </p>
     </div>
 </footer>
 
@@ -310,13 +319,13 @@
 </script>
 
 <!-- Trigger system messages if redirects pass status text -->
-    <?php if (isset($_GET['msg'])): ?>
+<?php if (isset($_GET['msg'])): ?>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             showToast(<?php echo json_encode($_GET['msg']); ?>, "✅");
         });
     </script>
-    <?php endif; ?>
+<?php endif; ?>
 
 </body>
 

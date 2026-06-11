@@ -1,10 +1,11 @@
 <?php
 require_once 'db.php';
+require_once 'helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
 
-        // Action: Register New Member with Relational Dependents
+        // Action: Register New Member with Relational Dependents (File Directory Mode)
         if ($_POST['action'] === 'add_member') {
             $db->beginTransaction();
             try {
@@ -37,13 +38,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status = $_POST['status'];
                 $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-                // Photo Conversion to Base64
+                // Configure modern file storage pathway directory
+                $upload_dir = 'uploads/members/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                // Default placeholder avatar if no file is selected
                 $photo_data = "https://placehold.co/150x150/0f766e/ffffff?text=" . urlencode($first_name . '+' . $last_name);
+
                 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
                     $file_tmp = $_FILES['photo']['tmp_name'];
-                    $file_type = $_FILES['photo']['type'];
-                    $data = file_get_contents($file_tmp);
-                    $photo_data = 'data:' . $file_type . ';base64,' . base64_encode($data);
+                    $file_name = $_FILES['photo']['name'];
+                    $file_size = $_FILES['photo']['size'];
+
+                    // Enforce 5MB limit check per photo to ensure smooth server storage operation
+                    if ($file_size <= 5 * 1024 * 1024) {
+                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $safe_file_name = 'member_' . time() . '_' . uniqid() . '.' . $file_ext;
+                        $target_destination = $upload_dir . $safe_file_name;
+
+                        if (move_uploaded_file($file_tmp, $target_destination)) {
+                            $photo_data = $target_destination;
+                        }
+                    }
                 }
 
                 $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, marital_status, mahallah, phone, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, comm_address_line1, comm_address_line2, comm_city, comm_pincode, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, ?)");
@@ -51,17 +69,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $member_id = $db->lastInsertId();
 
-                // Loop and save dependents list
+                // Loop and save dependents list (with updated life status mappings)
                 if ($dependents_count > 0 && isset($_POST['dep_name'])) {
-                    $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender) VALUES (?, ?, ?, ?, ?)");
+                    $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender, status) VALUES (?, ?, ?, ?, ?, ?)");
                     for ($i = 0; $i < $dependents_count; $i++) {
                         if (!empty($_POST['dep_name'][$i])) {
+                            $dep_status = isset($_POST['dep_status'][$i]) ? $_POST['dep_status'][$i] : 'Alive';
                             $dep_stmt->execute([
-                                $member_id,
+                                $member_id, // For edit_member, replace this with $id
                                 trim($_POST['dep_name'][$i]),
                                 trim($_POST['dep_relationship'][$i]),
                                 $_POST['dep_dob'][$i],
-                                $_POST['dep_gender'][$i]
+                                $_POST['dep_gender'][$i],
+                                $dep_status
                             ]);
                         }
                     }
@@ -77,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Action: Edit / Update Existing Member & Dependents
+        // Action: Edit / Update Existing Member & Dependents (File Directory Mode)
         if ($_POST['action'] === 'edit_member') {
             $db->beginTransaction();
             try {
@@ -110,35 +130,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status = $_POST['status'];
                 $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-                // Photo update handling (if uploaded)
+                // Photo update handling via file manager system pathways
                 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
                     $file_tmp = $_FILES['photo']['tmp_name'];
-                    $file_type = $_FILES['photo']['type'];
-                    $data = file_get_contents($file_tmp);
-                    $photo_data = 'data:' . $file_type . ';base64,' . base64_encode($data);
+                    $file_name = $_FILES['photo']['name'];
+                    $file_size = $_FILES['photo']['size'];
 
-                    $stmt = $db->prepare("UPDATE members SET photo = ? WHERE id = ?");
-                    $stmt->execute([$photo_data, $id]);
+                    if ($file_size <= 5 * 1024 * 1024) {
+                        $upload_dir = 'uploads/members/';
+                        if (!is_dir($upload_dir)) {
+                            mkdir($upload_dir, 0755, true);
+                        }
+
+                        // Track down previous file location string to clean up server space
+                        $old_photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
+                        $old_photo_stmt->execute([$id]);
+                        $old_photo_path = $old_photo_stmt->fetchColumn();
+
+                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $safe_file_name = 'member_' . time() . '_' . uniqid() . '.' . $file_ext;
+                        $target_destination = $upload_dir . $safe_file_name;
+
+                        if (move_uploaded_file($file_tmp, $target_destination)) {
+                            // Drop old image from local server disk if it isn't an external API link
+                            if (!empty($old_photo_path) && file_exists($old_photo_path) && strpos($old_photo_path, 'http') === false) {
+                                @unlink($old_photo_path);
+                            }
+
+                            $stmt = $db->prepare("UPDATE members SET photo = ? WHERE id = ?");
+                            $stmt->execute([$target_destination, $id]);
+                        }
+                    }
                 }
 
-                // Update core record
+                // Update core record parameters
                 $stmt = $db->prepare("UPDATE members SET card_no = ?, first_name = ?, last_name = ?, family_name = ?, father_husband_name = ?, dob = ?, gender = ?, marital_status = ?, mahallah = ?, phone = ?, blood_group = ?, occupation = ?, designation = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, comm_address_line1 = ?, comm_address_line2 = ?, comm_city = ?, comm_pincode = ?, status = ?, deceased_date = ?, dependents_count = ? WHERE id = ?");
                 $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $dependents_count, $id]);
 
-                // Sync Dependents: Delete existing dependents and insert current set to keep clean integrity
+                // Sync Dependents table properties accurately
                 $del_stmt = $db->prepare("DELETE FROM member_dependents WHERE member_id = ?");
                 $del_stmt->execute([$id]);
 
                 if ($dependents_count > 0 && isset($_POST['dep_name'])) {
-                    $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender) VALUES (?, ?, ?, ?, ?)");
+                    $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender, status) VALUES (?, ?, ?, ?, ?, ?)");
                     for ($i = 0; $i < $dependents_count; $i++) {
                         if (!empty($_POST['dep_name'][$i])) {
+                            $dep_status = isset($_POST['dep_status'][$i]) ? $_POST['dep_status'][$i] : 'Alive';
                             $dep_stmt->execute([
                                 $id,
                                 trim($_POST['dep_name'][$i]),
                                 trim($_POST['dep_relationship'][$i]),
                                 $_POST['dep_dob'][$i],
-                                $_POST['dep_gender'][$i]
+                                $_POST['dep_gender'][$i],
+                                $dep_status
                             ]);
                         }
                     }
@@ -154,11 +198,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Action: Permanent Delete Member Record (Automatically cascades and deletes dependents)
+        // Action: Permanent Delete Member Record (Cleans up profile image file from disk automatically)
         if ($_POST['action'] === 'delete_member') {
             $id = (int) $_POST['id'];
+
+            // Track photo path reference before deleting database records
+            $photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
+            $photo_stmt->execute([$id]);
+            $member_photo_path = $photo_stmt->fetchColumn();
+
+            // Clear database row properties (Cascades down and safely wipes associated dependents row properties)
             $stmt = $db->prepare("DELETE FROM members WHERE id = ?");
             $stmt->execute([$id]);
+
+            // Clean up disk footprint
+            if (!empty($member_photo_path) && file_exists($member_photo_path) && strpos($member_photo_path, 'http') === false) {
+                @unlink($member_photo_path);
+            }
 
             header("Location: members.php?msg=Member record deleted permanently");
             exit;
@@ -446,24 +502,437 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Action: Add Direct Burial log
+        // Action: Add Certified Burial Log Record
         if ($_POST['action'] === 'add_burial') {
-            $name = trim($_POST['deceased_name']);
-            $death_datetime = !empty($_POST['death_datetime']) ? $_POST['death_datetime'] : null;
-            $burial_datetime = $_POST['burial_datetime'];
-            $plot = trim($_POST['plot_details']);
+            $db->beginTransaction();
+            try {
+                $is_jamaath_member_input = (int) $_POST['is_jamaath_member'];
+                $deceased_member_id = null;
+                $deceased_dependent_id = null;
+                $deceased_name = '';
+                $deceased_father_husband = '';
+                $deceased_age = null;
+                $deceased_gender = '';
+                $deceased_jamath = 'NVK Jamath (Vadasery)';
+                $noc_provided = 0;
+                $actual_is_jamaath = 0; // Stored as 1 in DB for all Jamath residents (both members & dependents)
 
-            $reported_by_member = isset($_POST['reported_by_member']) ? 1 : 0;
-            $reporter_member_id = ($reported_by_member && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
+                if ($is_jamaath_member_input === 1) {
+                    // Primary Member
+                    $actual_is_jamaath = 1;
+                    $deceased_member_id = (int) $_POST['deceased_member_id'];
+                    $m_stmt = $db->prepare("SELECT first_name, last_name, father_husband_name, gender, dob FROM members WHERE id = ?");
+                    $m_stmt->execute([$deceased_member_id]);
+                    $member = $m_stmt->fetch();
+                    if ($member) {
+                        $deceased_name = $member['first_name'] . ' ' . $member['last_name'];
+                        $deceased_father_husband = $member['father_husband_name'];
+                        $deceased_gender = $member['gender'];
+                        if (!empty($member['dob'])) {
+                            $deceased_age = calculateAge($member['dob']);
+                        }
+                        // AUTOMATIC: Set life status of primary member to Deceased
+                        $up_stmt = $db->prepare("UPDATE members SET status = 'Deceased', deceased_date = ? WHERE id = ?");
+                        $up_stmt->execute([substr($_POST['burial_datetime'], 0, 10), $deceased_member_id]);
+                    }
+                } elseif ($is_jamaath_member_input === 2) {
+                    // Dependent
+                    $actual_is_jamaath = 1;
+                    $deceased_dependent_id = (int) $_POST['deceased_dependent_id'];
+                    $d_stmt = $db->prepare("
+                        SELECT d.*, m.first_name AS prim_first, m.last_name AS prim_last, m.father_husband_name AS prim_father
+                        FROM member_dependents d
+                        JOIN members m ON d.member_id = m.id
+                        WHERE d.id = ?
+                    ");
+                    $d_stmt->execute([$deceased_dependent_id]);
+                    $dep = $d_stmt->fetch();
+                    if ($dep) {
+                        $deceased_name = $dep['name'];
+                        $deceased_father_husband = ($dep['relationship'] === 'Son' || $dep['relationship'] === 'Daughter') ? ($dep['prim_first'] . ' ' . $dep['prim_last']) : $dep['prim_father'];
+                        $deceased_gender = $dep['gender'];
+                        if (!empty($dep['dob'])) {
+                            $deceased_age = calculateAge($dep['dob']);
+                        }
+                        // AUTOMATIC: Set life status of dependent to Deceased
+                        $up_stmt = $db->prepare("UPDATE member_dependents SET status = 'Deceased' WHERE id = ?");
+                        $up_stmt->execute([$deceased_dependent_id]);
+                    }
+                } else {
+                    // Non-Jamaath Profile
+                    $actual_is_jamaath = 0;
+                    $deceased_name = trim($_POST['manual_deceased_name']);
+                    $deceased_father_husband = trim($_POST['manual_deceased_father']);
+                    $deceased_age = (int) $_POST['manual_deceased_age'];
+                    $deceased_gender = $_POST['manual_deceased_gender'];
+                    $deceased_jamath = trim($_POST['manual_deceased_jamath']) ?: 'Outside Jamath';
+                    $noc_provided = isset($_POST['noc_provided']) ? 1 : 0;
+                }
 
-            $reporter_name = (!$reported_by_member && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
-            $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
-            $reporter_relationship = (!$reported_by_member && !empty($_POST['reporter_relationship'])) ? trim($_POST['reporter_relationship']) : null;
+                $death_datetime = !empty($_POST['death_datetime']) ? $_POST['death_datetime'] : null;
+                $burial_datetime = $_POST['burial_datetime'];
+                $plot = trim($_POST['plot_details']);
 
-            $stmt = $db->prepare("INSERT INTO burial_registry (deceased_name, death_datetime, reported_by_member, reporter_member_id, reporter_name, reporter_phone, reporter_relationship, burial_datetime, plot_details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$name, $death_datetime, $reported_by_member, $reporter_member_id, $reporter_name, $reporter_phone, $reporter_relationship, $burial_datetime, $plot]);
+                // Informant/Reporter details
+                $reported_by_member = isset($_POST['reported_by_member']) ? 1 : 0;
+                $reporter_member_id = ($reported_by_member && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
+                $reporter_name = (!$reported_by_member && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
+                $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+                $reporter_relationship = !empty($_POST['reporter_relationship']) ? trim($_POST['reporter_relationship']) : null;
 
-            header("Location: burial.php?msg=Burial plot logged to archives");
+                $ins_stmt = $db->prepare("
+                    INSERT INTO burial_registry (
+                        is_jamaath_member, deceased_member_id, deceased_dependent_id, deceased_name, 
+                        deceased_father_husband, deceased_age, deceased_gender, deceased_jamath,
+                        death_datetime, burial_datetime, plot_details, noc_provided, 
+                        reported_by_member, reporter_member_id, reporter_name, reporter_phone, reporter_relationship
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $ins_stmt->execute([
+                    $actual_is_jamaath,
+                    $deceased_member_id,
+                    $deceased_dependent_id,
+                    $deceased_name,
+                    $deceased_father_husband,
+                    $deceased_age,
+                    $deceased_gender,
+                    $deceased_jamath,
+                    $death_datetime,
+                    $burial_datetime,
+                    $plot,
+                    $noc_provided,
+                    $reported_by_member,
+                    $reporter_member_id,
+                    $reporter_name,
+                    $reporter_phone,
+                    $reporter_relationship
+                ]);
+
+                $db->commit();
+                header("Location: burial.php?msg=Certified burial record successfully archived");
+                exit;
+            } catch (Exception $e) {
+                $db->rollBack();
+                die("Failed to register burial record: " . htmlspecialchars($e->getMessage()));
+            }
+        }
+
+
+        // Action: Edit/Update Certified Burial Log Record
+        if ($_POST['action'] === 'edit_burial') {
+            $db->beginTransaction();
+            try {
+                $id = (int) $_POST['id'];
+
+                // Fetch original record to manage status rollback safely
+                $orig_stmt = $db->prepare("SELECT * FROM burial_registry WHERE id = ?");
+                $orig_stmt->execute([$id]);
+                $orig = $orig_stmt->fetch();
+
+                if (!$orig) {
+                    throw new Exception("Burial registry record not found.");
+                }
+
+                // If previous was primary member, temporarily revert them to Alive
+                if (!empty($orig['deceased_member_id'])) {
+                    $rev_stmt = $db->prepare("UPDATE members SET status = 'Alive', deceased_date = NULL WHERE id = ?");
+                    $rev_stmt->execute([$orig['deceased_member_id']]);
+                }
+                // If previous was dependent, temporarily revert them to Alive
+                if (!empty($orig['deceased_dependent_id'])) {
+                    $rev_stmt = $db->prepare("UPDATE member_dependents SET status = 'Alive' WHERE id = ?");
+                    $rev_stmt->execute([$orig['deceased_dependent_id']]);
+                }
+
+                $is_jamaath_member_input = (int) $_POST['is_jamaath_member'];
+                $deceased_member_id = null;
+                $deceased_dependent_id = null;
+                $deceased_name = '';
+                $deceased_father_husband = '';
+                $deceased_age = null;
+                $deceased_gender = '';
+                $deceased_jamath = 'NVK Jamath (Vadasery)';
+                $noc_provided = 0;
+                $actual_is_jamaath = 0;
+
+                if ($is_jamaath_member_input === 1) {
+                    $actual_is_jamaath = 1;
+                    $deceased_member_id = (int) $_POST['deceased_member_id'];
+                    $m_stmt = $db->prepare("SELECT first_name, last_name, father_husband_name, gender, dob FROM members WHERE id = ?");
+                    $m_stmt->execute([$deceased_member_id]);
+                    $member = $m_stmt->fetch();
+                    if ($member) {
+                        $deceased_name = $member['first_name'] . ' ' . $member['last_name'];
+                        $deceased_father_husband = $member['father_husband_name'];
+                        $deceased_gender = $member['gender'];
+                        if (!empty($member['dob'])) {
+                            $deceased_age = calculateAge($member['dob']);
+                        }
+                        // Set primary member status to Deceased
+                        $up_stmt = $db->prepare("UPDATE members SET status = 'Deceased', deceased_date = ? WHERE id = ?");
+                        $up_stmt->execute([substr($_POST['burial_datetime'], 0, 10), $deceased_member_id]);
+                    }
+                } elseif ($is_jamaath_member_input === 2) {
+                    $actual_is_jamaath = 1;
+                    $deceased_dependent_id = (int) $_POST['deceased_dependent_id'];
+                    $d_stmt = $db->prepare("
+                        SELECT d.*, m.first_name AS prim_first, m.last_name AS prim_last, m.father_husband_name AS prim_father
+                        FROM member_dependents d
+                        JOIN members m ON d.member_id = m.id
+                        WHERE d.id = ?
+                    ");
+                    $d_stmt->execute([$deceased_dependent_id]);
+                    $dep = $d_stmt->fetch();
+                    if ($dep) {
+                        $deceased_name = $dep['name'];
+                        $deceased_father_husband = ($dep['relationship'] === 'Son' || $dep['relationship'] === 'Daughter') ? ($dep['prim_first'] . ' ' . $dep['prim_last']) : $dep['prim_father'];
+                        $deceased_gender = $dep['gender'];
+                        if (!empty($dep['dob'])) {
+                            $deceased_age = calculateAge($dep['dob']);
+                        }
+                        // Set dependent's status to Deceased
+                        $up_stmt = $db->prepare("UPDATE member_dependents SET status = 'Deceased' WHERE id = ?");
+                        $up_stmt->execute([$deceased_dependent_id]);
+                    }
+                } else {
+                    $actual_is_jamaath = 0;
+                    $deceased_name = trim($_POST['manual_deceased_name']);
+                    $deceased_father_husband = trim($_POST['manual_deceased_father']);
+                    $deceased_age = (int) $_POST['manual_deceased_age'];
+                    $deceased_gender = $_POST['manual_deceased_gender'];
+                    $deceased_jamath = trim($_POST['manual_deceased_jamath']) ?: 'Outside Jamath';
+                    $noc_provided = isset($_POST['noc_provided']) ? 1 : 0;
+                }
+
+                $death_datetime = !empty($_POST['death_datetime']) ? $_POST['death_datetime'] : null;
+                $burial_datetime = $_POST['burial_datetime'];
+                $plot = trim($_POST['plot_details']);
+
+                // Informant/Reporter details
+                $reported_by_member = isset($_POST['reported_by_member']) ? 1 : 0;
+                $reporter_member_id = ($reported_by_member && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
+                $reporter_name = (!$reported_by_member && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
+                $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+                $reporter_relationship = !empty($_POST['reporter_relationship']) ? trim($_POST['reporter_relationship']) : null;
+
+                $upd_stmt = $db->prepare("
+                    UPDATE burial_registry SET 
+                        is_jamaath_member = ?, deceased_member_id = ?, deceased_dependent_id = ?, 
+                        deceased_name = ?, deceased_father_husband = ?, deceased_age = ?, 
+                        deceased_gender = ?, deceased_jamath = ?, death_datetime = ?, 
+                        burial_datetime = ?, plot_details = ?, noc_provided = ?, 
+                        reported_by_member = ?, reporter_member_id = ?, reporter_name = ?, 
+                        reporter_phone = ?, reporter_relationship = ?
+                    WHERE id = ?
+                ");
+                $upd_stmt->execute([
+                    $actual_is_jamaath,
+                    $deceased_member_id,
+                    $deceased_dependent_id,
+                    $deceased_name,
+                    $deceased_father_husband,
+                    $deceased_age,
+                    $deceased_gender,
+                    $deceased_jamath,
+                    $death_datetime,
+                    $burial_datetime,
+                    $plot,
+                    $noc_provided,
+                    $reported_by_member,
+                    $reporter_member_id,
+                    $reporter_name,
+                    $reporter_phone,
+                    $reporter_relationship,
+                    $id
+                ]);
+
+                $db->commit();
+                header("Location: burial.php?msg=Certified burial record successfully updated");
+                exit;
+            } catch (Exception $e) {
+                $db->rollBack();
+                die("Failed to update burial record: " . htmlspecialchars($e->getMessage()));
+            }
+        }
+
+        // Action: Permanent Delete Certified Burial Log Record
+        if ($_POST['action'] === 'delete_burial') {
+            $db->beginTransaction();
+            try {
+                $id = (int) $_POST['id'];
+
+                // Fetch details to check if status rollback is needed
+                $stmt = $db->prepare("SELECT deceased_member_id, deceased_dependent_id FROM burial_registry WHERE id = ?");
+                $stmt->execute([$id]);
+                $rec = $stmt->fetch();
+
+                if ($rec) {
+                    if (!empty($rec['deceased_member_id'])) {
+                        $rev_stmt = $db->prepare("UPDATE members SET status = 'Alive', deceased_date = NULL WHERE id = ?");
+                        $rev_stmt->execute([$rec['deceased_member_id']]);
+                    }
+                    if (!empty($rec['deceased_dependent_id'])) {
+                        $rev_stmt = $db->prepare("UPDATE member_dependents SET status = 'Alive' WHERE id = ?");
+                        $rev_stmt->execute([$rec['deceased_dependent_id']]);
+                    }
+                }
+
+                $del_stmt = $db->prepare("DELETE FROM burial_registry WHERE id = ?");
+                $del_stmt->execute([$id]);
+
+                $db->commit();
+                header("Location: burial.php?msg=Certified burial record permanently deleted");
+                exit;
+            } catch (Exception $e) {
+                $db->rollBack();
+                die("Failed to delete burial record: " . htmlspecialchars($e->getMessage()));
+            }
+        }
+
+        // ==========================================
+        // DYNAMIC CMS GALLERY ACTIONS (FILE SYSTEM MODE)
+        // ==========================================
+
+        // Action: Add Gallery Item with 1GB Cap Limits
+        if ($_POST['action'] === 'add_gallery_item') {
+            $heading = trim($_POST['heading']);
+            $caption = trim($_POST['caption']);
+
+            // Fetch current storage sum
+            $size_stmt = $db->query("SELECT IFNULL(SUM(image_size), 0) FROM gallery");
+            $total_bytes = (int) $size_stmt->fetchColumn();
+            $limit_bytes = 1073741824; // 1GB in bytes
+
+            if ($total_bytes >= $limit_bytes) {
+                header("Location: manage_gallery.php?error=" . urlencode("Restricted: The 1GB collective storage limit is fully occupied. Please contact Euro Global Consultancy to upgrade your environment."));
+                exit;
+            }
+
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['image']['tmp_name'];
+                $file_name = $_FILES['image']['name'];
+                $file_size = $_FILES['image']['size'];
+
+                // Enforce 5MB upload safeguard per image
+                if ($file_size > 5 * 1024 * 1024) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: Individual images are capped at 5MB to preserve collective space."));
+                    exit;
+                }
+
+                if (($total_bytes + $file_size) > $limit_bytes) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: This image would breach the 1GB collective storage cap. Please contact Euro Global Consultancy."));
+                    exit;
+                }
+
+                // Prepare safe storage target paths
+                $upload_dir = 'uploads/gallery/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $safe_file_name = 'gallery_' . time() . '_' . uniqid() . '.' . $file_ext;
+                $target_destination = $upload_dir . $safe_file_name;
+
+                // Move from temporary execution space to storage folder
+                if (move_uploaded_file($file_tmp, $target_destination)) {
+                    $ins = $db->prepare("INSERT INTO gallery (heading, caption, image_path, image_size) VALUES (?, ?, ?, ?)");
+                    $ins->execute([$heading, $caption, $target_destination, $file_size]);
+
+                    header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset published to public website successfully!"));
+                    exit;
+                } else {
+                    header("Location: manage_gallery.php?error=" . urlencode("Server Disk Error: Failed to write uploaded image to target folder directory."));
+                    exit;
+                }
+            } else {
+                header("Location: manage_gallery.php?error=" . urlencode("Please choose a valid image file to upload."));
+                exit;
+            }
+        }
+
+        // Action: Update Gallery Item
+        if ($_POST['action'] === 'edit_gallery_item') {
+            $id = (int) $_POST['id'];
+            $heading = trim($_POST['heading']);
+            $caption = trim($_POST['caption']);
+
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['image']['tmp_name'];
+                $file_name = $_FILES['image']['name'];
+                $file_size = $_FILES['image']['size'];
+
+                if ($file_size > 5 * 1024 * 1024) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: Individual images are limited to 5MB."));
+                    exit;
+                }
+
+                // Fetch current item parameters to get previous image path and disk size
+                $orig_stmt = $db->prepare("SELECT image_path, image_size FROM gallery WHERE id = ?");
+                $orig_stmt->execute([$id]);
+                $orig = $orig_stmt->fetch();
+                $orig_size = $orig ? (int) $orig['image_size'] : 0;
+                $old_file_path = $orig ? $orig['image_path'] : '';
+
+                $size_stmt = $db->query("SELECT IFNULL(SUM(image_size), 0) FROM gallery");
+                $total_bytes = (int) $size_stmt->fetchColumn();
+                $limit_bytes = 1073741824;
+
+                if (($total_bytes - $orig_size + $file_size) > $limit_bytes) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: Exceeds the 1GB collective storage. Contact Euro Global Consultancy."));
+                    exit;
+                }
+
+                // Prepare storage directory
+                $upload_dir = 'uploads/gallery/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $safe_file_name = 'gallery_' . time() . '_' . uniqid() . '.' . $file_ext;
+                $target_destination = $upload_dir . $safe_file_name;
+
+                if (move_uploaded_file($file_tmp, $target_destination)) {
+                    // Delete the old file from disk if it exists
+                    if (!empty($old_file_path) && file_exists($old_file_path)) {
+                        @unlink($old_file_path);
+                    }
+
+                    $up = $db->prepare("UPDATE gallery SET heading = ?, caption = ?, image_path = ?, image_size = ? WHERE id = ?");
+                    $up->execute([$heading, $caption, $target_destination, $file_size, $id]);
+                } else {
+                    header("Location: manage_gallery.php?error=" . urlencode("Server Disk Error: Failed to save modified asset image file."));
+                    exit;
+                }
+            } else {
+                $up = $db->prepare("UPDATE gallery SET heading = ?, caption = ? WHERE id = ?");
+                $up->execute([$heading, $caption, $id]);
+            }
+
+            header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset modified successfully!"));
+            exit;
+        }
+
+        // Action: Delete Gallery Item
+        if ($_POST['action'] === 'delete_gallery_item') {
+            $id = (int) $_POST['id'];
+
+            // Fetch the physical file location before wiping reference parameters
+            $file_stmt = $db->prepare("SELECT image_path FROM gallery WHERE id = ?");
+            $file_stmt->execute([$id]);
+            $file_path = $file_stmt->fetchColumn();
+
+            // Clear database row parameters
+            $del = $db->prepare("DELETE FROM gallery WHERE id = ?");
+            $del->execute([$id]);
+
+            // Physically drop the asset from the web server disk storage
+            if (!empty($file_path) && file_exists($file_path)) {
+                @unlink($file_path);
+            }
+
+            header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset deleted successfully from CMS."));
             exit;
         }
     }
