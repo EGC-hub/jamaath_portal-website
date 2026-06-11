@@ -179,7 +179,7 @@ require_once 'header.php';
                                     <td class="py-4 px-4">
                                         <?php if (!empty($nikah['conducted_by_jamath']) && $nikah['conducted_by_jamath'] == 1): ?>
                                                 <span class="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-150 uppercase tracking-wider">
-                                                    NVK Jamath
+                                                    NVK Jamaath
                                                 </span>
                                         <?php else: ?>
                                                 <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200 uppercase tracking-wider">
@@ -281,7 +281,7 @@ require_once 'header.php';
                         </div>
                     </div>
                     <div>
-                        <p class="text-[10px] text-slate-400 font-semibold uppercase">Jamath Affiliation</p>
+                        <p class="text-[10px] text-slate-400 font-semibold uppercase">Jamaath Affiliation</p>
                         <p id="pop-groom-jamath" class="font-semibold text-slate-700">---</p>
                     </div>
                 </div>
@@ -310,7 +310,7 @@ require_once 'header.php';
                         </div>
                     </div>
                     <div>
-                        <p class="text-[10px] text-slate-400 font-semibold uppercase">Jamath Affiliation</p>
+                        <p class="text-[10px] text-slate-400 font-semibold uppercase">Jamaath Affiliation</p>
                         <p id="pop-bride-jamath" class="font-semibold text-slate-700">---</p>
                     </div>
                 </div>
@@ -323,7 +323,7 @@ require_once 'header.php';
                     <p id="pop-venue" class="font-bold text-slate-800 mt-0.5">---</p>
                 </div>
                 <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Officiator / Jamath Seal</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Officiator / Jamaath Seal</p>
                     <p id="pop-officiator" class="font-bold text-slate-800 mt-0.5">---</p>
                 </div>
             </div>
@@ -377,15 +377,15 @@ require_once 'header.php';
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Groom Origin *</label>
                         <div class="flex gap-4">
                             <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="radio" id="groom_origin_jamath" name="groom_origin" value="jamath" checked onchange="toggleGroomFields()" class="text-teal-600 focus:ring-teal-500"> Within Jamath
+                                <input type="radio" id="groom_origin_jamath" name="groom_origin" value="jamath" checked onchange="toggleGroomFields()" class="text-teal-600 focus:ring-teal-500"> Within Jamaath
                             </label>
                             <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="radio" id="groom_origin_external" name="groom_origin" value="external" onchange="toggleGroomFields()" class="text-teal-600 focus:ring-teal-500"> Outside Jamath
+                                <input type="radio" id="groom_origin_external" name="groom_origin" value="external" onchange="toggleGroomFields()" class="text-teal-600 focus:ring-teal-500"> Outside Jamaath
                             </label>
                         </div>
                     </div>
 
-                    <!-- Option A: Groom is inside Jamath -->
+                    <!-- Option A: Groom is inside Jamaath -->
                     <div id="groom_jamath_container" class="space-y-2">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase">Select Groom (Eligible Males 21+) *</label>
                         <select id="groom_select" name="groom_member_id" onchange="autoPopulateGroom()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none">
@@ -398,7 +398,7 @@ require_once 'header.php';
                         </select>
                     </div>
 
-                    <!-- Option B: Groom is outside Jamath OR Auto-populated static parameters -->
+                    <!-- Option B: Groom is outside Jamaath OR Auto-populated static parameters -->
                     <div class="space-y-2">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Groom Name *</label>
@@ -423,8 +423,8 @@ require_once 'header.php';
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Groom Jamath</label>
-                            <input type="text" id="groom_jamath_field" name="groom_jamath" placeholder="e.g. NVK Jamath (Vadasery)" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Groom Jamaath</label>
+                            <input type="text" id="groom_jamath_field" name="groom_jamath" placeholder="e.g. NVK Jamaath (Vadasery)" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -437,15 +437,15 @@ require_once 'header.php';
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Bride Origin *</label>
                         <div class="flex gap-4">
                             <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="radio" id="bride_origin_jamath" name="bride_origin" value="jamath" checked onchange="toggleBrideFields()" class="text-teal-600 focus:ring-teal-500"> Within Jamath
+                                <input type="radio" id="bride_origin_jamath" name="bride_origin" value="jamath" checked onchange="toggleBrideFields()" class="text-teal-600 focus:ring-teal-500"> Within Jamaath
                             </label>
                             <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="radio" id="bride_origin_external" name="bride_origin" value="external" onchange="toggleBrideFields()" class="text-teal-600 focus:ring-teal-500"> Outside Jamath
+                                <input type="radio" id="bride_origin_external" name="bride_origin" value="external" onchange="toggleBrideFields()" class="text-teal-600 focus:ring-teal-500"> Outside Jamaath
                             </label>
                         </div>
                     </div>
 
-                    <!-- Option A: Bride is inside Jamath -->
+                    <!-- Option A: Bride is inside Jamaath -->
                     <div id="bride_jamath_container" class="space-y-2">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase">Select Bride (Eligible Females 18+) *</label>
                         <select id="bride_select" name="bride_member_id" onchange="autoPopulateBride()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none">
@@ -458,7 +458,7 @@ require_once 'header.php';
                         </select>
                     </div>
 
-                    <!-- Option B: Bride is outside Jamath OR Auto-populated static parameters -->
+                    <!-- Option B: Bride is outside Jamaath OR Auto-populated static parameters -->
                     <div class="space-y-2">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Bride Name *</label>
@@ -483,8 +483,8 @@ require_once 'header.php';
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Bride Jamath</label>
-                            <input type="text" id="bride_jamath_field" name="bride_jamath" placeholder="e.g. NVK Jamath (Vadasery)" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Bride Jamaath</label>
+                            <input type="text" id="bride_jamath_field" name="bride_jamath" placeholder="e.g. NVK Jamaath (Vadasery)" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -509,7 +509,7 @@ require_once 'header.php';
                 </div>
                 <div class="flex items-center h-full pt-4">
                     <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-700 font-bold select-none">
-                        <input type="checkbox" id="nikah-conducted-check" name="conducted_by_jamath" value="1" checked class="h-4 w-4 text-teal-600 focus:ring-teal-500 rounded border-slate-300"> Fully Conducted by NVK Jamath Committee
+                        <input type="checkbox" id="nikah-conducted-check" name="conducted_by_jamath" value="1" checked class="h-4 w-4 text-teal-600 focus:ring-teal-500 rounded border-slate-300"> Fully Conducted by NVK Jamaath
                     </label>
                 </div>
             </div>
@@ -536,18 +536,18 @@ require_once 'header.php';
         document.getElementById('pop-groom-father').textContent = nikah.groom_father ? "S/O " + nikah.groom_father : "---";
         document.getElementById('pop-groom-age').textContent = nikah.groom_age ? nikah.groom_age + " Years" : "---";
         document.getElementById('pop-groom-status').textContent = nikah.groom_marriage_status || "First Marriage";
-        document.getElementById('pop-groom-jamath').textContent = nikah.groom_jamath || "NVK Jamath";
+        document.getElementById('pop-groom-jamath').textContent = nikah.groom_jamath || "NVK Jamaath";
 
         // Populate Bride details
         document.getElementById('pop-bride-name').textContent = nikah.bride_name;
         document.getElementById('pop-bride-father').textContent = nikah.bride_father ? "D/O " + nikah.bride_father : "---";
         document.getElementById('pop-bride-age').textContent = nikah.bride_age ? nikah.bride_age + " Years" : "---";
         document.getElementById('pop-bride-status').textContent = nikah.bride_marriage_status || "First Marriage";
-        document.getElementById('pop-bride-jamath').textContent = nikah.bride_jamath || "NVK Jamath";
+        document.getElementById('pop-bride-jamath').textContent = nikah.bride_jamath || "NVK Jamaath";
 
         // Metadata details
         document.getElementById('pop-venue').textContent = nikah.venue;
-        document.getElementById('pop-officiator').textContent = (nikah.conducted_by_jamath == 1) ? "NVK Jamath Chief Imam" : "Private Event Officiator";
+        document.getElementById('pop-officiator').textContent = (nikah.conducted_by_jamath == 1) ? "NVK Jamaath Chief Imam" : "Private Event Officiator";
         document.getElementById('pop-book').textContent = nikah.book_reference || "Legacy Archive (No reference mapped)";
 
         // Configure Issue Certificate Button
@@ -561,7 +561,7 @@ require_once 'header.php';
             };
         } else {
             certBtn.disabled = true;
-            certBtn.title = "Official Certificate issuance is restricted to weddings fully officiated by our Jamath Committee.";
+            certBtn.title = "Official Certificate issuance is restricted to weddings fully officiated by our Jamaath.";
             certBtn.className = "bg-slate-100 text-slate-400 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-not-allowed";
             certBtn.onclick = null;
         }
@@ -674,7 +674,7 @@ require_once 'header.php';
             groomName.value = selectedOption.getAttribute('data-name');
             groomFather.value = selectedOption.getAttribute('data-father');
             groomAge.value = selectedOption.getAttribute('data-age');
-            groomJamath.value = "NVK Jamath (Vadasery)";
+            groomJamath.value = "NVK Jamaath (Vadasery)";
         } else {
             groomName.value = "";
             groomFather.value = "";
@@ -696,7 +696,7 @@ require_once 'header.php';
             brideName.value = selectedOption.getAttribute('data-name');
             brideFather.value = selectedOption.getAttribute('data-father');
             brideAge.value = selectedOption.getAttribute('data-age');
-            brideJamath.value = "NVK Jamath (Vadasery)";
+            brideJamath.value = "NVK Jamaath (Vadasery)";
         } else {
             brideName.value = "";
             brideFather.value = "";
@@ -748,13 +748,13 @@ require_once 'header.php';
         document.getElementById('groom_father_field').value = nikah.groom_father || '';
         document.getElementById('groom_age_field').value = nikah.groom_age || '';
         document.getElementById('groom_marriage_field').value = nikah.groom_marriage_status || 'First Marriage';
-        document.getElementById('groom_jamath_field').value = nikah.groom_jamath || 'NVK Jamath (Vadasery)';
+        document.getElementById('groom_jamath_field').value = nikah.groom_jamath || 'NVK Jamaath (Vadasery)';
 
         document.getElementById('bride_name_field').value = nikah.bride_name;
         document.getElementById('bride_father_field').value = nikah.bride_father || '';
         document.getElementById('bride_age_field').value = nikah.bride_age || '';
         document.getElementById('bride_marriage_field').value = nikah.bride_marriage_status || 'First Marriage';
-        document.getElementById('bride_jamath_field').value = nikah.bride_jamath || 'NVK Jamath (Vadasery)';
+        document.getElementById('bride_jamath_field').value = nikah.bride_jamath || 'NVK Jamaath (Vadasery)';
 
         document.getElementById('nikah-datetime-field').value = nikah.nikah_datetime.replace(" ", "T").substring(0, 16);
         document.getElementById('nikah-venue-field').value = nikah.venue;
@@ -825,7 +825,7 @@ require_once 'header.php';
                 
                 <!-- Gold Emblem Ribbons -->
                 <div style="text-align: center; margin-bottom: 15px;">
-                    <h1 style="margin: 0; color: #115e59; font-size: 30px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Jamath Committee</h1>
+                    <h1 style="margin: 0; color: #115e59; font-size: 30px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Jamaath</h1>
                     <p style="margin: 5px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 4px; font-weight: bold; color: #0f766e;">Vadasery, Nagercoil, Kanyakumari District, Tamil Nadu</p>
                     <div style="width: 250px; height: 3px; background: linear-gradient(to right, transparent, #b45309, transparent); margin: 12px auto 4px auto;"></div>
                     <div style="width: 150px; height: 1px; background: #e2e8f0; margin: 0 auto;"></div>
@@ -833,7 +833,7 @@ require_once 'header.php';
 
                 <div style="text-align: center; margin-bottom: 30px;">
                     <h2 style="font-family: Georgia, serif; font-style: italic; color: #b45309; font-size: 24px; margin: 5px 0;">Certificate of Islamic Marriage</h2>
-                    <p style="font-size: 12px; color: #64748b; margin: 0; font-family: sans-serif;">This is to certify that the marriage contract (Nikah) has been completed and registered under our Jamath.</p>
+                    <p style="font-size: 12px; color: #64748b; margin: 0; font-family: sans-serif;">This is to certify that the marriage contract (Nikah) has been completed and registered under our Jamaath.</p>
                 </div>
 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; font-size: 15px;">
@@ -877,13 +877,13 @@ require_once 'header.php';
 
                 <div style="margin-top: 45px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 30px;">
                     <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary Signature</div>
+                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary</div>
                     </div>
                     <div style="text-align: center; width: 140px;">
                         <div style="border: 2px solid #0d9488; border-radius: 50%; width: 75px; height: 75px; line-height: 75px; margin: 0 auto; color: #0d9488; font-size: 10px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif;">Registry Seal</div>
                     </div>
                     <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Chief Imam Registrar</div>
+                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Chief Imam</div>
                     </div>
                 </div>
             </div>

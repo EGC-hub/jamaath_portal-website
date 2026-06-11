@@ -132,7 +132,8 @@ require_once 'header.php';
                     <option value="All">All Mahallahs</option>
                     <?php foreach ($wards_list as $w_opt): ?>
                         <option value="<?php echo $w_opt; ?>" <?php echo $filter_mahallah == $w_opt ? 'selected' : ''; ?>>
-                            <?php echo $w_opt; ?></option>
+                            <?php echo $w_opt; ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
                 <select name="status" onchange="document.getElementById('filter-form').submit()"
@@ -671,17 +672,20 @@ require_once 'header.php';
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="p-3 border border-slate-150 rounded-xl">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-phone text-emerald-700"></i> Contact Phone</p>
+                        <i class="fa-solid fa-phone text-emerald-700"></i> Contact Phone
+                    </p>
                     <p id="card-phone" class="font-bold text-slate-800 mt-1">---</p>
                 </div>
                 <div class="p-3 border border-slate-150 rounded-xl">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-map-pin text-teal-700"></i> Mahallah Ward</p>
+                        <i class="fa-solid fa-map-pin text-teal-700"></i> Mahallah Ward
+                    </p>
                     <p id="card-mahallah" class="font-bold text-slate-800 mt-1">---</p>
                 </div>
                 <div class="p-3 border border-slate-150 rounded-xl">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-briefcase text-slate-600"></i> Occupation</p>
+                        <i class="fa-solid fa-briefcase text-slate-600"></i> Occupation
+                    </p>
                     <p id="card-occupation" class="font-bold text-slate-800 mt-1">---</p>
                 </div>
             </div>
@@ -689,7 +693,8 @@ require_once 'header.php';
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="p-3 border border-slate-150 rounded-xl">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-droplet text-rose-600"></i> Blood Group</p>
+                        <i class="fa-solid fa-droplet text-rose-600"></i> Blood Group
+                    </p>
                     <p id="card-blood" class="font-bold text-slate-800 mt-1">---</p>
                 </div>
                 <div class="p-3 border border-slate-150 rounded-xl flex items-center justify-around col-span-2">
@@ -769,13 +774,15 @@ require_once 'header.php';
                 <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-200">
                     <p
                         class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-2">
-                        <i class="fa-solid fa-house text-emerald-700"></i> Residential Address</p>
+                        <i class="fa-solid fa-house text-emerald-700"></i> Residential Address
+                    </p>
                     <p id="card-res-address" class="text-slate-600 leading-relaxed font-semibold">---</p>
                 </div>
                 <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-200">
                     <p
                         class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-2">
-                        <i class="fa-solid fa-envelope-open-text text-teal-700"></i> Communication Address</p>
+                        <i class="fa-solid fa-envelope-open-text text-teal-700"></i> Communication Address
+                    </p>
                     <p id="card-comm-address" class="text-slate-600 leading-relaxed font-semibold">---</p>
                 </div>
             </div>
@@ -823,40 +830,48 @@ require_once 'header.php';
             container.classList.remove('hidden');
 
             for (let i = 0; i < dependentsCount; i++) {
-                const data = initialData[i] || { name: '', relationship: 'Son', dob: '', gender: 'Male' };
+                const data = initialData[i] || { name: '', relationship: 'Son', dob: '', gender: 'Male', status: 'Alive' };
 
                 const card = document.createElement('div');
-                card.className = "grid grid-cols-1 sm:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-slate-200 items-end";
+                // Upgraded grid layout column configuration to sm:grid-cols-5
+                card.className = "grid grid-cols-1 sm:grid-cols-5 gap-2 bg-white p-3 rounded-xl border border-slate-200 items-end";
 
                 card.innerHTML = `
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">Dependent #${i + 1} Name *</label>
-                        <input type="text" name="dep_name[]" value="${data.name}" required placeholder="Name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">Relationship *</label>
-                        <select name="dep_relationship[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                            <option value="Son" ${data.relationship === 'Son' ? 'selected' : ''}>Son</option>
-                            <option value="Daughter" ${data.relationship === 'Daughter' ? 'selected' : ''}>Daughter</option>
-                            <option value="Spouse" ${data.relationship === 'Spouse' ? 'selected' : ''}>Spouse</option>
-                            <option value="Mother" ${data.relationship === 'Mother' ? 'selected' : ''}>Mother</option>
-                            <option value="Father" ${data.relationship === 'Father' ? 'selected' : ''}>Father</option>
-                            <option value="Sibling" ${data.relationship === 'Sibling' ? 'selected' : ''}>Sibling</option>
-                            <option value="Other" ${data.relationship === 'Other' ? 'selected' : ''}>Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">Date of Birth *</label>
-                        <input type="date" name="dep_dob[]" value="${data.dob}" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">Gender *</label>
-                        <select name="dep_gender[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                            <option value="Male" ${data.gender === 'Male' ? 'selected' : ''}>Male</option>
-                            <option value="Female" ${data.gender === 'Female' ? 'selected' : ''}>Female</option>
-                        </select>
-                    </div>
-                `;
+    <div>
+        <label class="block text-xs font-bold text-slate-400 mb-1">Dependent #${i + 1} Name *</label>
+        <input type="text" name="dep_name[]" value="${data.name}" required placeholder="Name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-slate-400 mb-1">Relationship *</label>
+        <select name="dep_relationship[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+            <option value="Son" ${data.relationship === 'Son' ? 'selected' : ''}>Son</option>
+            <option value="Daughter" ${data.relationship === 'Daughter' ? 'selected' : ''}>Daughter</option>
+            <option value="Spouse" ${data.relationship === 'Spouse' ? 'selected' : ''}>Spouse</option>
+            <option value="Mother" ${data.relationship === 'Mother' ? 'selected' : ''}>Mother</option>
+            <option value="Father" ${data.relationship === 'Father' ? 'selected' : ''}>Father</option>
+            <option value="Sibling" ${data.relationship === 'Sibling' ? 'selected' : ''}>Sibling</option>
+            <option value="Other" ${data.relationship === 'Other' ? 'selected' : ''}>Other</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-slate-400 mb-1">Date of Birth *</label>
+        <input type="date" name="dep_dob[]" value="${data.dob}" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-slate-400 mb-1">Gender *</label>
+        <select name="dep_gender[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+            <option value="Male" ${data.gender === 'Male' ? 'selected' : ''}>Male</option>
+            <option value="Female" ${data.gender === 'Female' ? 'selected' : ''}>Female</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-slate-400 mb-1">Life Status *</label>
+        <select name="dep_status[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+            <option value="Alive" ${data.status === 'Alive' ? 'selected' : ''}>Alive</option>
+            <option value="Deceased" ${data.status === 'Deceased' ? 'selected' : ''}>Deceased</option>
+        </select>
+    </div>
+`;
                 grid.appendChild(card);
             }
         } else {
@@ -1108,16 +1123,25 @@ require_once 'header.php';
             depContainer.classList.remove('hidden');
             member.dependents.forEach((dep, idx) => {
                 const depRow = document.createElement('div');
-                depRow.className = "flex items-center justify-between py-2 text-[11px] text-slate-700 " + (idx > 0 ? "border-t border-indigo-100/55" : "");
+                depRow.className = "flex items-center justify-between py-2.5 text-sm text-slate-700 " + (idx > 0 ? "border-t border-indigo-100/55" : "");
+
+                const isDeceased = dep.status === 'Deceased';
+                const statusBadge = isDeceased
+                    ? `<span class="bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">🕊️ Deceased (Marhoom)</span>`
+                    : `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Alive</span>`;
+
                 depRow.innerHTML = `
-                    <div>
-                        <p class="font-bold text-slate-800">👤 ${escapeHtml(dep.name)}</p>
-                        <p class="text-[9px] text-slate-400 font-mono">DOB: ${formatDateJS(dep.dob)} | Gender: ${dep.gender}</p>
-                    </div>
-                    <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide">
-                        ${escapeHtml(dep.relationship)}
-                    </span>
-                `;
+        <div>
+            <p class="font-bold ${isDeceased ? 'text-slate-400 line-through' : 'text-slate-800'}">👤 ${escapeHtml(dep.name)}</p>
+            <p class="text-[11px] text-slate-400 font-mono">DOB: ${formatDateJS(dep.dob)} | Gender: ${dep.gender}</p>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                ${escapeHtml(dep.relationship)}
+            </span>
+            ${statusBadge}
+        </div>
+    `;
                 depList.appendChild(depRow);
             });
         } else {
