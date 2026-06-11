@@ -274,12 +274,12 @@ require_once 'header.php';
             <input type="hidden" name="id" id="inflow-form-id" value="">
 
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Donor / Contribution Source *</label>
+                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Donor Name / Contribution Source *</label>
                 <input type="text" name="donor_name" id="inflow-field-donor" required placeholder="Full Name or Group (e.g., General Sadaqa)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Deposit Type *</label>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Source Type *</label>
                     <select name="type" id="inflow-field-type" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         <option value="Chanda">Chanda Collections</option>
                         <option value="Sadaqa">Sadaqa Aid</option>
@@ -288,7 +288,7 @@ require_once 'header.php';
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Deposited Amount (₹) *</label>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Received Amount (₹) *</label>
                     <input type="number" name="amount" id="inflow-field-amount" required placeholder="Amount" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
             </div>

@@ -181,21 +181,37 @@ require_once 'header.php';
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div
-                            class="flex flex-col items-center justify-center p-3 border border-dashed border-slate-200 rounded-xl bg-white">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Member
+                            class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                            <label
+                                class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Member
                                 Photo</label>
-                            <div
-                                class="relative w-28 h-28 bg-slate-100 rounded-2xl overflow-hidden mb-2 border border-slate-200 flex items-center justify-center">
-                                <img id="photo-preview"
-                                    src="[https://placehold.co/150x150/0f766e/ffffff?text=No+Photo](https://placehold.co/150x150/0f766e/ffffff?text=No+Photo)"
-                                    class="object-cover w-full h-full" alt="Preview">
+
+                            <!-- Professional Dynamic Placeholder Container -->
+                            <div class="w-32 h-32 rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 flex flex-col items-center justify-center text-center relative group shadow-inner mb-3"
+                                id="member-photo-container">
+                                <!-- Hidden by default until an image is loaded or edited -->
+                                <img id="photo-preview" src=""
+                                    class="hidden w-full h-full object-cover absolute inset-0">
+
+                                <!-- Visible Placeholder Block -->
+                                <div id="photo-placeholder"
+                                    class="flex flex-col items-center justify-center text-slate-400 space-y-1 p-2">
+                                    <i class="fa-solid fa-user-tie text-3xl text-slate-300"></i>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider leading-tight">No
+                                        Image<br>Uploaded</span>
+                                </div>
                             </div>
-                            <input type="file" name="photo" id="member-photo-input" accept="image/*"
-                                onchange="handlePhotoChange(event)" class="hidden">
-                            <button type="button" onclick="document.getElementById('member-photo-input').click()"
-                                class="bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-100">
-                                <i class="fa-solid fa-camera mr-1"></i> Upload
-                            </button>
+
+                            <!-- The actual file input tag -->
+                            <label
+                                class="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm">
+                                <i class="fa-solid fa-camera text-slate-400"></i> Upload Photo
+                                <input type="file" name="photo" accept="image/*" class="hidden"
+                                    onchange="previewMemberImageOnSelect(event)">
+                            </label>
+                            <p id="photo_requirement_note"
+                                class="text-[9px] text-red-700 text-center mt-2 max-w-[140px] leading-tight">Max size:
+                                5MB.</p>
                         </div>
 
                         <div class="md:col-span-2 space-y-3">
@@ -988,7 +1004,16 @@ require_once 'header.php';
     // Reset Console
     function resetFormToCreateState() {
         document.getElementById('member-master-form').reset();
-        document.getElementById('photo-preview').src = "[https://placehold.co/150x150/0f766e/ffffff?text=No+Photo](https://placehold.co/150x150/0f766e/ffffff?text=No+Photo)";
+
+        // Clear and toggle preview elements back to placeholder states safely
+        const preview = document.getElementById('photo-preview');
+        const placeholder = document.getElementById('photo-placeholder');
+        if (preview && placeholder) {
+            preview.src = "";
+            preview.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }
+        document.getElementById('photo_requirement_note').textContent = "Max size: 5MB.";
 
         document.getElementById('form-action-field').value = 'add_member';
         document.getElementById('form-member-id-field').value = '';
@@ -1001,9 +1026,25 @@ require_once 'header.php';
         toggleFormDeceasedDate('Alive');
     }
 
+    function previewMemberImageOnSelect(event) {
+        const input = event.target;
+        const preview = document.getElementById('photo-preview');
+        const placeholder = document.getElementById('photo-placeholder');
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden'); // Show image
+                placeholder.classList.add('hidden'); // Hide "No Image Uploaded" text
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     // Open Interactive Profile Card Pop-up with dependents listing and Period Chanda tracking
     function openProfileCard(member) {
-        document.getElementById('card-photo').src = member.photo || '[https://placehold.co/150x150/0f766e/ffffff?text=](https://placehold.co/150x150/0f766e/ffffff?text=)' + encodeURIComponent(member.first_name);
+        document.getElementById('card-photo').src = (member.photo && member.photo.startsWith('uploads/')) ? member.photo : 'https://placehold.co/150x150/0f766e/ffffff?text=' + encodeURIComponent(member.first_name);
         document.getElementById('card-fullname').textContent = member.first_name + ' ' + member.last_name;
         document.getElementById('card-family-name').textContent = member.family_name ? '(' + member.family_name + ')' : '';
         document.getElementById('card-card-no').textContent = member.card_no;

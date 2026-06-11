@@ -100,41 +100,135 @@ $active_script = basename($_SERVER['PHP_SELF']);
     </header>
 
     <!-- Navigation Tabs pointing directly to modular php pages -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex space-x-1 overflow-x-auto py-2.5 scrollbar-none">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm relative group">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center">
+
+            <button onclick="scrollNavbar('-') rectangular"
+                class="absolute left-2 z-40 bg-white/90 backdrop-blur border border-slate-200 text-slate-600 hover:text-emerald-800 hover:border-emerald-300 w-8 h-8 rounded-lg shadow-sm flex items-center justify-center transition-all md:opacity-0 group-hover:opacity-100 focus:opacity-100 active:scale-95 cursor-pointer"
+                title="Scroll Left">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+
+            <div id="scrolling-navbar-strip"
+                class="flex space-x-1 overflow-x-auto py-2.5 flex-row flex-nowrap scroll-smooth w-full style-custom-scrollbar pr-10">
 
                 <a href="dashboard.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'dashboard.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'dashboard.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
                 </a>
 
                 <a href="members.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'members.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'members.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-users"></i> <span>Members Directory</span>
                 </a>
 
                 <a href="baitul_mal.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'baitul_mal.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'baitul_mal.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-handshake-angle"></i> <span>Baitul-Mal (Welfare)</span>
                 </a>
 
                 <a href="nikah.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'nikah.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'nikah.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-ring"></i> <span>Nikah Registry</span>
                 </a>
 
                 <a href="burial.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'burial.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'burial.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-monument"></i> <span>Burial Registry</span>
                 </a>
 
-                <a href="backup.php"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'backup.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                    <i class="fa-solid fa-database"></i> <span>Backup & Restore</span>
+                <a href="manage_gallery.php"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'manage_gallery.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-images"></i> <span>Website CMS Gallery</span>
+                </a>
+
+                <a href="unassigned.php?feature=Backup+and+Restore"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Backup and Restore') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-database text-slate-400"></i> <span>Backup & Restore</span>
+                </a>
+
+                <a href="unassigned.php?feature=Academy"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Academy') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-graduation-cap text-slate-400"></i> <span>Academy</span>
+                </a>
+
+                <a href="unassigned.php?feature=Income+and+Expenses"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Income and Expenses') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-money-bill-transfer text-slate-400"></i> <span>Income & Expenses</span>
+                </a>
+
+                <a href="unassigned.php?feature=Arabic+School"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Arabic School') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-book-quran text-slate-400"></i> <span>Arabic School</span>
+                </a>
+
+                <a href="unassigned.php?feature=Employee+Salary"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Employee Salary') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-wallet text-slate-400"></i> <span>Employee Salary</span>
+                </a>
+
+                <a href="unassigned.php?feature=Transportation"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Transportation') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-bus text-slate-400"></i> <span>Transportation</span>
+                </a>
+
+                <a href="unassigned.php?feature=Property+Register"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo (isset($_GET['feature']) && $_GET['feature'] === 'Property Register') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-building text-slate-400"></i> <span>Property Register</span>
                 </a>
             </div>
+
+            <button onclick="scrollNavbar('+')"
+                class="absolute right-2 z-40 bg-white/90 backdrop-blur border border-slate-200 text-slate-600 hover:text-emerald-800 hover:border-emerald-300 w-8 h-8 rounded-lg shadow-sm flex items-center justify-center transition-all md:opacity-0 group-hover:opacity-100 focus:opacity-100 active:scale-95 cursor-pointer"
+                title="Scroll Right">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+
         </div>
     </nav>
+
+    <style>
+        /* Premium Thin Custom Scrollbar for modern web engines */
+        .style-custom-scrollbar::-webkit-scrollbar {
+            height: 5px;
+            /* Ultra sleek, non-intrusive thickness */
+        }
+
+        .style-custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            /* Light slate rail */
+            border-radius: 10px;
+        }
+
+        .style-custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            /* Subtle default thumb state */
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .style-custom-scrollbar:hover::-webkit-scrollbar-thumb {
+            background: #059669;
+            /* Snaps to crisp brand Emerald green when working within the nav bar area */
+        }
+    </style>
+
+    <script>
+        /**
+         * Native Smooth Step Scroller Engine
+         * Moves the navigation container horizontally when arrows are clicked
+         */
+        function scrollNavbar(direction) {
+            const navContainer = document.getElementById('scrolling-navbar-strip');
+            if (navContainer) {
+                // Scroll by a fixed 220px step interval per click
+                const scrollAmount = direction === '+' ? 220 : -220;
+                navContainer.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    </script>
 
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">

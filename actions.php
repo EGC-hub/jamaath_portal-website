@@ -5,7 +5,7 @@ require_once 'helpers.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
 
-        // Action: Register New Member with Relational Dependents
+        // Action: Register New Member with Relational Dependents (File Directory Mode)
         if ($_POST['action'] === 'add_member') {
             $db->beginTransaction();
             try {
@@ -38,13 +38,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status = $_POST['status'];
                 $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-                // Photo Conversion to Base64
+                // Configure modern file storage pathway directory
+                $upload_dir = 'uploads/members/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                // Default placeholder avatar if no file is selected
                 $photo_data = "https://placehold.co/150x150/0f766e/ffffff?text=" . urlencode($first_name . '+' . $last_name);
+
                 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
                     $file_tmp = $_FILES['photo']['tmp_name'];
-                    $file_type = $_FILES['photo']['type'];
-                    $data = file_get_contents($file_tmp);
-                    $photo_data = 'data:' . $file_type . ';base64,' . base64_encode($data);
+                    $file_name = $_FILES['photo']['name'];
+                    $file_size = $_FILES['photo']['size'];
+
+                    // Enforce 5MB limit check per photo to ensure smooth server storage operation
+                    if ($file_size <= 5 * 1024 * 1024) {
+                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $safe_file_name = 'member_' . time() . '_' . uniqid() . '.' . $file_ext;
+                        $target_destination = $upload_dir . $safe_file_name;
+
+                        if (move_uploaded_file($file_tmp, $target_destination)) {
+                            $photo_data = $target_destination;
+                        }
+                    }
                 }
 
                 $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, marital_status, mahallah, phone, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, comm_address_line1, comm_address_line2, comm_city, comm_pincode, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, ?)");
@@ -52,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $member_id = $db->lastInsertId();
 
-                // Loop and save dependents list
+                // Loop and save dependents list (with updated life status mappings)
                 if ($dependents_count > 0 && isset($_POST['dep_name'])) {
                     $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender, status) VALUES (?, ?, ?, ?, ?, ?)");
                     for ($i = 0; $i < $dependents_count; $i++) {
@@ -80,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Action: Edit / Update Existing Member & Dependents
+        // Action: Edit / Update Existing Member & Dependents (File Directory Mode)
         if ($_POST['action'] === 'edit_member') {
             $db->beginTransaction();
             try {
@@ -113,35 +130,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status = $_POST['status'];
                 $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-                // Photo update handling (if uploaded)
+                // Photo update handling via file manager system pathways
                 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
                     $file_tmp = $_FILES['photo']['tmp_name'];
-                    $file_type = $_FILES['photo']['type'];
-                    $data = file_get_contents($file_tmp);
-                    $photo_data = 'data:' . $file_type . ';base64,' . base64_encode($data);
+                    $file_name = $_FILES['photo']['name'];
+                    $file_size = $_FILES['photo']['size'];
 
-                    $stmt = $db->prepare("UPDATE members SET photo = ? WHERE id = ?");
-                    $stmt->execute([$photo_data, $id]);
+                    if ($file_size <= 5 * 1024 * 1024) {
+                        $upload_dir = 'uploads/members/';
+                        if (!is_dir($upload_dir)) {
+                            mkdir($upload_dir, 0755, true);
+                        }
+
+                        // Track down previous file location string to clean up server space
+                        $old_photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
+                        $old_photo_stmt->execute([$id]);
+                        $old_photo_path = $old_photo_stmt->fetchColumn();
+
+                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $safe_file_name = 'member_' . time() . '_' . uniqid() . '.' . $file_ext;
+                        $target_destination = $upload_dir . $safe_file_name;
+
+                        if (move_uploaded_file($file_tmp, $target_destination)) {
+                            // Drop old image from local server disk if it isn't an external API link
+                            if (!empty($old_photo_path) && file_exists($old_photo_path) && strpos($old_photo_path, 'http') === false) {
+                                @unlink($old_photo_path);
+                            }
+
+                            $stmt = $db->prepare("UPDATE members SET photo = ? WHERE id = ?");
+                            $stmt->execute([$target_destination, $id]);
+                        }
+                    }
                 }
 
-                // Update core record
+                // Update core record parameters
                 $stmt = $db->prepare("UPDATE members SET card_no = ?, first_name = ?, last_name = ?, family_name = ?, father_husband_name = ?, dob = ?, gender = ?, marital_status = ?, mahallah = ?, phone = ?, blood_group = ?, occupation = ?, designation = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, comm_address_line1 = ?, comm_address_line2 = ?, comm_city = ?, comm_pincode = ?, status = ?, deceased_date = ?, dependents_count = ? WHERE id = ?");
                 $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $dependents_count, $id]);
 
-                // Sync Dependents: Delete existing dependents and insert current set to keep clean integrity
+                // Sync Dependents table properties accurately
                 $del_stmt = $db->prepare("DELETE FROM member_dependents WHERE member_id = ?");
                 $del_stmt->execute([$id]);
 
                 if ($dependents_count > 0 && isset($_POST['dep_name'])) {
-                    $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender) VALUES (?, ?, ?, ?, ?)");
+                    $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender, status) VALUES (?, ?, ?, ?, ?, ?)");
                     for ($i = 0; $i < $dependents_count; $i++) {
                         if (!empty($_POST['dep_name'][$i])) {
+                            $dep_status = isset($_POST['dep_status'][$i]) ? $_POST['dep_status'][$i] : 'Alive';
                             $dep_stmt->execute([
                                 $id,
                                 trim($_POST['dep_name'][$i]),
                                 trim($_POST['dep_relationship'][$i]),
                                 $_POST['dep_dob'][$i],
-                                $_POST['dep_gender'][$i]
+                                $_POST['dep_gender'][$i],
+                                $dep_status
                             ]);
                         }
                     }
@@ -157,11 +198,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Action: Permanent Delete Member Record (Automatically cascades and deletes dependents)
+        // Action: Permanent Delete Member Record (Cleans up profile image file from disk automatically)
         if ($_POST['action'] === 'delete_member') {
             $id = (int) $_POST['id'];
+
+            // Track photo path reference before deleting database records
+            $photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
+            $photo_stmt->execute([$id]);
+            $member_photo_path = $photo_stmt->fetchColumn();
+
+            // Clear database row properties (Cascades down and safely wipes associated dependents row properties)
             $stmt = $db->prepare("DELETE FROM members WHERE id = ?");
             $stmt->execute([$id]);
+
+            // Clean up disk footprint
+            if (!empty($member_photo_path) && file_exists($member_photo_path) && strpos($member_photo_path, 'http') === false) {
+                @unlink($member_photo_path);
+            }
 
             header("Location: members.php?msg=Member record deleted permanently");
             exit;
@@ -734,6 +787,153 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->rollBack();
                 die("Failed to delete burial record: " . htmlspecialchars($e->getMessage()));
             }
+        }
+
+        // ==========================================
+        // DYNAMIC CMS GALLERY ACTIONS (FILE SYSTEM MODE)
+        // ==========================================
+
+        // Action: Add Gallery Item with 1GB Cap Limits
+        if ($_POST['action'] === 'add_gallery_item') {
+            $heading = trim($_POST['heading']);
+            $caption = trim($_POST['caption']);
+
+            // Fetch current storage sum
+            $size_stmt = $db->query("SELECT IFNULL(SUM(image_size), 0) FROM gallery");
+            $total_bytes = (int) $size_stmt->fetchColumn();
+            $limit_bytes = 1073741824; // 1GB in bytes
+
+            if ($total_bytes >= $limit_bytes) {
+                header("Location: manage_gallery.php?error=" . urlencode("Restricted: The 1GB collective storage limit is fully occupied. Please contact Euro Global Consultancy to upgrade your environment."));
+                exit;
+            }
+
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['image']['tmp_name'];
+                $file_name = $_FILES['image']['name'];
+                $file_size = $_FILES['image']['size'];
+
+                // Enforce 5MB upload safeguard per image
+                if ($file_size > 5 * 1024 * 1024) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: Individual images are capped at 5MB to preserve collective space."));
+                    exit;
+                }
+
+                if (($total_bytes + $file_size) > $limit_bytes) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: This image would breach the 1GB collective storage cap. Please contact Euro Global Consultancy."));
+                    exit;
+                }
+
+                // Prepare safe storage target paths
+                $upload_dir = 'uploads/gallery/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $safe_file_name = 'gallery_' . time() . '_' . uniqid() . '.' . $file_ext;
+                $target_destination = $upload_dir . $safe_file_name;
+
+                // Move from temporary execution space to storage folder
+                if (move_uploaded_file($file_tmp, $target_destination)) {
+                    $ins = $db->prepare("INSERT INTO gallery (heading, caption, image_path, image_size) VALUES (?, ?, ?, ?)");
+                    $ins->execute([$heading, $caption, $target_destination, $file_size]);
+
+                    header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset published to public website successfully!"));
+                    exit;
+                } else {
+                    header("Location: manage_gallery.php?error=" . urlencode("Server Disk Error: Failed to write uploaded image to target folder directory."));
+                    exit;
+                }
+            } else {
+                header("Location: manage_gallery.php?error=" . urlencode("Please choose a valid image file to upload."));
+                exit;
+            }
+        }
+
+        // Action: Update Gallery Item
+        if ($_POST['action'] === 'edit_gallery_item') {
+            $id = (int) $_POST['id'];
+            $heading = trim($_POST['heading']);
+            $caption = trim($_POST['caption']);
+
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['image']['tmp_name'];
+                $file_name = $_FILES['image']['name'];
+                $file_size = $_FILES['image']['size'];
+
+                if ($file_size > 5 * 1024 * 1024) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: Individual images are limited to 5MB."));
+                    exit;
+                }
+
+                // Fetch current item parameters to get previous image path and disk size
+                $orig_stmt = $db->prepare("SELECT image_path, image_size FROM gallery WHERE id = ?");
+                $orig_stmt->execute([$id]);
+                $orig = $orig_stmt->fetch();
+                $orig_size = $orig ? (int) $orig['image_size'] : 0;
+                $old_file_path = $orig ? $orig['image_path'] : '';
+
+                $size_stmt = $db->query("SELECT IFNULL(SUM(image_size), 0) FROM gallery");
+                $total_bytes = (int) $size_stmt->fetchColumn();
+                $limit_bytes = 1073741824;
+
+                if (($total_bytes - $orig_size + $file_size) > $limit_bytes) {
+                    header("Location: manage_gallery.php?error=" . urlencode("Upload Failed: Exceeds the 1GB collective storage. Contact Euro Global Consultancy."));
+                    exit;
+                }
+
+                // Prepare storage directory
+                $upload_dir = 'uploads/gallery/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $safe_file_name = 'gallery_' . time() . '_' . uniqid() . '.' . $file_ext;
+                $target_destination = $upload_dir . $safe_file_name;
+
+                if (move_uploaded_file($file_tmp, $target_destination)) {
+                    // Delete the old file from disk if it exists
+                    if (!empty($old_file_path) && file_exists($old_file_path)) {
+                        @unlink($old_file_path);
+                    }
+
+                    $up = $db->prepare("UPDATE gallery SET heading = ?, caption = ?, image_path = ?, image_size = ? WHERE id = ?");
+                    $up->execute([$heading, $caption, $target_destination, $file_size, $id]);
+                } else {
+                    header("Location: manage_gallery.php?error=" . urlencode("Server Disk Error: Failed to save modified asset image file."));
+                    exit;
+                }
+            } else {
+                $up = $db->prepare("UPDATE gallery SET heading = ?, caption = ? WHERE id = ?");
+                $up->execute([$heading, $caption, $id]);
+            }
+
+            header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset modified successfully!"));
+            exit;
+        }
+
+        // Action: Delete Gallery Item
+        if ($_POST['action'] === 'delete_gallery_item') {
+            $id = (int) $_POST['id'];
+
+            // Fetch the physical file location before wiping reference parameters
+            $file_stmt = $db->prepare("SELECT image_path FROM gallery WHERE id = ?");
+            $file_stmt->execute([$id]);
+            $file_path = $file_stmt->fetchColumn();
+
+            // Clear database row parameters
+            $del = $db->prepare("DELETE FROM gallery WHERE id = ?");
+            $del->execute([$id]);
+
+            // Physically drop the asset from the web server disk storage
+            if (!empty($file_path) && file_exists($file_path)) {
+                @unlink($file_path);
+            }
+
+            header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset deleted successfully from CMS."));
+            exit;
         }
     }
 }

@@ -38,4 +38,37 @@ function formatIndianCurrency($num)
 
     return $negative . $remaining_formatted . ',' . $last_three;
 }
+
+function get_global_flash_message()
+{
+    // 1. If session status isn't active yet, start it safely
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $flash = [
+        'success' => '',
+        'error' => ''
+    ];
+
+    // Check Session Storage (New Flash Method)
+    if (isset($_SESSION['flash_msg'])) {
+        $flash['success'] = $_SESSION['flash_msg'];
+        unset($_SESSION['flash_msg']); // Delete immediately so it won't show on refresh
+    }
+    if (isset($_SESSION['flash_error'])) {
+        $flash['error'] = $_SESSION['flash_error'];
+        unset($_SESSION['flash_error']); // Delete immediately
+    }
+
+    // Fallback: Check URL Query String parameters (Old Method)
+    if (empty($flash['success']) && isset($_GET['msg'])) {
+        $flash['success'] = $_GET['msg'];
+    }
+    if (empty($flash['error']) && isset($_GET['error'])) {
+        $flash['error'] = $_GET['error'];
+    }
+
+    return $flash;
+}
 ?>
