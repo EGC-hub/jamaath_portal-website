@@ -13,6 +13,11 @@
         rel="stylesheet">
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- International Telephone Input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
+
+    <!-- Google reCAPTCHA API -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
     <style>
         body {
@@ -21,6 +26,12 @@
 
         .serif-title {
             font-family: 'Playfair Display', serif;
+        }
+
+        /* Ensure the intl-tel-input container behaves correctly within Tailwind's full-width layouts */
+        .iti {
+            width: 100% !important;
+            display: block !important;
         }
     </style>
 </head>
@@ -65,8 +76,8 @@
     <!-- Subpage Banner -->
     <section class="bg-gradient-to-r from-emerald-950 to-teal-900 text-white py-12 px-4 text-center">
         <h2 class="text-3xl font-extrabold serif-title">Get in Touch</h2>
-        <p class="text-xs md:text-sm text-emerald-300 mt-2">Have a question? Drop by our administrative center or drop a message
-            below.</p>
+        <p class="text-xs md:text-sm text-emerald-300 mt-2">Have a question? Drop by our administrative center or drop a
+            message below.</p>
     </section>
 
     <!-- Contact details and map layout grid -->
@@ -82,12 +93,11 @@
                     <div class="space-y-4 pt-2">
                         <div class="flex items-start space-x-3 text-xs">
                             <span class="text-emerald-700 mt-1"><i class="fa-solid fa-map-location-dot"></i></span>
-                            <p class="text-slate-600">Secretary, Kuthpa Pallivasal, MS Road,Secretary, Kuthpa Pallivasal, MS Road,Tamil Nadu, India.
-                            </p>
+                            <p class="text-slate-600">Secretary, Kuthpa Pallivasal, MS Road, Tamil Nadu, India.</p>
                         </div>
                         <div class="flex items-center space-x-3 text-xs">
                             <span class="text-emerald-700"><i class="fa-solid fa-phone"></i></span>
-                            <p class="text-slate-600">+91 0000 000000</p>
+                            <p class="text-slate-600">+91 00000 00000</p>
                         </div>
                         <div class="flex items-center space-x-3 text-xs">
                             <span class="text-emerald-700"><i class="fa-solid fa-envelope"></i></span>
@@ -102,7 +112,7 @@
                     <p class="text-xs text-emerald-200 leading-relaxed">In case of any member demise, please notify the
                         burial registrar immediately.</p>
                     <p class="text-xs font-bold text-emerald-300"><i
-                            class="fa-solid fa-phone-volume mr-1.5 animate-pulse"></i> Call Hotline: +91 0000 00000</p>
+                            class="fa-solid fa-phone-volume mr-1.5 animate-pulse"></i> Call Hotline: +91 00000 00000</p>
                 </div>
             </div>
 
@@ -112,37 +122,47 @@
                 <p class="text-xs text-slate-500">We respond to community proposals, support requests, and demographic
                     update queries within 24 business hours.</p>
 
-                <form
-                    onsubmit="event.preventDefault(); document.getElementById('success-message').classList.remove('hidden');"
-                    class="space-y-4 text-xs">
+                <form action="send_contact.php" method="POST" class="space-y-4 text-xs">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Your Full Name *</label>
-                            <input type="text" required placeholder="Full Name"
+                            <input type="text" name="name" required placeholder="Full Name"
                                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Your Email Address *</label>
-                            <input type="email" required placeholder="name@example.com"
+                            <input type="email" name="email" required placeholder="name@example.com"
                                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Mobile/Phone Number *</label>
-                            <input type="tel" required placeholder="e.g. 9843120543"
+                            <input type="tel" id="phone" name="phone" required
                                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Subject *</label>
-                            <input type="text" required placeholder="Reason for contacting"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <select name="subject" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-700 bg-white cursor-pointer">
+                                <option value="" disabled selected>Select subject of interest</option>
+                                <option value="Mosque">Mosque</option>
+                                <option value="Jumma">Jumma</option>
+                                <option value="Donation">Donation</option>
+                                <option value="Institute">Institute</option>
+                                <option value="Arabic School">Arabic school</option>
+                                <option value="General Enquiry">General enquiry</option>
+                            </select>
                         </div>
                     </div>
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">Your Message *</label>
-                        <textarea required placeholder="Write your message detail..." rows="4"
+                        <textarea name="message" required placeholder="Write your message detail..." rows="4"
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                    </div>
+
+                    <div class="py-2">
+                        <div class="g-recaptcha" data-sitekey="6Le30xwtAAAAACY8QhLgV1FwS1lYmgdh0xvlQpz5"></div>
                     </div>
 
                     <div id="success-message"
@@ -151,6 +171,13 @@
                         </p>
                         <p class="mt-1 text-[11px]">Thank you for reaching out. A Jamaath administrative clerk will
                             contact you shortly.</p>
+                    </div>
+
+                    <div id="error-message"
+                        class="hidden bg-rose-50 text-rose-800 border border-rose-200 p-4 rounded-xl">
+                        <p class="font-bold"><i class="fa-solid fa-circle-xmark mr-1.5"></i> Message Submission Failed
+                        </p>
+                        <p id="error-text" class="mt-1 text-[11px]">Please check your inputs and try again.</p>
                     </div>
 
                     <button type="submit"
@@ -189,7 +216,7 @@
         </div>
         <div
             class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 mt-8 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p class="text-xs text-slate-500">&copy; 2026 NVK Muslim Jamaath , Nagercoil. All rights reserved.</p>
+            <p class="text-xs text-slate-500">&copy; 2026 NVK Muslim Jamaath, Nagercoil. All rights reserved.</p>
             <p class="text-xs text-slate-500 font-semibold">
                 Powered by <a href="https://euroglobalconsultancy.com" target="_blank"
                     class="text-blue-500 hover:text-blue-400 hover:underline transition-colors">Euro Global
@@ -198,6 +225,47 @@
         </div>
     </footer>
 
+    <!-- International Telephone Input JS Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const phoneInput = document.querySelector("#phone");
+            let iti = null;
+            if (phoneInput) {
+                iti = window.intlTelInput(phoneInput, {
+                    initialCountry: "in", // Default country set to India
+                    preferredCountries: ["in", "sa", "ae", "qa", "om", "kw", "bh", "gb", "us"],
+                    separateDialCode: true,
+                    autoPlaceholder: "polite",
+                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+                });
+            }
+
+            // Listen for submission URL responses to unhide status flags elegantly
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("status") === "success") {
+                const successBox = document.getElementById("success-message");
+                if (successBox) successBox.classList.remove("hidden");
+                cleanURL();
+            } else if (params.get("status") === "error") {
+                const errorBox = document.getElementById("error-message");
+                const errorText = document.getElementById("error-text");
+                if (errorBox) {
+                    if (params.has("msg")) {
+                        errorText.textContent = decodeURIComponent(params.get("msg"));
+                    }
+                    errorBox.classList.remove("hidden");
+                }
+                cleanURL();
+            }
+
+            function cleanURL() {
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+        });
+    </script>
 </body>
 
 </html>
