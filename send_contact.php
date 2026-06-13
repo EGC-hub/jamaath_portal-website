@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->Port       = 587;
 
             $mail->isMail(); // Defaults back to standard PHP system configurations
-            $mail->setFrom('no-reply@nvkmuslimjamaath.in', 'NVK Muslim Jamaath');
+            $mail->setFrom('contact@nvkmuslimjamaath.in', 'NVK Muslim Jamaath');
             $mail->addAddress($to_email);
             $mail->addReplyTo($email, $name);
 
