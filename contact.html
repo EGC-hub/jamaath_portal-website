@@ -19,6 +19,8 @@
     <!-- Google reCAPTCHA API -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
+    <script src="js/index.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -42,33 +44,60 @@
     <header class="bg-gradient-to-r from-emerald-800 to-teal-950 text-white sticky top-0 z-50 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <!-- Logo -->
+
                 <div class="flex items-center space-x-3">
                     <span
                         class="bg-gradient-to-br from-emerald-400 to-teal-600 text-teal-950 p-2.5 rounded-xl text-xl shadow-md">🕌</span>
                     <div>
-                        <h1 class="text-lg md:text-xl font-bold tracking-tight serif-title uppercase">NVK Muslim Jamaath
-                        </h1>
+                        <h1 class="text-base md:text-xl font-bold tracking-tight serif-title uppercase">NVK Muslim
+                            Jamaath</h1>
                         <p class="text-[9px] text-emerald-300 font-semibold tracking-wider uppercase">Nagercoil,
                             Kanyakumari District</p>
                     </div>
                 </div>
 
-                <!-- Navigation Links -->
                 <nav class="hidden md:flex space-x-8 text-sm font-semibold">
                     <a href="index.html" class="text-slate-300 hover:text-white transition-colors">Home</a>
                     <a href="gallery.html" class="text-slate-300 hover:text-white transition-colors">Gallery</a>
-                    <a href="contact.html" class="text-emerald-300 hover:text-white transition-colors">Contact Us</a>
+                    <a href="contact.html" class="text-emerald-300 hover:text-white transition-colors active">Contact
+                        Us</a>
                 </nav>
 
-                <!-- Actions -->
-                <div class="flex items-center space-x-3">
+                <div class="hidden md:flex items-center space-x-3">
                     <a href="login.php"
                         class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-lg transition-all duration-150 flex items-center space-x-1.5">
                         <i class="fa-solid fa-lock text-[10px]"></i>
                         <span>Sign In</span>
                     </a>
                 </div>
+
+                <div class="flex md:hidden items-center">
+                    <button type="button" onclick="toggleMobileMenu()"
+                        class="text-slate-200 hover:text-white focus:outline-none p-2 rounded-xl bg-white/5 border border-white/10 transition-colors"
+                        title="Toggle Navigation Menu">
+                        <i id="menu-icon" class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="mobile-menu"
+            class="hidden md:hidden bg-teal-950/95 backdrop-blur border-t border-emerald-900/60 px-4 py-4 space-y-3 shadow-inner">
+            <a href="index.html"
+                class="block text-sm font-medium text-slate-200 hover:text-emerald-300 py-1.5 border-b border-emerald-900/40 transition-colors">Home</a>
+            <a href="gallery.html"
+                class="block text-sm font-medium text-slate-200 hover:text-emerald-300 py-1.5 border-b border-emerald-900/40 transition-colors">Gallery</a>
+            <a href="contact.html"
+                class="block text-sm font-medium text-emerald-200 hover:text-emerald-300 py-1.5 border-b border-emerald-900/40 transition-colors">Contact
+                Us</a>
+
+            <div class="pt-2">
+                <a href="login.php"
+                    class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-xs py-3 rounded-xl shadow-md flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-lock text-[10px]"></i>
+                    <span>Sign In Authorized Portal</span>
+                </a>
             </div>
         </div>
     </header>
@@ -229,58 +258,6 @@
     <!-- International Telephone Input JS Script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const phoneInput = document.querySelector("#phone");
-            const form = document.querySelector("form");
-            const fullPhoneHidden = document.querySelector("#full_phone");
-
-            let iti = null;
-            if (phoneInput) {
-                iti = window.intlTelInput(phoneInput, {
-                    initialCountry: "in",
-                    preferredCountries: ["in", "sa", "ae", "qa", "om", "kw", "bh", "gb", "us"],
-                    separateDialCode: true,
-                    autoPlaceholder: "polite",
-                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-                });
-            }
-
-            // Intercept form submit to bind the full country code number
-            if (form && iti) {
-                form.addEventListener("submit", function (event) {
-                    // Get the complete number including country dial code (e.g., +919698844412)
-                    const fullNumber = iti.getNumber();
-
-                    // Set it to the hidden input that the PHP script is actually looking for
-                    fullPhoneHidden.value = fullNumber;
-                });
-            }
-
-            // Listen for submission URL responses to unhide status flags elegantly
-            const params = new URLSearchParams(window.location.search);
-            if (params.get("status") === "success") {
-                const successBox = document.getElementById("success-message");
-                if (successBox) successBox.classList.remove("hidden");
-                cleanURL();
-            } else if (params.get("status") === "error") {
-                const errorBox = document.getElementById("error-message");
-                const errorText = document.getElementById("error-text");
-                if (errorBox) {
-                    if (params.has("msg")) {
-                        errorText.textContent = decodeURIComponent(params.get("msg"));
-                    }
-                    errorBox.classList.remove("hidden");
-                }
-                cleanURL();
-            }
-
-            function cleanURL() {
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
-        });
-    </script>
 </body>
 
 </html>
