@@ -296,7 +296,7 @@ require_once 'header.php';
                         class="bg-emerald-800/50 w-8 h-8 rounded-xl flex items-center justify-center text-xs text-emerald-300">🕌</span>
                     <div>
                         <p class="text-[10px] text-emerald-300">Central Registry Hub</p>
-                        <p class="font-semibold text-emerald-50 text-xs">Kuthpa Pallivasal, Vadasery, Nagercoil</p>
+                        <p class="font-semibold text-emerald-50 text-xs">Kuthba Pallivasal, Vadasery, Nagercoil</p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3 text-sm">

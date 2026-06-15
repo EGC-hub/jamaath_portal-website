@@ -121,7 +121,7 @@
             <div>
                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Nikah Venue
                     (Place of Wedding) *</label>
-                <input type="text" name="venue" required placeholder="e.g. Kuthpa Pallivasal, Vadasery"
+                <input type="text" name="venue" required placeholder="e.g. Kuthba Pallivasal, Vadasery"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
             </div>
 
