@@ -250,7 +250,7 @@ require_once 'header.php';
                         class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
                         <i class="fa-solid fa-handshake-angle text-sm"></i></div>
                     <div>
-                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Baitul-Mal</p>
+                        <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Bait-Ul-Mal</p>
                         <p class="text-[10px] text-slate-400 font-medium">Welfare Ledger</p>
                     </div>
                 </a>
@@ -288,7 +288,7 @@ require_once 'header.php';
             <div class="absolute -right-16 -bottom-16 w-44 h-44 bg-emerald-800/10 rounded-full"></div>
             <h3 class="text-xl font-bold serif-title mb-2">NVK Muslim Jamaath Registry</h3>
             <p class="text-xs text-emerald-200 leading-relaxed mb-4">Official administrative portal governing
-                demographic registrations, Baitul-Mal support initiatives, Nikah certifications, and burial records in
+                demographic registrations, Bait-Ul-Mal support initiatives, Nikah certifications, and burial records in
                 Vadasery.</p>
             <div class="border-t border-teal-800/60 pt-4 space-y-3.5">
                 <div class="flex items-center space-x-3 text-sm">
@@ -304,7 +304,7 @@ require_once 'header.php';
                         class="bg-emerald-800/50 w-8 h-8 rounded-xl flex items-center justify-center text-xs text-emerald-300">📞</span>
                     <div>
                         <p class="text-[10px] text-emerald-300">Administrative Hotline</p>
-                        <p class="font-semibold text-emerald-50 text-xs">+91 0000 00000</p>
+                        <p class="font-semibold text-emerald-50 text-xs">+91 00000 00000</p>
                     </div>
                 </div>
             </div>

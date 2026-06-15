@@ -118,7 +118,7 @@ $active_script = basename($_SERVER['PHP_SELF']);
 
                 <a href="baitul_mal.php"
                     class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'baitul_mal.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                    <i class="fa-solid fa-handshake-angle"></i> <span>Baitul-Mal (Welfare)</span>
+                    <i class="fa-solid fa-handshake-angle"></i> <span>Bait-Ul-Mal (Welfare)</span>
                 </a>
 
                 <a href="nikah.php"

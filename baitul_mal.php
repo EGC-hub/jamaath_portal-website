@@ -2,539 +2,992 @@
 require_once 'db.php';
 require_once 'helpers.php';
 
-// Fetch Editable baseline reserve amount from system settings table
+// Fetch Editable baseline reserve amount from settings
 $base_reserve_stmt = $db->query("SELECT setting_value FROM system_settings WHERE setting_key = 'baitulmal_base_reserve'");
-$base_reserve = (int) ($base_reserve_stmt->fetchColumn() ?: 250000);
+$base_reserve = (int) ($base_reserve_stmt->fetchColumn() ?: 300000);
 
-// Fetch dynamic inflows metrics
+// Fetch metrics
 $total_inflows = $db->query("SELECT SUM(amount) FROM baitulmal_inflows")->fetchColumn() ?: 0;
-
-// Fetch dynamic outflows metrics (Paid / Disbursed only)
 $total_outflows_disbursed = $db->query("SELECT SUM(amount) FROM welfare WHERE status = 'Paid'")->fetchColumn() ?: 0;
-
-// Calculate net Baitul-Mal balance dynamically
 $total_reserves_available = $base_reserve + $total_inflows - $total_outflows_disbursed;
 
-// General pending board audits counts
-$pending_welfare_audits = $db->query("SELECT COUNT(*) FROM welfare WHERE status = 'Pending'")->fetchColumn() ?: 0;
-
-// Fetch both tables for presentation
-$outflows_list = $db->query("SELECT * FROM welfare ORDER BY date_added DESC")->fetchAll();
+// Arrays for visual render
 $inflows_list = $db->query("SELECT * FROM baitulmal_inflows ORDER BY date_added DESC")->fetchAll();
+$outflows_list = $db->query("SELECT * FROM welfare ORDER BY date_added DESC")->fetchAll();
+$applications_list = $db->query("SELECT * FROM baitulmal_applications ORDER BY date_added DESC")->fetchAll();
+
+$pending_welfare = $db->query("SELECT COUNT(*) FROM welfare WHERE status = 'Pending'")->fetchColumn();
+
+// FETCH LIVE MEMBERS LIST MATCHING VERIFIED PRODUCTION SCHEMA
+$members_list = $db->query("SELECT id, first_name, last_name, father_husband_name, res_address_line1, res_address_line2, res_city, res_pincode, phone, photo FROM members WHERE status = 'Alive' ORDER BY first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 require_once 'header.php';
 ?>
 
-<!-- Dynamic Balance Sheet Header Blocks -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-    <!-- Stat block: Baseline reserves -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative group">
-        <div>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Base Reserve Fund</p>
-            <h3 class="text-2xl font-extrabold text-slate-800 mt-2">₹<?php echo formatIndianCurrency($base_reserve); ?></h3>
-            <button onclick="openBaseReserveModal(<?php echo $base_reserve; ?>)" class="text-xs text-emerald-700 font-bold hover:underline mt-1.5 flex items-center gap-1">
-                <i class="fa-solid fa-pen-to-square"></i> Configure Baseline
-            </button>
-        </div>
-        <div class="bg-slate-50 text-slate-600 p-3 rounded-xl"><i class="fa-solid fa-building-columns text-lg"></i></div>
-    </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-    <!-- Stat block: Inflows ledger -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Received (Inflows)</p>
-            <h3 class="text-2xl font-extrabold text-teal-800 mt-2">+ ₹<?php echo formatIndianCurrency($total_inflows); ?></h3>
-            <p class="text-xs text-slate-500 mt-1.5">Zakath, Sadaqa & Chanda</p>
-        </div>
-        <div class="bg-teal-50 text-teal-600 p-3 rounded-xl"><i class="fa-solid fa-circle-arrow-down text-lg"></i></div>
-    </div>
+    <!-- 4 TOP CARDS GRID - RESTORED TO MATCH THE STYLING OF image_bbc7b2.png -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
 
-    <!-- Stat block: Outflows ledger -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Disbursed (Outflows)</p>
-            <h3 class="text-2xl font-extrabold text-rose-800 mt-2">- ₹<?php echo formatIndianCurrency($total_outflows_disbursed); ?></h3>
-            <p class="text-xs text-slate-500 mt-1.5"><?php echo $pending_welfare_audits; ?> Applications pending</p>
-        </div>
-        <div class="bg-rose-50 text-rose-600 p-3 rounded-xl"><i class="fa-solid fa-circle-arrow-up text-lg"></i></div>
-    </div>
-
-    <!-- Stat block: Net available Baitul Mal balance -->
-    <div class="bg-gradient-to-br from-emerald-800 to-teal-950 p-5 rounded-2xl text-white flex items-center justify-between shadow">
-        <div>
-            <p class="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Net Available Reserves</p>
-            <h3 class="text-2xl font-black text-white mt-2">₹<?php echo formatIndianCurrency($total_reserves_available); ?></h3>
-            <p class="text-xs text-emerald-200 mt-1.5 flex items-center gap-1">
-                <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span> Dynamic Liquidity Scale
-            </p>
-        </div>
-        <div class="bg-white/10 text-emerald-300 p-3 rounded-xl"><i class="fa-solid fa-vault text-lg"></i></div>
-    </div>
-</div>
-
-<!-- Ledger Section with Outflow vs Inflow Tabbed Views -->
-<div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-6 gap-4">
-        <!-- Interactive Tab Selectors -->
-        <div class="flex space-x-1.5 bg-slate-100 p-1 rounded-xl">
-            <button onclick="toggleBaitulmalTab('outflows')" id="tab-btn-outflows" class="text-xs font-bold px-4 py-2 rounded-lg transition-all bg-white text-slate-800 shadow-sm">
-                🤝 Welfare Outflows (Disbursements)
-            </button>
-            <button onclick="toggleBaitulmalTab('inflows')" id="tab-btn-inflows" class="text-xs font-bold px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800">
-                💰 Contribution Inflows (Collections)
-            </button>
-        </div>
-        
-        <!-- Tab-specific quick record creation keys -->
-        <div>
-            <button id="add-outflow-btn" onclick="openWelfareModal()" class="bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-hand-holding-hand"></i> Log Welfare Outflow
-            </button>
-            <button id="add-inflow-btn" onclick="openInflowModal()" class="hidden bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-cash-register"></i> Log Income Inflow
-            </button>
-        </div>
-    </div>
-
-    <!-- Tab Section A: Outflows Ledger Layout -->
-    <div id="section-outflows" class="space-y-4">
-        <div>
-            <h4 class="text-sm font-bold text-slate-800">Disbursed Outflow Ledger</h4>
-            <p class="text-[11px] text-slate-400">Verifies local welfare allocations with embedded image verification links</p>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-slate-200 text-slate-400 text-xs uppercase tracking-wider font-semibold">
-                        <th class="py-3 px-4">Applicant Profile</th>
-                        <th class="py-3 px-4">Category</th>
-                        <th class="py-3 px-4">Requested Amount</th>
-                        <th class="py-3 px-4">Payment Proof</th>
-                        <th class="py-3 px-4">Status State</th>
-                        <th class="py-3 px-4 text-right">Administrative Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-xs">
-                    <?php if (empty($outflows_list)): ?>
-                            <tr>
-                                <td colspan="6" class="py-8 text-center text-slate-400">No welfare outflows filed yet inside system registries.</td>
-                            </tr>
-                    <?php else: ?>
-                            <?php foreach ($outflows_list as $outflow): ?>
-                                    <tr class="hover:bg-slate-50/50">
-                                        <td class="py-3.5 px-4">
-                                            <p class="font-bold text-slate-800"><?php echo htmlspecialchars($outflow['name']); ?></p>
-                                            <p class="text-[10px] text-slate-400 mt-0.5">Filed: <?php echo date('d M Y - h:i A', strtotime($outflow['date_added'])); ?></p>
-                                        </td>
-                                        <td class="py-3.5 px-4 font-semibold text-slate-600"><?php echo htmlspecialchars($outflow['type']); ?></td>
-                                        <td class="py-3.5 px-4 font-bold text-slate-900">₹<?php echo formatIndianCurrency($outflow['amount']); ?></td>
-                                        <td class="py-3.5 px-4">
-                                            <?php if (!empty($outflow['proof_of_payment'])): ?>
-                                                    <button onclick="viewPaymentProof('<?php echo htmlspecialchars($outflow['name']); ?>', '<?php echo $outflow['proof_of_payment']; ?>')" class="text-emerald-700 hover:underline flex items-center gap-1.5 font-bold">
-                                                        <i class="fa-solid fa-receipt"></i> View Proof
-                                                    </button>
-                                            <?php else: ?>
-                                                    <span class="text-slate-400 italic">No proof uploaded</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="py-3.5 px-4">
-                                            <?php if ($outflow['status'] === 'Paid'): ?>
-                                                    <span class="bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">Paid to Recipient</span>
-                                            <?php else: ?>
-                                                    <span class="bg-amber-100 text-amber-800 text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">Pending Audit</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="py-3.5 px-4 text-right">
-                                            <div class="flex items-center justify-end gap-1.5">
-                                                <!-- Trigger Disbursement payment conversion if pending -->
-                                                <?php if ($outflow['status'] === 'Pending'): ?>
-                                                        <button onclick="triggerWelfarePayment(<?php echo $outflow['id']; ?>, '<?php echo htmlspecialchars($outflow['name']); ?>', <?php echo $outflow['amount']; ?>)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
-                                                            <i class="fa-solid fa-cash-register"></i> Disburse Cash
-                                                        </button>
-                                                <?php endif; ?>
-
-                                                <!-- Edit trigger -->
-                                                <button onclick="openEditWelfareModal(<?php echo json_encode($outflow); ?>)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 rounded-lg border border-slate-200 text-xs transition-all" title="Edit Outflow row">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </button>
-
-                                                <!-- Delete action -->
-                                                <form method="POST" action="actions.php" onsubmit="return confirm('Are you sure you want to delete this outflow request permanently?');" class="inline">
-                                                    <input type="hidden" name="action" value="delete_welfare">
-                                                    <input type="hidden" name="id" value="<?php echo $outflow['id']; ?>">
-                                                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg border border-rose-200 text-xs transition-all" title="Delete entry">
-                                                        <i class="fa-solid fa-trash-can"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                            <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Tab Section B: Inflows Contribution Logs Layout -->
-    <div id="section-inflows" class="hidden space-y-4">
-        <div>
-            <h4 class="text-sm font-bold text-slate-800">Received Contribution Ledger</h4>
-            <p class="text-[11px] text-slate-400">Ledger details of all funds paid into the reserve</p>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-slate-200 text-slate-400 text-xs uppercase tracking-wider font-semibold">
-                        <th class="py-3 px-4">Contributor / Source</th>
-                        <th class="py-3 px-4">Fund Type</th>
-                        <th class="py-3 px-4">Deposited Amount</th>
-                        <th class="py-3 px-4">Receipt Date</th>
-                        <th class="py-3 px-4 text-right">Administrative Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-xs">
-                    <?php if (empty($inflows_list)): ?>
-                            <tr>
-                                <td colspan="5" class="py-8 text-center text-slate-400">No incoming contributions recorded in ledger files.</td>
-                            </tr>
-                    <?php else: ?>
-                            <?php foreach ($inflows_list as $inflow): ?>
-                                    <tr class="hover:bg-slate-50/50">
-                                        <td class="py-3.5 px-4">
-                                            <p class="font-bold text-slate-800"><?php echo htmlspecialchars($inflow['donor_name']); ?></p>
-                                        </td>
-                                        <td class="py-3.5 px-4 font-semibold text-slate-600">
-                                            <span class="bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded font-mono">
-                                                <?php echo htmlspecialchars($inflow['type']); ?>
-                                            </span>
-                                        </td>
-                                        <td class="py-3.5 px-4 font-bold text-emerald-800">+ ₹<?php echo formatIndianCurrency($inflow['amount']); ?></td>
-                                        <td class="py-3.5 px-4 font-mono font-semibold text-slate-500"><?php echo date('d M Y - h:i A', strtotime($inflow['date_added'])); ?></td>
-                                        <td class="py-3.5 px-4 text-right font-semibold">
-                                            <div class="flex items-center justify-end gap-1.5">
-                                                <!-- Edit contribution button -->
-                                                <button onclick="openEditInflowModal(<?php echo json_encode($inflow); ?>)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 rounded-lg border border-slate-200 text-xs transition-all" title="Edit contribution entry">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </button>
-                                        
-                                                <!-- Delete contribution form -->
-                                                <form method="POST" action="actions.php" onsubmit="return confirm('Are you sure you want to delete this contribution entry permanently? This will adjust system calculations.');" class="inline">
-                                                    <input type="hidden" name="action" value="delete_inflow">
-                                                    <input type="hidden" name="id" value="<?php echo $inflow['id']; ?>">
-                                                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg border border-rose-200 text-xs transition-all">
-                                                        <i class="fa-solid fa-trash-can"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                            <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- ==============================================
-     MODAL LAYOUT CONTAINER SCRIPTS & FORMS
-     ============================================== -->
-
-<!-- Modal: Edit Base Reserve amount -->
-<div id="base-reserve-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-fade-in">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-6">
-        <h4 class="text-base font-bold text-slate-800 mb-2">Configure Base Reserves</h4>
-        <p class="text-xs text-slate-500 mb-4 font-medium">Configure the baseline reserve value. Available balance displays this amount combined with active cash flows.</p>
-        
-        <form method="POST" action="actions.php" class="space-y-4 text-xs">
-            <input type="hidden" name="action" value="update_base_reserve">
+        <!-- CARD 1: BASE RESERVE FUND -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reserve Amount (₹) *</label>
-                <input type="number" name="base_reserve_amount" id="base_reserve_field" required placeholder="e.g. 250000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Base Reserve Fund</p>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">₹<?php echo number_format($base_reserve); ?></h3>
+                <button onclick="openBaselineModal()"
+                    class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square"></i> Configure Baseline
+                </button>
             </div>
-            <div class="flex space-x-2 pt-2">
-                <button type="button" onclick="closeBaseReserveModal()" class="w-1/2 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold transition-colors">Cancel</button>
-                <button type="submit" class="w-1/2 bg-emerald-700 hover:bg-emerald-800 text-white py-3 rounded-xl font-bold shadow-sm transition-colors">Apply Config</button>
+            <div class="bg-slate-50 text-slate-500 p-3.5 rounded-xl border border-slate-100">
+                <i class="fa-solid fa-landmark text-lg"></i>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
 
-<!-- Modal: Log contribution inflows -->
-<div id="inflow-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">
-        <h4 id="inflow-modal-title" class="text-base font-bold text-slate-800 mb-2">Log Collection Inflow</h4>
-        <p class="text-xs text-slate-500 mb-4">Record incoming funds directly into the Baitul-Mal reserve accounts.</p>
-
-        <form id="inflow-modal-form" method="POST" action="actions.php" class="space-y-4 text-xs">
-            <input type="hidden" name="action" id="inflow-form-action" value="add_inflow">
-            <input type="hidden" name="id" id="inflow-form-id" value="">
-
+        <!-- CARD 2: TOTAL RECEIVED (INFLOWS) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Donor Name / Contribution Source *</label>
-                <input type="text" name="donor_name" id="inflow-field-donor" required placeholder="Full Name or Group (e.g., General Sadaqa)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Received (Inflows)</p>
+                <h3 class="text-2xl font-black text-emerald-600 mt-1">+ ₹<?php echo number_format($total_inflows); ?>
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Zakath, Sadaqa & Chanda</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Source Type *</label>
-                    <select name="type" id="inflow-field-type" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="Chanda">Chanda Collections</option>
-                        <option value="Sadaqa">Sadaqa Aid</option>
-                        <option value="Zakath Fund">Zakath Fund</option>
-                        <option value="Others">Others</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Received Amount (₹) *</label>
-                    <input type="number" name="amount" id="inflow-field-amount" required placeholder="Amount" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
+            <div class="bg-emerald-50 text-emerald-600 p-3.5 rounded-xl">
+                <i class="fa-solid fa-circle-arrow-down text-lg"></i>
             </div>
-            <div class="flex space-x-2 pt-2">
-                <button type="button" onclick="closeInflowModal()" class="w-1/2 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold">Cancel</button>
-                <button type="submit" id="inflow-submit-btn" class="w-1/2 bg-emerald-700 hover:bg-emerald-800 text-white py-3 rounded-xl font-bold shadow">Save Inflow</button>
-            </div>
-        </form>
-    </div>
-</div>
+        </div>
 
-<!-- Modal: Create/Edit Welfare Request (Outflow) -->
-<div id="outflow-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">
-        <h4 id="outflow-modal-title" class="text-base font-bold text-slate-800 mb-2">Log Welfare Aid Outflow</h4>
-        <p class="text-xs text-slate-500 mb-4">Request assistance from Baitul-Mal on behalf of an active family.</p>
-
-        <form id="outflow-modal-form" method="POST" action="actions.php" class="space-y-4 text-xs">
-            <input type="hidden" name="action" id="outflow-form-action" value="add_welfare">
-            <input type="hidden" name="id" id="outflow-form-id" value="">
-
+        <!-- CARD 3: TOTAL DISBURSED (OUTFLOWS) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Recipient Name *</label>
-                <input type="text" name="name" id="outflow-field-name" required placeholder="Applicant Full Name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Disbursed (Outflows)</p>
+                <h3 class="text-2xl font-black text-rose-600 mt-1">-
+                    ₹<?php echo number_format($total_outflows_disbursed); ?></h3>
+                <p class="text-xs text-slate-400 mt-1"><?php echo $pending_welfare; ?> Applications pending</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Support Category *</label>
-                    <select name="type" id="outflow-field-type" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500">
-                        <option value="Higher Education Aid">Higher Education Aid</option>
-                        <option value="Marriage Assistance">Marriage Assistance</option>
-                        <option value="Medical Aid">Medical Aid</option>
-                        <option value="Widow Monthly Support">Widow Monthly Support</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Requested Amount (₹) *</label>
-                    <input type="number" name="amount" id="outflow-field-amount" required placeholder="e.g. 15000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500">
-                </div>
+            <div class="bg-rose-50 text-rose-600 p-3.5 rounded-xl">
+                <i class="fa-solid fa-circle-arrow-up text-lg"></i>
             </div>
-            <div class="flex space-x-2 pt-2">
-                <button type="button" onclick="closeWelfareModal()" class="w-1/2 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold">Cancel</button>
-                <button type="submit" id="outflow-submit-btn" class="w-1/2 bg-rose-700 hover:bg-rose-800 text-white py-3 rounded-xl font-bold shadow-sm">File Request</button>
+        </div>
+
+        <!-- CARD 4: NET AVAILABLE RESERVES (STRIKING DARK GREEN MATCHING image_bbc7b2.png) -->
+        <div
+            class="bg-gradient-to-br from-emerald-900 to-teal-950 text-white p-5 rounded-2xl shadow-md flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Net Available Reserves</p>
+                <h3 class="text-2xl font-black text-white mt-1">₹<?php echo number_format($total_reserves_available); ?>
+                </h3>
+                <p class="text-xs text-emerald-300 mt-1">Dynamic Liquidity Scale</p>
             </div>
-        </form>
+            <div class="bg-emerald-800/40 text-emerald-300 p-3.5 rounded-xl">
+                <i class="fa-solid fa-vault text-lg"></i>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- Modal: Verified Proof of Disbursement upload -->
-<div id="payment-proof-upload-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 text-xs text-slate-700">
-        <h4 class="text-base font-bold text-slate-800 mb-1">Disburse Aid & Upload Proof</h4>
-        <p class="text-xs text-slate-500 mb-4">Complete dynamic cash payout. Record recipient signature or bank transaction proof.</p>
+    <!-- MAIN INTERACTIVE LEDGER CONTAINER MATCHING image_bbc7b2.png -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
 
-        <form method="POST" action="actions.php" enctype="multipart/form-data" class="space-y-4">
-            <input type="hidden" name="action" value="pay_welfare">
-            <input type="hidden" name="id" id="disburse-form-id" value="">
-            
-            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-                <p class="text-slate-500 font-medium">Disbursing aid to:</p>
-                <p id="disburse-recipient" class="font-bold text-slate-800 text-sm">---</p>
-                <p id="disburse-amount" class="text-rose-700 font-extrabold mt-0.5 font-mono text-sm">₹0.00</p>
-            </div>
+        <!-- Tab Bar and Actions Area -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
 
-            <div class="flex flex-col items-center justify-center p-3.5 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Upload Proof Receipt / Photo</label>
-                <div class="relative w-28 h-20 bg-slate-100 rounded-lg overflow-hidden mb-2 border border-slate-200 flex items-center justify-center">
-                    <img id="disburse-proof-preview" src="data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f5f9'/><text x='50%' y='50%' font-size='30' text-anchor='middle' alignment-baseline='middle'>📸</text></svg>" class="object-cover w-full h-full" alt="Preview">
-                </div>
-                <input type="file" name="proof_photo" id="disburse-proof-input" accept="image/*" onchange="handleProofPhotoChange(event)" class="hidden" required>
-                <button type="button" onclick="document.getElementById('disburse-proof-input').click()" class="bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-100 transition-colors">
-                    <i class="fa-solid fa-camera mr-1"></i> Snap / Upload
+            <!-- CAPSULE TABS BAR MATCHING image_bbc7b2.png -->
+            <div class="bg-slate-100 p-1 rounded-xl flex flex-wrap gap-1 w-fit">
+                <button onclick="switchTab('tab-outflows')" id="btn-tab-outflows"
+                    class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none">
+                    🤝 Welfare Outflows (Disbursements)
+                </button>
+                <button onclick="switchTab('tab-inflows')" id="btn-tab-inflows"
+                    class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none">
+                    💰 Contribution Inflows (Collections)
+                </button>
+                <button onclick="switchTab('tab-applications')" id="btn-tab-applications"
+                    class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none">
+                    📋 Aid Applications Queue
                 </button>
             </div>
 
-            <div class="flex space-x-2 pt-2">
-                <button type="button" onclick="closeDisburseModal()" class="w-1/2 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold">Cancel</button>
-                <button type="submit" class="w-1/2 bg-emerald-700 hover:bg-emerald-800 text-white py-3 rounded-xl font-bold shadow-sm">Confirm Disbursement</button>
+            <!-- ACTION BUTTON REGISTRY MATCHING RED BURGUNDY BRANDING -->
+            <div class="flex items-center gap-2">
+                <!-- Outflow tab button triggers application popup -->
+                <!-- <button onclick="openApplicationModal()" id="btn-action-outflows"
+                    class="bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-money-bill-transfer"></i> Log Welfare Outflow
+                </button> -->
+                <!-- Inflow tab button triggers donation popup -->
+                <button onclick="openInflowModal()" id="btn-action-inflows"
+                    class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hidden">
+                    <i class="fa-solid fa-circle-plus"></i> Log Contribution Inflow
+                </button>
+                <!-- Applications tab button -->
+                <button onclick="openApplicationModal()" id="btn-action-applications"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hidden">
+                    <i class="fa-solid fa-file-signature"></i> File Aid Application
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== TAB CONTENT: OUTFLOWS ==================== -->
+        <div id="tab-outflows" class="tab-content hidden">
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-slate-800">Disbursed Outflow Ledger</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Verifies local welfare allocations with embedded image
+                    verification links</p>
+            </div>
+
+            <?php if (empty($outflows_list)): ?>
+                <div class="text-center py-12 text-slate-400 text-xs border border-dashed border-slate-150 rounded-xl">
+                    No welfare outflows filed yet inside system registries.
+                </div>
+            <?php else: ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr
+                                class="border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                <th class="py-3 px-4">Applicant Profile</th>
+                                <th class="py-3 px-4">Category</th>
+                                <th class="py-3 px-4">Requested Amount</th>
+                                <th class="py-3 px-4">Payment Proof</th>
+                                <th class="py-3 px-4">Status State</th>
+                                <th class="py-3 px-4 text-right">Administrative Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <?php foreach ($outflows_list as $outflow): ?>
+                                <tr>
+                                    <td class="py-3 px-4 font-bold text-slate-800">
+                                        <?php echo htmlspecialchars($outflow['name']); ?></td>
+                                    <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($outflow['type']); ?></td>
+                                    <td class="py-3 px-4 font-black text-rose-600">
+                                        ₹<?php echo number_format($outflow['amount']); ?></td>
+                                    <td class="py-3 px-4">
+                                        <?php if (!empty($outflow['proof_of_payment'])): ?>
+                                            <button
+                                                onclick="viewPaymentProof('<?php echo htmlspecialchars($outflow['name']); ?>', '<?php echo $outflow['proof_of_payment']; ?>')"
+                                                class="bg-slate-50 hover:bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 cursor-pointer">
+                                                <i class="fa-solid fa-receipt"></i> View Proof
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="text-slate-400 text-[10px]">No document attached</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <?php if ($outflow['status'] === 'Paid'): ?>
+                                            <span
+                                                class="bg-emerald-50 text-emerald-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit"><i
+                                                    class="fa-solid fa-circle-check"></i> Disbursed</span>
+                                        <?php else: ?>
+                                            <span
+                                                class="bg-amber-50 text-amber-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit"><i
+                                                    class="fa-solid fa-clock"></i> Pending Await</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-right">
+                                        <?php if ($outflow['status'] !== 'Paid'): ?>
+                                            <button onclick="openDisburseModal(<?php echo $outflow['id']; ?>)"
+                                                class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer">
+                                                <i class="fa-solid fa-upload"></i> Complete Pay
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="text-slate-400 text-[10px]"><i class="fa-solid fa-lock"></i> Settle
+                                                Confirmed</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ==================== TAB CONTENT: INFLOWS ==================== -->
+        <div id="tab-inflows" class="tab-content hidden">
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-slate-800">Contribution Inflows (Collections)</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Summary ledger tracking incoming Sadaqah, Zakat, and Fitrah
+                    collections</p>
+            </div>
+
+            <?php if (empty($inflows_list)): ?>
+                <div class="text-center py-12 text-slate-400 text-xs border border-dashed border-slate-150 rounded-xl">
+                    No contribution collection records logged yet.
+                </div>
+            <?php else: ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr
+                                class="border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                <th class="py-3 px-4">Donor Label</th>
+                                <th class="py-3 px-4">Donation Type</th>
+                                <th class="py-3 px-4">Inward Amount</th>
+                                <th class="py-3 px-4">Receipt Date</th>
+                                <th class="py-3 px-4 text-right">Administrative Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <?php foreach ($inflows_list as $inflow): ?>
+                                <tr>
+                                    <td class="py-3 px-4 font-bold text-slate-800">
+                                        <?php echo htmlspecialchars($inflow['donor_name']); ?></td>
+                                    <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($inflow['type']); ?></td>
+                                    <td class="py-3 px-4 font-black text-teal-600">
+                                        ₹<?php echo number_format($inflow['amount']); ?></td>
+                                    <td class="py-3 px-4 text-slate-500 font-mono">
+                                        <?php echo date('d M Y - h:i A', strtotime($outflow['date_added'])); ?></td>
+                                    <td class="py-3 px-4 text-right">
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            <button onclick='populateEditInflow(<?php echo json_encode($inflow); ?>)'
+                                                class="bg-teal-50 hover:bg-teal-100 text-teal-800 p-1.5 rounded-lg border border-teal-200">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <form action="actions.php" method="POST" class="inline"
+                                                onsubmit="return confirm('Wipe this donation inward line?');">
+                                                <input type="hidden" name="action" value="delete_inflow">
+                                                <input type="hidden" name="id" value="<?php echo $inflow['id']; ?>">
+                                                <button type="submit"
+                                                    class="bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 p-1.5 rounded-lg border border-slate-200 hover:border-rose-200">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ==================== TAB CONTENT: APPLICATIONS ==================== -->
+        <div id="tab-applications" class="tab-content hidden">
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-slate-800">Welfare Petitions Registry Queue</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Review incoming applications before generating corresponding
+                    outflow ledger tracks</p>
+            </div>
+
+            <?php if (empty($applications_list)): ?>
+                <div class="text-center py-12 text-slate-400 text-xs border border-dashed border-slate-150 rounded-xl">
+                    No welfare aid applications logged in the registry system.
+                </div>
+            <?php else: ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr
+                                class="border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                <th class="py-3 px-4">Applicant Particulars</th>
+                                <th class="py-3 px-4">Aid Type</th>
+                                <th class="py-3 px-4">Requested Amount</th>
+                                <th class="py-3 px-4">Payment Parameters</th>
+                                <th class="py-3 px-4">Status State</th>
+                                <th class="py-3 px-4 text-right">Administrative Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <?php foreach ($applications_list as $app): ?>
+                                <tr>
+                                    <td class="py-3 px-4 flex items-center gap-2.5">
+                                        <?php if (!empty($app['photo'])): ?>
+                                            <img src="<?php echo (strpos($app['photo'], 'data:image') === 0 || file_exists($app['photo'])) ? $app['photo'] : 'uploads/welfare/photos/' . $app['photo']; ?>"
+                                                class="w-8 h-8 rounded-full object-cover border shadow-xs">
+                                        <?php else: ?>
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[9px] text-slate-400 font-bold border">
+                                                No Photo</div>
+                                        <?php endif; ?>
+                                        <div>
+                                            <p class="font-bold text-slate-800">
+                                                <?php echo htmlspecialchars($app['first_name'] . ' ' . $app['last_name']); ?>
+                                            </p>
+                                            <p class="text-[10px] text-slate-400">Guardian:
+                                                <?php echo htmlspecialchars($app['father_husband_name']); ?></p>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($app['type']); ?></td>
+                                    <td class="py-3 px-4 font-bold text-slate-900">₹<?php echo number_format($app['amount']); ?>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <p class="font-semibold text-slate-700">
+                                            <?php echo htmlspecialchars($app['mode_of_payment']); ?></p>
+                                        <p class="text-[10px] text-slate-400">
+                                            <?php echo $app['date_of_payment'] ? date('d M Y', strtotime($app['date_of_payment'])) : 'Immediate'; ?>
+                                        </p>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <?php if ($app['status'] === 'Pending'): ?>
+                                            <span
+                                                class="bg-amber-50 text-amber-700 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">Pending
+                                                Review</span>
+                                        <?php elseif ($app['status'] === 'Accepted'): ?>
+                                            <span
+                                                class="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">Approved</span>
+                                        <?php else: ?>
+                                            <span
+                                                class="bg-rose-50 text-rose-700 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">Rejected</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-right">
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            <button onclick='viewApplicationDetails(<?php echo json_encode($app); ?>)'
+                                                class="bg-slate-50 hover:bg-slate-100 text-slate-600 p-1.5 rounded-lg border border-slate-200"
+                                                title="View Profile Dossier">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </button>
+
+                                            <?php if ($app['status'] === 'Pending'): ?>
+                                                <form action="actions.php" method="POST" class="inline"
+                                                    onsubmit="return confirm('Approve request and push to Outflows?');">
+                                                    <input type="hidden" name="action" value="accept_application">
+                                                    <input type="hidden" name="id" value="<?php echo $app['id']; ?>">
+                                                    <button type="submit"
+                                                        class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 rounded-lg border border-emerald-200"
+                                                        title="Accept / Push to Outflow">
+                                                        <i class="fa-solid fa-circle-check"></i>
+                                                    </button>
+                                                </form>
+                                                <form action="actions.php" method="POST" class="inline"
+                                                    onsubmit="return confirm('Reject this welfare petition?');">
+                                                    <input type="hidden" name="action" value="reject_application">
+                                                    <input type="hidden" name="id" value="<?php echo $app['id']; ?>">
+                                                    <button type="submit"
+                                                        class="bg-rose-50 hover:bg-rose-100 text-rose-800 p-1.5 rounded-lg border border-rose-200"
+                                                        title="Reject Request">
+                                                        <i class="fa-solid fa-circle-xmark"></i>
+                                                    </button>
+                                                </form>
+
+                                                <button onclick='populateEditApplication(<?php echo json_encode($app); ?>)'
+                                                    class="bg-teal-50 hover:bg-teal-100 text-teal-800 p-1.5 rounded-lg border border-teal-200"
+                                                    title="Edit Parameters">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+
+                                                <form action="actions.php" method="POST" class="inline"
+                                                    onsubmit="return confirm('Permanently wipe this application file?');">
+                                                    <input type="hidden" name="action" value="delete_application">
+                                                    <input type="hidden" name="id" value="<?php echo $app['id']; ?>">
+                                                    <button type="submit"
+                                                        class="bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 p-1.5 rounded-lg border border-slate-200 hover:border-rose-200"
+                                                        title="Delete File">
+                                                        <i class="fa-solid fa-trash-can"></i>
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!--                             SYSTEM MODALS MAP                             -->
+<!-- ========================================================================= -->
+
+<!-- MODAL: CONFIGURE BASELINE MODAL -->
+<div id="baseline-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-sm overflow-hidden">
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-sliders text-emerald-600"></i> Configure
+                Baseline Reserves</h3>
+            <button onclick="closeBaselineModal()" class="text-slate-400 hover:text-slate-600"><i
+                    class="fa-solid fa-circle-xmark text-lg"></i></button>
+        </div>
+        <form action="actions.php" method="POST" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="update_baseline">
+            <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Baseline Fund
+                    Value (₹) *</label>
+                <input type="number" name="baseline_amount" value="<?php echo $base_reserve; ?>" required
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <p class="text-[9px] text-slate-400 mt-1.5">Alters the baseline starting reserve value dynamically used
+                    to calculate available ledger balances.</p>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeBaselineModal()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs px-4 py-2 rounded-lg transition-all">Cancel</button>
+                <button type="submit"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all shadow-sm">Save
+                    Config</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal: Payment proof zoom presentation modal -->
-<div id="payment-proof-view-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
-        <div class="bg-gradient-to-r from-emerald-800 to-teal-950 p-4 text-white flex justify-between items-center">
-            <h4 id="proof-viewer-title" class="font-bold text-sm">Disbursement Receipt Proof</h4>
-            <button onclick="closePaymentProofView()" class="text-white/80 hover:text-white"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
+<!-- MODAL: AID APPLICATION FILING DIALOG -->
+<div id="application-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div
+        class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 id="app-modal-title" class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice text-blue-600"></i> File Welfare Aid Application
+            </h3>
+            <button onclick="closeApplicationModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer"><i
+                    class="fa-solid fa-circle-xmark text-lg"></i></button>
         </div>
-        <div class="p-6 flex justify-center bg-slate-50 items-center min-h-[250px]">
-            <img id="proof-viewer-img" src="" class="max-w-full max-h-[400px] rounded-xl shadow-md border border-slate-200 object-contain" alt="Disbursement proof">
+
+        <form id="app-form" action="actions.php" method="POST" enctype="multipart/form-data"
+            class="flex-grow overflow-y-auto p-6 space-y-4">
+            <input type="hidden" name="action" id="app-form-action" value="add_application">
+            <input type="hidden" name="id" id="app-form-id" value="">
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                <div>
+                    <h4 class="text-xs font-bold text-slate-700">Is the applicant a registered Jamaath Member?</h4>
+                    <p class="text-[10px] text-slate-400">If active, user variables will auto-populate natively from
+                        active folders.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_member" id="app_is_member" value="1"
+                        onchange="toggleMemberField(this.checked)" class="sr-only peer">
+                    <div
+                        class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600">
+                    </div>
+                </label>
+            </div>
+
+            <!-- Dynamic Selector -->
+            <div id="member-select-block" class="hidden">
+                <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Select Jamaath
+                    Member Profile *</label>
+                <select id="app_member_id" name="member_id" onchange="autofillMemberData(this.value)"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                    <option value="" disabled selected>-- Scan Verified Member Directory --</option>
+                    <?php foreach ($members_list as $m): ?>
+                        <option value="<?php echo $m['id']; ?>">
+                            <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name']); ?> (S/o:
+                            <?php echo htmlspecialchars($m['father_husband_name']); ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">First Name
+                        *</label>
+                    <input type="text" id="app_first_name" name="first_name" required placeholder="First name"
+                        class="app-field w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Last Name
+                        *</label>
+                    <input type="text" id="app_last_name" name="last_name" required placeholder="Last name"
+                        class="app-field w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Father /
+                        Husband Name *</label>
+                    <input type="text" id="app_father_husband_name" name="father_husband_name" required
+                        placeholder="Guardian name"
+                        class="app-field w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+
+            <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <span
+                    class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block border-b pb-1.5">Residential
+                    Address Profile Details</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-slate-400 mb-1">Address Line 1 *</label>
+                        <input type="text" id="app_res_line1" name="res_address_line1" required
+                            placeholder="Door / Street Block Details"
+                            class="app-field w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-slate-400 mb-1">Address Line 2</label>
+                        <input type="text" id="app_res_line2" name="res_address_line2"
+                            placeholder="Locality / Landmark details"
+                            class="app-field w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-slate-400 mb-1">City / Town *</label>
+                        <input type="text" id="app_res_city" name="res_city" required placeholder="e.g. Nagercoil"
+                            class="app-field w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-slate-400 mb-1">Postal Pincode *</label>
+                        <input type="text" id="app_res_pincode" name="res_pincode" required placeholder="e.g. 629001"
+                            class="app-field w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Contact
+                        Number *</label>
+                    <input type="tel" id="app_phone" name="phone" required placeholder="Primary phone field"
+                        class="app-field w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Welfare
+                        Type / Reason *</label>
+                    <select id="app_type" name="type" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                        <option value="" disabled selected>-- Choose Classification --</option>
+                        <option value="Educational Support">Educational Support</option>
+                        <option value="Medical Emergencies">Medical Emergencies</option>
+                        <option value="Marriage Fund Help">Marriage Fund Help</option>
+                        <option value="Widow Pension Aid">Widow Pension Aid</option>
+                        <option value="Monthly Grocery Help">Monthly Grocery Help</option>
+                        <option value="General Poverty relief">General Poverty relief</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Requested
+                        Budget Amount *</label>
+                    <input type="number" id="app_amount" name="amount" required placeholder="INR Currency Amount"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Mode of
+                        Payment *</label>
+                    <select id="app_mode" name="mode_of_payment" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Target
+                        Allocation Date</label>
+                    <input type="date" id="app_date" name="date_of_payment"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Applicant
+                        Profile Photo</label>
+                    <input type="file" name="photo" accept="image/*" class="text-xs text-slate-500 w-full">
+                    <p class="text-[9px] text-slate-400 mt-1">Image uploads only (PNG, JPG, JPEG).</p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">ID
+                        Verification File *</label>
+                    <input type="file" name="id_card" id="id_card_input" accept="image/*,application/pdf"
+                        class="text-xs text-slate-500 w-full">
+                    <p class="text-[9px] text-slate-400 mt-1">Required for verification processing (PDF or Image).</p>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-4 flex justify-end gap-2">
+                <button type="button" onclick="closeApplicationModal()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs px-5 py-2.5 rounded-xl transition-all">Cancel</button>
+                <button type="submit" id="app-submit-btn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all">Submit
+                    Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: DETAIL REVIEW MODAL DOSSIER -->
+<div id="view-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div
+        class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-address-card text-emerald-600"></i>
+                Review Applicant Profile</h3>
+            <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer"><i
+                    class="fa-solid fa-circle-xmark text-lg"></i></button>
         </div>
-        <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-center">
-            <button onclick="closePaymentProofView()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-5 py-2.5 rounded-xl transition-all">
-                Close Viewer
-            </button>
+        <div class="flex-grow overflow-y-auto p-6 space-y-5">
+            <div class="flex items-center gap-4 border-b border-slate-100 pb-4">
+                <img id="view_photo" src="" class="w-16 h-16 rounded-full object-cover border shadow-inner">
+                <div>
+                    <h4 id="view_name" class="text-base font-black text-slate-800"></h4>
+                    <p id="view_father_name" class="text-xs text-slate-400 mt-0.5"></p>
+                    <span id="view_is_member_badge" class="mt-2 block w-fit"></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Mobile Number</p>
+                    <p id="view_phone" class="text-slate-800 font-semibold mt-0.5"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Category</p>
+                    <p id="view_type" class="text-slate-800 font-semibold mt-0.5"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payment Channel</p>
+                    <p id="view_mode" class="text-slate-800 font-semibold mt-0.5"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Payout Date</p>
+                    <p id="view_date" class="text-slate-800 font-semibold mt-0.5"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Requested Budget</p>
+                    <p id="view_amount" class="text-emerald-700 font-bold text-sm mt-0.5"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Application Status</p>
+                    <p id="view_status" class="font-bold text-xs mt-0.5"></p>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Residential Address Dossier</p>
+                <p id="view_address"
+                    class="text-xs text-slate-600 mt-1 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                </p>
+            </div>
+
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Identification
+                    Verification Document</p>
+                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-center">
+                    <img id="view_id_card" src="" class="max-h-48 object-contain rounded-lg border">
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- ==============================================
-     BAITUL-MAL UI INTERACTIVE JAVASCRIPT LOGIC
-     ============================================== -->
+<!-- MODAL: DISBURSEMENT VOUCHER PROOF UPLOAD -->
+<div id="disburse-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-sm overflow-hidden">
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-money-bill-wave text-emerald-600"></i>
+                Audit Payment Disbursement</h3>
+            <button onclick="closeDisburseModal()" class="text-slate-400 hover:text-slate-600"><i
+                    class="fa-solid fa-circle-xmark text-lg"></i></button>
+        </div>
+        <form action="actions.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="pay_welfare">
+            <input type="hidden" name="id" id="disburse-id" value="">
+
+            <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Upload Physical
+                    Voucher Receipt *</label>
+                <input type="file" name="proof_photo" required accept="image/*"
+                    class="text-xs text-slate-500 w-full mb-2">
+                <p class="text-[9px] text-slate-400 leading-relaxed">Please capture and upload a copy of the physical
+                    transaction receipt to settle this file ledger row.</p>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeDisburseModal()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs px-4 py-2 rounded-lg transition-all">Cancel</button>
+                <button type="submit"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all shadow-sm">Authorize
+                    Settled Status</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: DONATIONS INWARD ENGINE -->
+<div id="inflow-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 id="inflow-title" class="text-sm font-bold text-slate-800">Log Donation Inward</h3>
+            <button onclick="closeInflowModal()" class="text-slate-400 hover:text-slate-600"><i
+                    class="fa-solid fa-circle-xmark text-lg"></i></button>
+        </div>
+        <form id="inflow-form" action="actions.php" method="POST" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="action" id="inflow-action" value="add_inflow">
+            <input type="hidden" name="id" id="inflow-id" value="">
+
+            <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Donor Identity
+                    Details *</label>
+                <input type="text" id="inflow_donor_name" name="donor_name" required
+                    placeholder="Full Name or Anonymous"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Donation
+                        Type *</label>
+                    <select id="inflow_type" name="inflow_type" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none cursor-pointer">
+                        <option value="General Sadaqah">General Sadaqah</option>
+                        <option value="Zakat Ledger Inward">Zakat Ledger Inward</option>
+                        <option value="Fitrah Contributions">Fitrah Contributions</option>
+                        <option value="Corporate / CSR Outreaches">Corporate / CSR Outreaches</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Voucher
+                        Receipt Ref #</label>
+                    <input type="text" id="inflow_ref" name="reference_no" placeholder="Book Sl No."
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Total
+                    Collected Amount *</label>
+                <input type="number" id="inflow_amount" name="amount" required placeholder="₹ INR Currency"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeInflowModal()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs px-4 py-2 rounded-lg transition-all">Cancel</button>
+                <button type="submit" id="inflow-submit"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all shadow-sm">Save
+                    Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- AUDIT FILE RECEIPT LIGHTBOX VIEWER -->
+<div id="receipt-viewer-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden"
+    onclick="closeReceiptViewer()">
+    <div class="bg-white p-3 rounded-2xl max-w-lg w-full relative" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-center mb-2">
+            <span id="receipt-viewer-title" class="text-xs font-bold text-slate-700">Audit Document Viewer</span>
+            <button onclick="closeReceiptViewer()" class="text-slate-400 hover:text-slate-600"><i
+                    class="fa-solid fa-circle-xmark text-lg"></i></button>
+        </div>
+        <img id="receipt-viewer-img" src="" class="w-full max-h-[70vh] object-contain rounded-lg border">
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!--                           JAVASCRIPT CORE LOGIC                           -->
+<!-- ========================================================================= -->
 <script>
-    // Tab controller logic
-    function toggleBaitulmalTab(tabName) {
-        const sectOut = document.getElementById('section-outflows');
-        const sectIn = document.getElementById('section-inflows');
-        const tabOut = document.getElementById('tab-btn-outflows');
-        const tabIn = document.getElementById('tab-btn-inflows');
-        
-        const outBtn = document.getElementById('add-outflow-btn');
-        const inBtn = document.getElementById('add-inflow-btn');
+    // Safe memory encapsulation mapping matching Verified schema arrays
+    const verifiedMembersMap = <?php echo json_encode($members_list); ?>;
 
-        if (tabName === 'outflows') {
-            sectOut.classList.remove('hidden');
-            sectIn.classList.add('hidden');
-            
-            tabOut.className = "text-xs font-bold px-4 py-2 rounded-lg transition-all bg-white text-slate-800 shadow-sm";
-            tabIn.className = "text-xs font-bold px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800";
-            
-            outBtn.classList.remove('hidden');
-            inBtn.classList.add('hidden');
+    document.addEventListener("DOMContentLoaded", function () {
+        switchTab('tab-outflows');
+    });
+
+    // RESTORE PILL NAVIGATION DESIGN ACCORDING TO image_bbc7b2.png
+    function switchTab(tabId) {
+        // Hide all blocks
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+
+        // Hide all operational buttons first
+        // document.getElementById('btn-action-outflows').classList.add('hidden');
+        document.getElementById('btn-action-inflows').classList.add('hidden');
+        document.getElementById('btn-action-applications').classList.add('hidden');
+
+        // Show active contextual action buttons matching navigation context
+        if (tabId === 'tab-outflows') {
+            // document.getElementById('btn-action-outflows').classList.remove('hidden');
+        } else if (tabId === 'tab-inflows') {
+            document.getElementById('btn-action-inflows').classList.remove('hidden');
+        } else if (tabId === 'tab-applications') {
+            document.getElementById('btn-action-applications').classList.remove('hidden');
+        }
+
+        // Apply active background layout capsule switches on tabs matching image_bbc7b2.png
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'shadow-xs', 'text-slate-800');
+            btn.classList.add('text-slate-500', 'hover:text-slate-700');
+
+            if (btn.id === 'btn-' + tabId) {
+                btn.classList.remove('text-slate-500', 'hover:text-slate-700');
+                btn.classList.add('bg-white', 'shadow-xs', 'text-slate-800');
+            }
+        });
+    }
+
+    function openBaselineModal() {
+        document.getElementById('baseline-modal').classList.remove('hidden');
+    }
+
+    function closeBaselineModal() {
+        document.getElementById('baseline-modal').classList.add('hidden');
+    }
+
+    function openApplicationModal() {
+        document.getElementById('app-form').reset();
+        document.getElementById('app-form-action').value = "add_application";
+        document.getElementById('app-form-id').value = "";
+        document.getElementById('app-modal-title').innerHTML = `<i class="fa-solid fa-file-invoice text-blue-600"></i> File Welfare Aid Application`;
+        document.getElementById('app-submit-btn').textContent = "Submit Application";
+        toggleMemberField(false);
+        document.getElementById('application-modal').classList.remove('hidden');
+    }
+
+    function closeApplicationModal() {
+        document.getElementById('application-modal').classList.add('hidden');
+    }
+
+    function toggleMemberField(isChecked) {
+        const selectBlock = document.getElementById('member-select-block');
+        const inputFields = document.querySelectorAll('.app-field');
+        const idCardField = document.getElementById('id_card_input');
+
+        document.getElementById('app_is_member').checked = isChecked;
+
+        if (isChecked) {
+            selectBlock.classList.remove('hidden');
+            inputFields.forEach(input => {
+                input.readOnly = true;
+                input.classList.add('bg-slate-100', 'text-slate-500');
+            });
+            idCardField.required = false;
         } else {
-            sectOut.classList.add('hidden');
-            sectIn.classList.remove('hidden');
-            
-            tabIn.className = "text-xs font-bold px-4 py-2 rounded-lg transition-all bg-white text-slate-800 shadow-sm";
-            tabOut.className = "text-xs font-bold px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800";
-            
-            outBtn.classList.add('hidden');
-            inBtn.classList.remove('hidden');
+            selectBlock.classList.add('hidden');
+            document.getElementById('app_member_id').value = "";
+            inputFields.forEach(input => {
+                input.readOnly = false;
+                input.classList.remove('bg-slate-100', 'text-slate-500');
+            });
+            idCardField.required = true;
         }
     }
 
-    // Modal base reserve configs
-    function openBaseReserveModal(currentVal) {
-        document.getElementById('base_reserve_field').value = currentVal;
-        document.getElementById('base-reserve-modal').classList.remove('hidden');
-    }
-    
-    function closeBaseReserveModal() {
-        document.getElementById('base-reserve-modal').classList.add('hidden');
-    }
+    // Auto-populate split address lines exactly as required for the members columns
+    function autofillMemberData(memberId) {
+        const member = verifiedMembersMap.find(m => m.id == memberId);
+        if (member) {
+            document.getElementById('app_first_name').value = member.first_name;
+            document.getElementById('app_last_name').value = member.last_name;
+            document.getElementById('app_father_husband_name').value = member.father_husband_name;
+            document.getElementById('app_phone').value = member.phone;
 
-    // Modal Inflows controller
-    function openInflowModal() {
-        document.getElementById('inflow-form-action').value = "add_inflow";
-        document.getElementById('inflow-form-id').value = "";
-        document.getElementById('inflow-modal-title').textContent = "Log Collection Inflow";
-        document.getElementById('inflow-submit-btn').textContent = "Save Inflow";
-        
-        document.getElementById('inflow-field-donor').value = "";
-        document.getElementById('inflow-field-type').value = "Chanda";
-        document.getElementById('inflow-field-amount').value = "";
-        
-        document.getElementById('inflow-modal').classList.remove('hidden');
-    }
-
-    function openEditInflowModal(inflowData) {
-        document.getElementById('inflow-form-action').value = "edit_inflow";
-        document.getElementById('inflow-form-id').value = inflowData.id;
-        document.getElementById('inflow-modal-title').textContent = "Edit Contribution Inflow";
-        document.getElementById('inflow-submit-btn').textContent = "Save Changes";
-        
-        document.getElementById('inflow-field-donor').value = inflowData.donor_name;
-        document.getElementById('inflow-field-type').value = inflowData.type;
-        document.getElementById('inflow-field-amount').value = inflowData.amount;
-        
-        document.getElementById('inflow-modal').classList.remove('hidden');
-        toggleBaitulmalTab('inflows'); // highlight correct tab
-    }
-    
-    function closeInflowModal() {
-        document.getElementById('inflow-modal').classList.add('hidden');
-    }
-
-    // Modal Outflows controller
-    function openWelfareModal() {
-        document.getElementById('outflow-form-action').value = "add_welfare";
-        document.getElementById('outflow-form-id').value = "";
-        document.getElementById('outflow-modal-title').textContent = "Log Welfare Outflow";
-        document.getElementById('outflow-submit-btn').textContent = "File Request";
-
-        document.getElementById('outflow-field-name').value = "";
-        document.getElementById('outflow-field-type').value = "Higher Education Aid";
-        document.getElementById('outflow-field-amount').value = "";
-
-        document.getElementById('outflow-modal').classList.remove('hidden');
-    }
-
-    function openEditWelfareModal(welfareData) {
-        document.getElementById('outflow-form-action').value = "edit_welfare";
-        document.getElementById('outflow-form-id').value = welfareData.id;
-        document.getElementById('outflow-modal-title').textContent = "Edit Outflow Request";
-        document.getElementById('outflow-submit-btn').textContent = "Save Changes";
-
-        document.getElementById('outflow-field-name').value = welfareData.name;
-        document.getElementById('outflow-field-type').value = welfareData.type;
-        document.getElementById('outflow-field-amount').value = welfareData.amount;
-
-        document.getElementById('outflow-modal').classList.remove('hidden');
-        toggleBaitulmalTab('outflows');
-    }
-
-    function closeWelfareModal() {
-        document.getElementById('outflow-modal').classList.add('hidden');
-    }
-
-    // Proof disbursement modal workflows
-    function triggerWelfarePayment(id, recipientName, amount) {
-        document.getElementById('disburse-form-id').value = id;
-        document.getElementById('disburse-recipient').textContent = recipientName;
-        document.getElementById('disburse-amount').textContent = "₹" + parseInt(amount).toLocaleString('en-IN');
-        document.getElementById('disburse-proof-preview').src = "data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f5f9'/><text x='50%' y='50%' font-size='30' text-anchor='middle' alignment-baseline='middle'>📸</text></svg>";
-        document.getElementById('disburse-proof-input').value = "";
-        
-        document.getElementById('payment-proof-upload-modal').classList.remove('hidden');
-    }
-
-    function closeDisburseModal() {
-        document.getElementById('payment-proof-upload-modal').classList.add('hidden');
-    }
-
-    function handleProofPhotoChange(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('disburse-proof-preview').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            document.getElementById('app_res_line1').value = member.res_address_line1 || '';
+            document.getElementById('app_res_line2').value = member.res_address_line2 || '';
+            document.getElementById('app_res_city').value = member.res_city || '';
+            document.getElementById('app_res_pincode').value = member.res_pincode || '';
         }
     }
 
-    // Payment proof full presentation logic
-    function viewPaymentProof(recipientName, imgBase64) {
-        document.getElementById('proof-viewer-title').textContent = "Payment Receipt Verification: " + recipientName;
-        document.getElementById('proof-viewer-img').src = imgBase64;
-        document.getElementById('payment-proof-view-modal').classList.remove('hidden');
+    function populateEditApplication(item) {
+        openApplicationModal();
+        document.getElementById('app-modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-teal-600"></i> Modify Application Parameters`;
+        document.getElementById('app-form-action').value = "edit_application";
+        document.getElementById('app-form-id').value = item.id;
+
+        const isMember = parseInt(item.is_member) === 1;
+        toggleMemberField(isMember);
+
+        if (isMember) {
+            document.getElementById('app_member_id').value = item.member_id;
+        }
+
+        document.getElementById('app_first_name').value = item.first_name;
+        document.getElementById('app_last_name').value = item.last_name;
+        document.getElementById('app_father_husband_name').value = item.father_husband_name;
+        document.getElementById('app_res_line1').value = item.res_address_line1;
+        document.getElementById('app_res_line2').value = item.res_address_line2;
+        document.getElementById('app_res_city').value = item.res_city;
+        document.getElementById('app_res_pincode').value = item.res_pincode;
+        document.getElementById('app_phone').value = item.phone;
+        document.getElementById('app_type').value = item.type;
+        document.getElementById('app_amount').value = item.amount;
+        document.getElementById('app_mode').value = item.mode_of_payment;
+        document.getElementById('app_date').value = item.date_of_payment;
+        document.getElementById('app-submit-btn').textContent = "Save Changes";
     }
-    
-    function closePaymentProofView() {
-        document.getElementById('payment-proof-view-modal').classList.add('hidden');
+
+    // Format address dynamically for detailed preview dossier matching member styling
+    function viewApplicationDetails(app) {
+        document.getElementById('view_name').textContent = app.first_name + " " + app.last_name;
+        document.getElementById('view_father_name').textContent = "Guardian S/D/W of: " + app.father_husband_name;
+        document.getElementById('view_phone').textContent = app.contact_number;
+        document.getElementById('view_type').textContent = app.type;
+        document.getElementById('view_amount').textContent = "₹" + parseInt(app.amount).toLocaleString('en-IN');
+        document.getElementById('view_mode').textContent = app.mode_of_payment;
+        document.getElementById('view_date').textContent = app.date_of_payment ? new Date(app.date_of_payment).toLocaleDateString('en-GB') : 'Immediate';
+
+        let compiledAddress = [app.res_address_line1, app.res_address_line2, app.res_city, app.res_pincode]
+            .filter(line => line && line.trim() !== '')
+            .join(', ');
+        document.getElementById('view_address').textContent = compiledAddress || 'No Address Logged';
+
+        const badge = document.getElementById('view_is_member_badge');
+        if (parseInt(app.is_member) === 1) {
+            badge.className = "bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-3 py-1 rounded-full border border-emerald-200";
+            badge.innerHTML = `<i class="fa-solid fa-user-shield"></i> Jamaath Member`;
+        } else {
+            badge.className = "bg-slate-100 text-slate-600 text-[10px] font-extrabold px-3 py-1 rounded-full border border-slate-200";
+            badge.innerHTML = `<i class="fa-solid fa-user"></i> Non-Member Residence`;
+        }
+
+        const statusLbl = document.getElementById('view_status');
+        if (app.status === 'Pending') {
+            statusLbl.className = "text-amber-600 font-extrabold";
+            statusLbl.textContent = "Pending Audit Check";
+        } else if (app.status === 'Accepted') {
+            statusLbl.className = "text-emerald-600 font-extrabold";
+            statusLbl.textContent = "Approved & Routed to Outflows";
+        } else {
+            statusLbl.className = "text-rose-600 font-extrabold";
+            statusLbl.textContent = "Rejected";
+        }
+
+        const photoEl = document.getElementById('view_photo');
+        if (app.photo && app.photo !== '') {
+            photoEl.src = (app.photo.indexOf('data:image') === 0 || app.photo.indexOf('uploads/') === 0) ? app.photo : 'uploads/welfare/photos/' + app.photo;
+        } else {
+            photoEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f1f5f9"/><text x="50%" y="50%" font-size="30" text-anchor="middle" alignment-baseline="middle">👤</text></svg>';
+        }
+
+        const idEl = document.getElementById('view_id_card');
+        if (app.id_card && app.id_card !== '') {
+            idEl.src = (app.id_card.indexOf('uploads/') === 0) ? app.id_card : 'uploads/welfare/id_cards/' + app.id_card;
+            idEl.parentElement.classList.remove('hidden');
+        } else {
+            idEl.src = '';
+            idEl.parentElement.classList.add('hidden');
+        }
+
+        document.getElementById('view-modal').classList.remove('hidden');
     }
+
+    function closeViewModal() { document.getElementById('view-modal').classList.add('hidden'); }
+    function openDisburseModal(id) { document.getElementById('disburse-id').value = id; document.getElementById('disburse-modal').classList.remove('hidden'); }
+    function closeDisburseModal() { document.getElementById('disburse-modal').classList.add('hidden'); }
+    function openInflowModal() { document.getElementById('inflow-form').reset(); document.getElementById('inflow-action').value = "add_inflow"; document.getElementById('inflow-modal').classList.remove('hidden'); }
+    function closeInflowModal() { document.getElementById('inflow-modal').classList.add('hidden'); }
+
+    function populateEditInflow(item) {
+        openInflowModal();
+        document.getElementById('inflow-title').textContent = "Modify Donation Parameters";
+        document.getElementById('inflow-action').value = "edit_inflow";
+        document.getElementById('inflow-id').value = item.id;
+        document.getElementById('inflow_donor_name').value = item.donor_name;
+        document.getElementById('inflow_type').value = item.inflow_type;
+        document.getElementById('inflow_ref').value = item.reference_no;
+        document.getElementById('inflow_amount').value = item.amount;
+    }
+
+    function viewPaymentProof(recipient, path) {
+        document.getElementById('receipt-viewer-title').textContent = "Payment Voucher Proof: " + recipient;
+        document.getElementById('receipt-viewer-img').src = path;
+        document.getElementById('receipt-viewer-modal').classList.remove('hidden');
+    }
+    function closeReceiptViewer() { document.getElementById('receipt-viewer-modal').classList.add('hidden'); }
 </script>
 
 <?php require_once 'footer.php'; ?>

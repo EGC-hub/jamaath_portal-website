@@ -375,51 +375,271 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // BAITUL-MAL INFLOW ACTION ROUTINES
         // ==========================================
 
-        // Action: Record Money Contribution (Inflow)
-        if ($_POST['action'] === 'add_inflow') {
-            $donor_name = trim($_POST['donor_name']);
-            $type = $_POST['type'];
+        // ACTION: Log New Aid Application File
+        if ($_POST['action'] === 'add_application') {
+            $is_member = isset($_POST['is_member']) ? 1 : 0;
+            $member_id = $is_member && !empty($_POST['member_id']) ? (int) $_POST['member_id'] : null;
+
+            $first_name = trim($_POST['first_name']);
+            $last_name = trim($_POST['last_name']);
+            $father_husband_name = trim($_POST['father_husband_name']);
+            $res_address_line1 = trim($_POST['res_address_line1']);
+            $res_address_line2 = trim($_POST['res_address_line2']);
+            $res_city = trim($_POST['res_city']);
+            $res_pincode = trim($_POST['res_pincode']);
+            $phone = trim($_POST['phone']);
             $amount = (int) $_POST['amount'];
+            $type = $_POST['type'];
+            $mode = $_POST['mode_of_payment'];
+            $date = !empty($_POST['date_of_payment']) ? $_POST['date_of_payment'] : null;
 
-            $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, type, amount) VALUES (?, ?, ?)");
-            $stmt->execute([$donor_name, $type, $amount]);
+            // Define folder paths explicitly to eliminate undefined variable warnings
+            $photo_dir = 'uploads/welfare/photos/';
+            $id_card_dir = 'uploads/welfare/id_cards/';
 
-            header("Location: baitul_mal.php?msg=Contribution logged in Baitul-Mal registry");
+            // Process image upload blocks safely matching table configurations
+            $photo_payload = "";
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+                $safe_photo_name = 'app_' . time() . '_' . uniqid() . '.' . $ext;
+
+                // INLINE CHECK: Create photo folder if missing
+                if (!is_dir($photo_dir)) {
+                    mkdir($photo_dir, 0755, true);
+                }
+
+                $target_photo = $photo_dir . $safe_photo_name;
+                if (move_uploaded_file($_FILES['photo']['tmp_name'], $target_photo)) {
+                    $photo_payload = $target_photo;
+                }
+            } elseif ($is_member && $member_id) {
+                $mem_img_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
+                $mem_img_stmt->execute([$member_id]);
+                $photo_payload = $mem_img_stmt->fetchColumn() ?: "";
+            }
+
+            $id_card_path = "";
+            if (isset($_FILES['id_card']) && $_FILES['id_card']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['id_card']['name'], PATHINFO_EXTENSION));
+                $safe_id_name = 'id_' . time() . '_' . uniqid() . '.' . $ext;
+
+                // INLINE CHECK: Create ID folder if missing
+                if (!is_dir($id_card_dir)) {
+                    mkdir($id_card_dir, 0755, true);
+                }
+
+                $target_id = $id_card_dir . $safe_id_name;
+                if (move_uploaded_file($_FILES['id_card']['tmp_name'], $target_id)) {
+                    $id_card_path = $target_id;
+                }
+            }
+
+            $stmt = $db->prepare("INSERT INTO baitulmal_applications 
+            (is_member, member_id, first_name, last_name, father_husband_name, res_address_line1, res_address_line2, res_city, res_pincode, contact_number, amount, type, mode_of_payment, date_of_payment, photo, id_card, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
+            $stmt->execute([$is_member, $member_id, $first_name, $last_name, $father_husband_name, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $phone, $amount, $type, $mode, $date, $photo_payload, $id_card_path]);
+
+            header("Location: baitul_mal.php?msg=Aid application filed into committee queue.");
             exit;
         }
 
-        // Action: Edit Contribution Log
+        // ACTION: Save Modified Application Record Rows
+        if ($_POST['action'] === 'edit_application') {
+            $id = (int) $_POST['id'];
+            $is_member = isset($_POST['is_member']) ? 1 : 0;
+            $member_id = $is_member && !empty($_POST['member_id']) ? (int) $_POST['member_id'] : null;
+
+            $first_name = trim($_POST['first_name']);
+            $last_name = trim($_POST['last_name']);
+            $father_husband_name = trim($_POST['father_husband_name']);
+            $res_address_line1 = trim($_POST['res_address_line1']);
+            $res_address_line2 = trim($_POST['res_address_line2']);
+            $res_city = trim($_POST['res_city']);
+            $res_pincode = trim($_POST['res_pincode']);
+            $phone = trim($_POST['phone']);
+            $amount = (int) $_POST['amount'];
+            $type = $_POST['type'];
+            $mode = $_POST['mode_of_payment'];
+            $date = !empty($_POST['date_of_payment']) ? $_POST['date_of_payment'] : null;
+
+            // Define folder paths explicitly here too
+            $photo_dir = 'uploads/welfare/photos/';
+            $id_card_dir = 'uploads/welfare/id_cards/';
+
+            $old_files_stmt = $db->prepare("SELECT photo, id_card FROM baitulmal_applications WHERE id = ?");
+            $old_files_stmt->execute([$id]);
+            $old = $old_files_stmt->fetch(PDO::FETCH_ASSOC);
+
+            $photo_payload = $old['photo'];
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+                $safe_photo_name = 'app_' . time() . '_' . uniqid() . '.' . $ext;
+
+                // INLINE CHECK: Create photo folder if missing during modification
+                if (!is_dir($photo_dir)) {
+                    mkdir($photo_dir, 0755, true);
+                }
+
+                $target_photo = $photo_dir . $safe_photo_name;
+                if (move_uploaded_file($_FILES['photo']['tmp_name'], $target_photo)) {
+                    if (!empty($old['photo']) && file_exists($old['photo']) && strpos($old['photo'], 'uploads/') === 0) {
+                        @unlink($old['photo']);
+                    }
+                    $photo_payload = $target_photo;
+                }
+            }
+
+            $id_card_path = $old['id_card'];
+            if (isset($_FILES['id_card']) && $_FILES['id_card']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['id_card']['name'], PATHINFO_EXTENSION));
+                $safe_id_name = 'id_' . time() . '_' . uniqid() . '.' . $ext;
+
+                // INLINE CHECK: Create ID folder if missing during modification
+                if (!is_dir($id_card_dir)) {
+                    mkdir($id_card_dir, 0755, true);
+                }
+
+                $target_id = $id_card_dir . $safe_id_name;
+                if (move_uploaded_file($_FILES['id_card']['tmp_name'], $target_id)) {
+                    if (!empty($old['id_card']) && file_exists($old['id_card']) && strpos($old['id_card'], 'uploads/') === 0) {
+                        @unlink($old['id_card']);
+                    }
+                    $id_card_path = $target_id;
+                }
+            }
+
+            $stmt = $db->prepare("UPDATE baitulmal_applications SET 
+            is_member = ?, member_id = ?, first_name = ?, last_name = ?, father_husband_name = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, contact_number = ?, amount = ?, type = ?, mode_of_payment = ?, date_of_payment = ?, photo = ?, id_card = ? 
+            WHERE id = ?");
+            $stmt->execute([$is_member, $member_id, $first_name, $last_name, $father_husband_name, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $phone, $amount, $type, $mode, $date, $photo_payload, $id_card_path, $id]);
+
+            header("Location: baitul_mal.php?msg=Aid application updated safely.");
+            exit;
+        }
+
+        // ACTION: Accept Application & Generate Payout Outflow Row
+        if ($_POST['action'] === 'accept_application') {
+            $id = (int) $_POST['id'];
+            $app_stmt = $db->prepare("SELECT * FROM baitulmal_applications WHERE id = ?");
+            $app_stmt->execute([$id]);
+            $app = $app_stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($app && $app['status'] === 'Pending') {
+                $db->beginTransaction();
+                try {
+                    $up_stmt = $db->prepare("UPDATE baitulmal_applications SET status = 'Accepted' WHERE id = ?");
+                    $up_stmt->execute([$id]);
+
+                    $fullName = $app['first_name'] . ' ' . $app['last_name'];
+                    $outflow_stmt = $db->prepare("INSERT INTO welfare (name, type, amount, status, application_id) VALUES (?, ?, ?, 'Pending', ?)");
+                    $outflow_stmt->execute([$fullName, $app['type'], $app['amount'], $id]);
+
+                    $db->commit();
+                    header("Location: baitul_mal.php?msg=Application approved and pushed to Outflows.");
+                    exit;
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    header("Location: baitul_mal.php?msg=Error mapping transactional files: " . urlencode($e->getMessage()));
+                    exit;
+                }
+            }
+        }
+
+        // ACTION: Reject Welfare Application
+        if ($_POST['action'] === 'reject_application') {
+            $id = (int) $_POST['id'];
+            $stmt = $db->prepare("UPDATE baitulmal_applications SET status = 'Rejected' WHERE id = ?");
+            $stmt->execute([$id]);
+            header("Location: baitul_mal.php?msg=Aid application marked as rejected.");
+            exit;
+        }
+
+        // ACTION: Delete Welfare Application Permanently
+        if ($_POST['action'] === 'delete_application') {
+            $id = (int) $_POST['id'];
+
+            $files_stmt = $db->prepare("SELECT photo, id_card FROM baitulmal_applications WHERE id = ?");
+            $files_stmt->execute([$id]);
+            $row = $files_stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($row) {
+                if (!empty($row['photo']) && file_exists($row['photo']) && strpos($row['photo'], 'uploads/') === 0) {
+                    @unlink($row['photo']);
+                }
+                if (!empty($row['id_card']) && file_exists($row['id_card']) && strpos($row['id_card'], 'uploads/') === 0) {
+                    @unlink($row['id_card']);
+                }
+            }
+
+            $stmt = $db->prepare("DELETE FROM baitulmal_applications WHERE id = ?");
+            $stmt->execute([$id]);
+            header("Location: baitul_mal.php?msg=Welfare application deleted permanently.");
+            exit;
+        }
+
+        // ACTION: Configure/Update Base Reserve Fund
+        if ($_POST['action'] === 'update_baseline') {
+            $amount = (int) $_POST['baseline_amount'];
+            $stmt = $db->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'baitulmal_base_reserve'");
+            $stmt->execute([$amount]);
+            header("Location: baitul_mal.php?msg=Baseline reserve fund configured successfully.");
+            exit;
+        }
+
+        // ACTION: Log New Donation Inward
+        if ($_POST['action'] === 'add_inflow') {
+            $donor_name = trim($_POST['donor_name']);
+            $inflow_type = $_POST['inflow_type'];
+            $reference_no = trim($_POST['reference_no']);
+            $amount = (int) $_POST['amount'];
+
+            $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, inflow_type, reference_no, amount) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$donor_name, $inflow_type, $reference_no, $amount]);
+            header("Location: baitul_mal.php?msg=Donation inward recorded successfully.");
+            exit;
+        }
+
+        // ACTION: Modify Donation Parameters
         if ($_POST['action'] === 'edit_inflow') {
             $id = (int) $_POST['id'];
             $donor_name = trim($_POST['donor_name']);
-            $type = $_POST['type'];
+            $inflow_type = $_POST['inflow_type'];
+            $reference_no = trim($_POST['reference_no']);
             $amount = (int) $_POST['amount'];
 
-            $stmt = $db->prepare("UPDATE baitulmal_inflows SET donor_name = ?, type = ?, amount = ? WHERE id = ?");
-            $stmt->execute([$donor_name, $type, $amount, $id]);
-
-            header("Location: baitul_mal.php?msg=Contribution entry successfully modified");
+            $stmt = $db->prepare("UPDATE baitulmal_inflows SET donor_name = ?, inflow_type = ?, reference_no = ?, amount = ? WHERE id = ?");
+            $stmt->execute([$donor_name, $inflow_type, $reference_no, $amount, $id]);
+            header("Location: baitul_mal.php?msg=Donation inward parameters modified successfully.");
             exit;
         }
 
-        // Action: Delete Contribution Log Entry
+        // ACTION: Delete Donation Inward
         if ($_POST['action'] === 'delete_inflow') {
             $id = (int) $_POST['id'];
             $stmt = $db->prepare("DELETE FROM baitulmal_inflows WHERE id = ?");
             $stmt->execute([$id]);
-
-            header("Location: baitul_mal.php?msg=Contribution record deleted permanently");
+            header("Location: baitul_mal.php?msg=Donation inward record deleted.");
             exit;
         }
 
-        // Action: Update Baseline Reserve Configuration
-        if ($_POST['action'] === 'update_base_reserve') {
-            $amount = (int) $_POST['base_reserve_amount'];
+        // ACTION: Confirm Outflow Disbursement with Receipt Upload
+        if ($_POST['action'] === 'pay_welfare') {
+            $id = (int) $_POST['id'];
 
-            $stmt = $db->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('baitulmal_base_reserve', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-            $stmt->execute([$amount, $amount]);
+            if (isset($_FILES['proof_photo']) && $_FILES['proof_photo']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['proof_photo']['name'], PATHINFO_EXTENSION));
+                $safe_name = 'proof_' . time() . '_' . uniqid() . '.' . $ext;
+                $target_path = 'uploads/welfare/proofs/' . $safe_name;
 
-            header("Location: baitul_mal.php?msg=Baitul-Mal base reserve successfully configured");
+                if (move_uploaded_file($_FILES['proof_photo']['tmp_name'], $target_path)) {
+                    $stmt = $db->prepare("UPDATE welfare SET status = 'Paid', proof_of_payment = ? WHERE id = ?");
+                    $stmt->execute([$target_path, $id]);
+                    header("Location: baitul_mal.php?msg=Disbursement finalized and payout receipt uploaded.");
+                    exit;
+                }
+            }
+
+            header("Location: baitul_mal.php?msg=Disbursement failed. Valid receipt required.");
             exit;
         }
 
