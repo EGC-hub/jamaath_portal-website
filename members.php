@@ -334,10 +334,24 @@ require_once 'header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">Occupation</label>
-                            <input type="text" name="occupation" id="field_occupation"
-                                placeholder="Merchant, Software Engineer etc."
+                            <label
+                                class="block font-semibold text-slate-600 mb-1">Primary
+                                Occupation *</label>
+                            <select name="occupation" id="field_occupation" required
                                 class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                <option value="" disabled selected>-- Select Occupation --</option>
+                                <option value="Business / Merchant">Business / Merchant</option>
+                                <option value="Private Sector Employee">Private Sector Employee</option>
+                                <option value="Government Employee">Government Employee</option>
+                                <option value="Daily Wage / Laborer">Daily Wage / Laborer</option>
+                                <option value="Professional (Doctor/Engineer/Lawyer)">Professional
+                                    (Doctor/Engineer/Lawyer)</option>
+                                <option value="Driver / Transport Worker">Driver / Transport Worker</option>
+                                <option value="Retired / Pensioner">Retired / Pensioner</option>
+                                <option value="Student">Student</option>
+                                <option value="Unemployed">Unemployed</option>
+                                <option value="Other">Other</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Designation within Jamaath *</label>
