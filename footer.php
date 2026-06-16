@@ -45,7 +45,7 @@
 <div id="welfare-modal"
     class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">
-        <h4 class="text-lg font-bold text-slate-800 mb-2">New Baitul-Mal Aid Application</h4>
+        <h4 class="text-lg font-bold text-slate-800 mb-2">New Bait-Ul-Mal Aid Application</h4>
         <p class="text-xs text-slate-500 mb-4">Log a petition on behalf of an active under-privileged Jamaath family.
         </p>
 

@@ -102,7 +102,7 @@ require_once 'header.php';
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div class="flex justify-between items-start">
             <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Baitul-Mal Balance</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bait-Ul-Mal Balance</p>
                 <h3 class="text-3xl font-extrabold text-amber-700 mt-2">
                     ₹<?php echo formatIndianCurrency($total_reserves_available); ?></h3>
                 <p class="text-xs text-slate-500 mt-1">Zakat & charity reserves</p>

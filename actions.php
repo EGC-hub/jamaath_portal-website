@@ -595,7 +595,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, type, amount) VALUES (?, ?, ?)");
             $stmt->execute([$donor_name, $type, $amount]);
 
-            header("Location: baitul_mal.php?msg=Contribution logged in Baitul-Mal registry");
+            header("Location: baitul_mal.php?msg=Contribution logged in Bait-Ul-Mal registry");
             exit;
         }
 
