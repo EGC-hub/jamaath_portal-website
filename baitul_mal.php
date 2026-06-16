@@ -595,7 +595,9 @@ require_once 'header.php';
                             file kept on record</span>
                     </div>
 
-                    <input type="file" name="photo" accept="image/*" class="text-xs text-slate-500 w-full">
+                    <input type="file" name="photo" id="app_photo_input" accept="image/*"
+                        onchange="previewLocalFile(this, 'edit_photo_preview_img', 'edit_photo_preview_block')"
+                        class="text-xs text-slate-500 w-full">
                     <p class="text-[9px] text-slate-400 mt-1">Image uploads only (PNG, JPG, JPEG).</p>
                 </div>
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
@@ -605,11 +607,12 @@ require_once 'header.php';
                     <div id="edit_id_card_preview_block"
                         class="hidden items-center gap-2 bg-white p-2 rounded-xl border border-slate-100">
                         <i class="fa-solid fa-file-shield text-blue-600 text-sm"></i>
-                        <a id="edit_id_card_preview_link" href="#" target="_blank"
+                        <a id="edit_id_card_preview_link" href="javascript:void(0);" onclick="handleIdPreviewClick()"
                             class="text-[10px] text-blue-600 font-bold hover:underline">View Current ID Document</a>
                     </div>
 
                     <input type="file" name="id_card" id="id_card_input" accept="image/*,application/pdf"
+                        onchange="previewLocalIdCard(this, 'edit_id_card_preview_link', 'edit_id_card_preview_block')"
                         class="text-xs text-slate-500 w-full">
                     <p class="text-[9px] text-slate-400 mt-1">Required for verification processing (PDF or Image).</p>
                 </div>
@@ -956,11 +959,20 @@ require_once 'header.php';
         const idBlock = document.getElementById('edit_id_card_preview_block');
         const idLink = document.getElementById('edit_id_card_preview_link');
         const idInput = document.getElementById('id_card_input');
+
+        // Reset state memories for clean modal tracking toggles
+        currentIdCardDataUrl = "";
+        currentIdCardFileName = "";
+        idLink.removeAttribute('data-server-path');
+
         if (item.id_card && item.id_card.trim() !== '') {
-            idLink.href = (item.id_card.indexOf('uploads/') === 0) ? item.id_card : 'uploads/welfare/id_cards/' + item.id_card;
+            const resolvedPath = (item.id_card.indexOf('uploads/') === 0) ? item.id_card : 'uploads/welfare/id_cards/' + item.id_card;
+
+            idLink.textContent = "View Current ID Document";
+            idLink.setAttribute('data-server-path', resolvedPath); // Mount path reference
             idBlock.classList.remove('hidden');
             idBlock.classList.add('flex');
-            idInput.required = false; // Bypass file selection restriction if document is already saved on disk
+            idInput.required = false;
         } else {
             idBlock.classList.add('hidden');
             idBlock.classList.remove('flex');
@@ -1040,12 +1052,94 @@ require_once 'header.php';
         document.getElementById('inflow_amount').value = item.amount;
     }
 
-    function viewPaymentProof(recipient, path) {
-        document.getElementById('receipt-viewer-title').textContent = "Payment Voucher Proof: " + recipient;
+    function viewPaymentProof(recipient, path, customTitle) {
+        // Fallback to old string layout if no custom title is passed
+        const modalTitle = customTitle ? customTitle + ": " + recipient : "Payment Voucher Proof: " + recipient;
+        document.getElementById('receipt-viewer-title').textContent = modalTitle;
         document.getElementById('receipt-viewer-img').src = path;
         document.getElementById('receipt-viewer-modal').classList.remove('hidden');
     }
     function closeReceiptViewer() { document.getElementById('receipt-viewer-modal').classList.add('hidden'); }
+
+    // Global variable tracking path/stream state to manage modal previews safely
+    let currentIdCardDataUrl = "";
+    let currentIdCardFileName = "";
+
+    // Handles reading local image streams for the profile photo preview with 2MB limit
+    function previewLocalFile(input, imgElementId, blockId) {
+        const file = input.files[0];
+        if (!file) return;
+
+        // 2MB Size Guard Rule Validation Check
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Security Limit Exception: Profile image file size must not exceed 2MB.");
+            input.value = ""; // Flush selected asset string
+            document.getElementById(blockId).classList.add('hidden');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById(imgElementId).src = e.target.result;
+            const block = document.getElementById(blockId);
+            block.classList.remove('hidden');
+            block.classList.add('flex');
+        }
+        reader.readAsDataURL(file);
+    }
+
+    // Handles reading local file streams for the verification document with 2MB limit
+    function previewLocalIdCard(input, linkElementId, blockId) {
+        const file = input.files[0];
+        if (!file) return;
+
+        // 2MB Size Guard Rule Validation Check
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Security Limit Exception: ID Verification file size must not exceed 2MB.");
+            input.value = ""; // Flush selected asset string
+            document.getElementById(blockId).classList.add('hidden');
+            currentIdCardDataUrl = "";
+            currentIdCardFileName = "";
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            currentIdCardDataUrl = e.target.result;
+            currentIdCardFileName = file.name;
+
+            const link = document.getElementById(linkElementId);
+            link.textContent = "Preview Selected File (" + file.name + ")";
+
+            const block = document.getElementById(blockId);
+            block.classList.remove('hidden');
+            block.classList.add('flex');
+        }
+        reader.readAsDataURL(file);
+    }
+
+    // Directs routing actions to prevent opening empty blank tabs for non-uploaded assets
+    function handleIdPreviewClick() {
+        const linkElement = document.getElementById('edit_id_card_preview_link');
+
+        // Scenario A: It's a newly selected local file stream
+        if (currentIdCardDataUrl !== "") {
+            if (currentIdCardDataUrl.startsWith("data:image/")) {
+                // Instantly present image files using your expanded high-fidelity lightbox component with clear context
+                viewPaymentProof(currentIdCardFileName, currentIdCardDataUrl, "ID Verification Preview");
+            } else {
+                // Clean fallback guidance for local un-uploaded PDFs
+                alert("Local PDF Selected: '" + currentIdCardFileName + "' is loaded cleanly and ready for upload. Local PDFs will be viewable in tabs once saved to the system registry server.");
+            }
+        }
+        // Scenario B: It's a legacy file reference saved previously on disk storage
+        else {
+            const preservedPath = linkElement.getAttribute('data-server-path');
+            if (preservedPath) {
+                window.open(preservedPath, '_blank');
+            }
+        }
+    }
 </script>
 
 <?php require_once 'footer.php'; ?>
