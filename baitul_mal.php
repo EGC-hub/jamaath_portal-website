@@ -236,7 +236,7 @@ require_once 'header.php';
                                     <td class="py-3 px-4 font-black text-teal-600">
                                         ₹<?php echo number_format($inflow['amount']); ?></td>
                                     <td class="py-3 px-4 text-slate-500 font-mono">
-                                        <?php echo date('d M Y - h:i A', strtotime($outflow['date_added'])); ?></td>
+                                        <?php echo date('d M Y - h:i A', strtotime($inflow['date_added'])); ?></td>
                                     <td class="py-3 px-4 text-right">
                                         <div class="flex items-center justify-end gap-1.5">
                                             <button onclick='populateEditInflow(<?php echo json_encode($inflow); ?>)'
@@ -728,7 +728,7 @@ require_once 'header.php';
                 <div>
                     <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Donation
                         Type *</label>
-                    <select id="inflow_type" name="inflow_type" required
+                    <select id="inflow_type" name="type" required
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus:outline-none cursor-pointer">
                         <option value="General Sadaqah">General Sadaqah</option>
                         <option value="Zakat Ledger Inward">Zakat Ledger Inward</option>

@@ -586,16 +586,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // ACTION: Log New Donation Inward
+        // Action: Record Money Contribution (Inflow)
         if ($_POST['action'] === 'add_inflow') {
             $donor_name = trim($_POST['donor_name']);
-            $inflow_type = $_POST['inflow_type'];
-            $reference_no = trim($_POST['reference_no']);
+            $type = $_POST['type'];
             $amount = (int) $_POST['amount'];
 
-            $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, inflow_type, reference_no, amount) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$donor_name, $inflow_type, $reference_no, $amount]);
-            header("Location: baitul_mal.php?msg=Donation inward recorded successfully.");
+            $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, type, amount) VALUES (?, ?, ?)");
+            $stmt->execute([$donor_name, $type, $amount]);
+
+            header("Location: baitul_mal.php?msg=Contribution logged in Baitul-Mal registry");
             exit;
         }
 
