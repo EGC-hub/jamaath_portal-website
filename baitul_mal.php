@@ -157,7 +157,8 @@ require_once 'header.php';
                             <?php foreach ($outflows_list as $outflow): ?>
                                 <tr>
                                     <td class="py-3 px-4 font-bold text-slate-800">
-                                        <?php echo htmlspecialchars($outflow['name']); ?></td>
+                                        <?php echo htmlspecialchars($outflow['name']); ?>
+                                    </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($outflow['type']); ?></td>
                                     <td class="py-3 px-4 font-black text-rose-600">
                                         ₹<?php echo number_format($outflow['amount']); ?></td>
@@ -231,12 +232,14 @@ require_once 'header.php';
                             <?php foreach ($inflows_list as $inflow): ?>
                                 <tr>
                                     <td class="py-3 px-4 font-bold text-slate-800">
-                                        <?php echo htmlspecialchars($inflow['donor_name']); ?></td>
+                                        <?php echo htmlspecialchars($inflow['donor_name']); ?>
+                                    </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($inflow['type']); ?></td>
                                     <td class="py-3 px-4 font-black text-teal-600">
                                         ₹<?php echo number_format($inflow['amount']); ?></td>
                                     <td class="py-3 px-4 text-slate-500 font-mono">
-                                        <?php echo date('d M Y - h:i A', strtotime($inflow['date_added'])); ?></td>
+                                        <?php echo date('d M Y - h:i A', strtotime($inflow['date_added'])); ?>
+                                    </td>
                                     <td class="py-3 px-4 text-right">
                                         <div class="flex items-center justify-end gap-1.5">
                                             <button onclick='populateEditInflow(<?php echo json_encode($inflow); ?>)'
@@ -305,7 +308,8 @@ require_once 'header.php';
                                                 <?php echo htmlspecialchars($app['first_name'] . ' ' . $app['last_name']); ?>
                                             </p>
                                             <p class="text-[10px] text-slate-400">Guardian:
-                                                <?php echo htmlspecialchars($app['father_husband_name']); ?></p>
+                                                <?php echo htmlspecialchars($app['father_husband_name']); ?>
+                                            </p>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($app['type']); ?></td>
@@ -313,7 +317,8 @@ require_once 'header.php';
                                     </td>
                                     <td class="py-3 px-4">
                                         <p class="font-semibold text-slate-700">
-                                            <?php echo htmlspecialchars($app['mode_of_payment']); ?></p>
+                                            <?php echo htmlspecialchars($app['mode_of_payment']); ?>
+                                        </p>
                                         <p class="text-[10px] text-slate-400">
                                             <?php echo $app['date_of_payment'] ? date('d M Y', strtotime($app['date_of_payment'])) : 'Immediate'; ?>
                                         </p>
@@ -469,7 +474,8 @@ require_once 'header.php';
                     <?php foreach ($members_list as $m): ?>
                         <option value="<?php echo $m['id']; ?>">
                             <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name']); ?> (S/o:
-                            <?php echo htmlspecialchars($m['father_husband_name']); ?>)</option>
+                            <?php echo htmlspecialchars($m['father_husband_name']); ?>)
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -577,15 +583,32 @@ require_once 'header.php';
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Applicant
-                        Profile Photo</label>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Applicant Profile
+                        Photo</label>
+
+                    <div id="edit_photo_preview_block"
+                        class="hidden items-center gap-2.5 bg-white p-2 rounded-xl border border-slate-100">
+                        <img id="edit_photo_preview_img" src=""
+                            class="w-20 h-20 rounded-full object-cover border shrink-0">
+                        <span class="text-[10px] text-slate-400 font-medium italic self-center leading-none">Current
+                            file kept on record</span>
+                    </div>
+
                     <input type="file" name="photo" accept="image/*" class="text-xs text-slate-500 w-full">
                     <p class="text-[9px] text-slate-400 mt-1">Image uploads only (PNG, JPG, JPEG).</p>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">ID
-                        Verification File *</label>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                    <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">ID Verification
+                        File *</label>
+
+                    <div id="edit_id_card_preview_block"
+                        class="hidden items-center gap-2 bg-white p-2 rounded-xl border border-slate-100">
+                        <i class="fa-solid fa-file-shield text-blue-600 text-sm"></i>
+                        <a id="edit_id_card_preview_link" href="#" target="_blank"
+                            class="text-[10px] text-blue-600 font-bold hover:underline">View Current ID Document</a>
+                    </div>
+
                     <input type="file" name="id_card" id="id_card_input" accept="image/*,application/pdf"
                         class="text-xs text-slate-500 w-full">
                     <p class="text-[9px] text-slate-400 mt-1">Required for verification processing (PDF or Image).</p>
@@ -829,6 +852,12 @@ require_once 'header.php';
 
     function openApplicationModal() {
         document.getElementById('app-form').reset();
+        // Ensure old file previews are swept clean when opening a new blank application
+        document.getElementById('edit_photo_preview_block').classList.add('hidden');
+        document.getElementById('edit_photo_preview_block').classList.remove('flex');
+        document.getElementById('edit_id_card_preview_block').classList.add('hidden');
+        document.getElementById('edit_id_card_preview_block').classList.remove('flex');
+        document.getElementById('id_card_input').required = true;
         document.getElementById('app-form-action').value = "add_application";
         document.getElementById('app-form-id').value = "";
         document.getElementById('app-modal-title').innerHTML = `<i class="fa-solid fa-file-invoice text-blue-600"></i> File Welfare Aid Application`;
@@ -902,12 +931,41 @@ require_once 'header.php';
         document.getElementById('app_res_line2').value = item.res_address_line2;
         document.getElementById('app_res_city').value = item.res_city;
         document.getElementById('app_res_pincode').value = item.res_pincode;
-        document.getElementById('app_phone').value = item.phone;
+
+        // FIXED MAPPING: Fetches contact number column out of the app object
+        document.getElementById('app_phone').value = item.contact_number || item.phone || '';
+
         document.getElementById('app_type').value = item.type;
         document.getElementById('app_amount').value = item.amount;
         document.getElementById('app_mode').value = item.mode_of_payment;
         document.getElementById('app_date').value = item.date_of_payment;
         document.getElementById('app-submit-btn').textContent = "Save Changes";
+
+        // LIVE PREVIEW POPULATION LOGIC
+        const photoBlock = document.getElementById('edit_photo_preview_block');
+        const photoImg = document.getElementById('edit_photo_preview_img');
+        if (item.photo && item.photo.trim() !== '') {
+            photoImg.src = (item.photo.indexOf('data:image') === 0 || item.photo.indexOf('uploads/') === 0) ? item.photo : 'uploads/welfare/photos/' + item.photo;
+            photoBlock.classList.remove('hidden');
+            photoBlock.classList.add('flex');
+        } else {
+            photoBlock.classList.add('hidden');
+            photoBlock.classList.remove('flex');
+        }
+
+        const idBlock = document.getElementById('edit_id_card_preview_block');
+        const idLink = document.getElementById('edit_id_card_preview_link');
+        const idInput = document.getElementById('id_card_input');
+        if (item.id_card && item.id_card.trim() !== '') {
+            idLink.href = (item.id_card.indexOf('uploads/') === 0) ? item.id_card : 'uploads/welfare/id_cards/' + item.id_card;
+            idBlock.classList.remove('hidden');
+            idBlock.classList.add('flex');
+            idInput.required = false; // Bypass file selection restriction if document is already saved on disk
+        } else {
+            idBlock.classList.add('hidden');
+            idBlock.classList.remove('flex');
+            if (!isMember) idInput.required = true;
+        }
     }
 
     // Format address dynamically for detailed preview dossier matching member styling
