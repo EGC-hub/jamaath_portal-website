@@ -272,6 +272,7 @@ require_once 'header.php';
                             <label class="block font-semibold text-slate-600 mb-1">Date of Birth *</label>
                             <input type="date" name="dob" id="field_dob" required
                                 class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <p id="dob-error-msg" class="text-xs text-red-500 mt-1 hidden font-medium"></p>
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Gender *</label>
@@ -334,8 +335,7 @@ require_once 'header.php';
                             </select>
                         </div>
                         <div>
-                            <label
-                                class="block font-semibold text-slate-600 mb-1">Primary
+                            <label class="block font-semibold text-slate-600 mb-1">Primary
                                 Occupation *</label>
                             <select name="occupation" id="field_occupation" required
                                 class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
@@ -1284,6 +1284,75 @@ require_once 'header.php';
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dobInput = document.getElementById("field_dob");
+        const submitBtn = document.getElementById("form-submit-btn");
+        const errorMsg = document.getElementById("dob-error-msg");
+
+        if (dobInput && submitBtn && errorMsg) {
+
+            // Real-time validation listener
+            dobInput.addEventListener("change", function () {
+                const selectedDateValue = this.value;
+                if (!selectedDateValue) {
+                    clearDobError();
+                    return;
+                }
+
+                const dob = new Date(selectedDateValue);
+                const today = new Date();
+
+                // Set tracking times to midnight for date comparison consistency
+                today.setHours(0, 0, 0, 0);
+
+                // 1. Future Date / Present Day Validation
+                if (dob >= today) {
+                    showDobError("Date of Birth cannot be today or in the future.");
+                    return;
+                }
+
+                // Calculate exact structural age thresholds
+                let age = today.getFullYear() - dob.getFullYear();
+                const monthDiff = today.getMonth() - dob.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                }
+
+                // 2. Minimum Age & Maximum Realistic Age Threshold Checks
+                if (age < 18) {
+                    showDobError(`Member must be at least 18 years old. (Current selection: ${age} years old).`);
+                    return;
+                }
+
+                if (age > 120) {
+                    showDobError("Please enter a realistic Date of Birth (maximum age exceeded).");
+                    return;
+                }
+
+                // If it passes all validation rules
+                clearDobError();
+            });
+
+            function showDobError(message) {
+                errorMsg.textContent = message;
+                errorMsg.classList.remove("hidden");
+                dobInput.classList.add("border-red-500", "focus:ring-red-500");
+                dobInput.classList.remove("border-slate-200", "focus:ring-emerald-500");
+                submitBtn.disabled = true;
+                submitBtn.classList.add("opacity-50", "cursor-not-allowed");
+            }
+
+            function clearDobError() {
+                errorMsg.textContent = "";
+                errorMsg.classList.add("hidden");
+                dobInput.classList.remove("border-red-500", "focus:ring-red-500");
+                dobInput.classList.add("border-slate-200", "focus:ring-emerald-500");
+                submitBtn.disabled = false;
+                submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            }
+        }
+    });
 </script>
 
 <?php require_once 'footer.php'; ?>
