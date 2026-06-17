@@ -226,15 +226,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $chanda_from = $_POST['chanda_paid_from'] . '-01'; // Append first day to match SQL DATE format
             $chanda_to = $_POST['chanda_paid_to'] . '-01';
 
-            // Server-Side Strict Date Boundaries Validation
-            $max_allowed_boundary = date('Y-m-01', strtotime('first day of last month')); // May 2026
-            $min_allowed_boundary = date('Y-m-01', strtotime('-2 years')); // June 2024 (24 months ago)
+            // Server-Side Asymmetric Strict Date Boundaries Validation
+            $min_allowed_boundary = date('Y-m-01', strtotime('-2 years')); // Past 2 years boundary
 
-            if (
-                $chanda_from < $min_allowed_boundary || $chanda_from > $max_allowed_boundary ||
-                $chanda_to < $min_allowed_boundary || $chanda_to > $max_allowed_boundary
-            ) {
-                die("Failed to update: Chanda payments can only be processed for periods within the last 2 years, ending no later than the previous month.");
+            // MODIFICATION: Separate boundaries matching our new frontend logic
+            $max_from_boundary = date('Y-m-01'); // Paid From max = Current Active Month
+            $max_to_boundary = date('Y-12-01');  // Paid To max = December of Current Year
+
+            // Validate Paid From separately
+            if ($chanda_from < $min_allowed_boundary || $chanda_from > $max_from_boundary) {
+                die("Failed to update: 'Paid From' must be within the past 2 years and cannot exceed the current month.");
+            }
+
+            // Validate Paid To separately
+            if ($chanda_to < $min_allowed_boundary || $chanda_to > $max_to_boundary) {
+                die("Failed to update: 'Paid To' must be within the past 2 years and cannot exceed December of " . date('Y') . ".");
             }
 
             if ($chanda_to < $chanda_from) {
@@ -253,16 +259,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Action: Collect Chanda Directly (Fallback quick collection action - sets previous month as paid)
+        // Action: Collect Chanda Directly (Fallback quick collection action - sets current active month as paid)
         if ($_POST['action'] === 'collect_chanda') {
             $id = (int) $_POST['id'];
 
-            // Set paid period to cover up to last month (e.g., from 6 months ago up to last month)
+            // MODIFICATION: Set default paid period to cover up to current active month dynamically
             $default_from = date('Y-m-01', strtotime('-6 months'));
-            $last_month = date('Y-m-01', strtotime('first day of last month'));
+            $current_month = date('Y-m-01'); // Safe baseline sync
 
             $stmt = $db->prepare("UPDATE members SET chanda_paid_from = ?, chanda_paid_to = ?, chanda_status = 'Paid' WHERE id = ?");
-            $stmt->execute([$default_from, $last_month, $id]);
+            $stmt->execute([$default_from, $current_month, $id]);
 
             $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'index.php';
             header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "msg=Chanda collection updated successfully");

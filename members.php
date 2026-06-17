@@ -1077,10 +1077,15 @@ require_once 'header.php';
         // Set Chanda Input Values
         document.getElementById('chanda-member-id-field').value = member.id;
 
-        // Grab current date to calculate previous month values dynamically in JS
+        // Grab current date to calculate dynamic boundaries
         const today = new Date();
         const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const maxMonthStr = formatMonthInputJS(prevMonth); // e.g. "2026-05"
+
+        // MODIFICATION: Separate max conditions for 'From' and 'To' fields
+        const maxMonthStrFrom = formatMonthInputJS(today); // Paid From max = Current Month (e.g. "2026-06")
+
+        const endOfYear = new Date(today.getFullYear(), 11, 1);
+        const maxMonthStrTo = formatMonthInputJS(endOfYear); // Paid To max = December of current year (e.g. "2026-12")
 
         // Two years limit boundary calculation
         const minDate = new Date(today.getFullYear() - 2, today.getMonth(), 1);
@@ -1090,10 +1095,11 @@ require_once 'header.php';
         const fromInput = document.getElementById('chanda_paid_from_input');
         const toInput = document.getElementById('chanda_paid_to_input');
 
+        // Apply distinct constraints
         fromInput.min = minMonthStr;
-        fromInput.max = maxMonthStr;
+        fromInput.max = maxMonthStrFrom; // Capped at current month
         toInput.min = minMonthStr;
-        toInput.max = maxMonthStr;
+        toInput.max = maxMonthStrTo;   // Extended to end of year
 
         // Render detailed Chanda payment status on the popup
         const cardChandaPaid = document.getElementById('card-chanda-paid-period');
@@ -1107,9 +1113,9 @@ require_once 'header.php';
             fromInput.value = member.chanda_paid_from.substring(0, 7);
             toInput.value = member.chanda_paid_to.substring(0, 7);
         } else {
-            // Default initial selections inside month fields if empty (default to previous month)
-            fromInput.value = maxMonthStr;
-            toInput.value = maxMonthStr;
+            // Default initial selections inside month fields if empty (default to current active month)
+            fromInput.value = maxMonthStrFrom;
+            toInput.value = maxMonthStrFrom;
         }
 
         // Determine if paid up to previous month
@@ -1156,8 +1162,15 @@ require_once 'header.php';
             const valFrom = fromInput.value;
             const valTo = toInput.value;
 
-            if (valFrom < minMonthStr || valFrom > maxMonthStr || valTo < minMonthStr || valTo > maxMonthStr) {
-                alert(`Error: Subscriptions can only be mapped within the past 2 years (from ${formatDateMonthYearJS(minDate)} up to ${formatDateMonthYearJS(prevMonth)} only).`);
+            // MODIFICATION: Separate evaluation matching distinct field requirements
+            if (valFrom < minMonthStr || valFrom > maxMonthStrFrom) {
+                alert(`Error: 'Paid From' must be within the past 2 years and cannot exceed the current month.`);
+                e.preventDefault();
+                return false;
+            }
+
+            if (valTo < minMonthStr || valTo > maxMonthStrTo) {
+                alert(`Error: 'Paid To' must be within the past 2 years and cannot exceed December of ${today.getFullYear()}.`);
                 e.preventDefault();
                 return false;
             }
