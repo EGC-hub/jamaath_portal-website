@@ -33,7 +33,7 @@ require_once 'header.php';
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Base Reserve Fund</p>
-                <h3 class="text-2xl font-black text-slate-800 mt-1">₹<?php echo number_format($base_reserve); ?></h3>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">₹<?php echo formatIndianCurrency($base_reserve); ?></h3>
                 <button onclick="openBaselineModal()"
                     class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold mt-1 flex items-center gap-1">
                     <i class="fa-solid fa-pen-to-square"></i> Configure Baseline
@@ -48,7 +48,7 @@ require_once 'header.php';
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Received (Inflows)</p>
-                <h3 class="text-2xl font-black text-emerald-600 mt-1">+ ₹<?php echo number_format($total_inflows); ?>
+                <h3 class="text-2xl font-black text-emerald-600 mt-1">+ ₹<?php echo formatIndianCurrency($total_inflows); ?>
                 </h3>
                 <p class="text-xs text-slate-400 mt-1">Zakath, Sadaqa & Chanda</p>
             </div>
@@ -62,7 +62,7 @@ require_once 'header.php';
             <div>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Disbursed (Outflows)</p>
                 <h3 class="text-2xl font-black text-rose-600 mt-1">-
-                    ₹<?php echo number_format($total_outflows_disbursed); ?></h3>
+                    ₹<?php echo formatIndianCurrency($total_outflows_disbursed); ?></h3>
                 <p class="text-xs text-slate-400 mt-1"><?php echo $pending_welfare; ?> Applications pending</p>
             </div>
             <div class="bg-rose-50 text-rose-600 p-3.5 rounded-xl">
@@ -75,7 +75,7 @@ require_once 'header.php';
             class="bg-gradient-to-br from-emerald-900 to-teal-950 text-white p-5 rounded-2xl shadow-md flex items-center justify-between">
             <div>
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Net Available Reserves</p>
-                <h3 class="text-2xl font-black text-white mt-1">₹<?php echo number_format($total_reserves_available); ?>
+                <h3 class="text-2xl font-black text-white mt-1">₹<?php echo formatIndianCurrency($total_reserves_available); ?>
                 </h3>
                 <p class="text-xs text-emerald-300 mt-1">Dynamic Liquidity Scale</p>
             </div>
@@ -161,7 +161,7 @@ require_once 'header.php';
                                     </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($outflow['type']); ?></td>
                                     <td class="py-3 px-4 font-black text-rose-600">
-                                        ₹<?php echo number_format($outflow['amount']); ?></td>
+                                        ₹<?php echo formatIndianCurrency($outflow['amount']); ?></td>
                                     <td class="py-3 px-4">
                                         <?php if (!empty($outflow['proof_of_payment'])): ?>
                                             <button
@@ -236,7 +236,7 @@ require_once 'header.php';
                                     </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($inflow['type']); ?></td>
                                     <td class="py-3 px-4 font-black text-teal-600">
-                                        ₹<?php echo number_format($inflow['amount']); ?></td>
+                                        ₹<?php echo formatIndianCurrency($inflow['amount']); ?></td>
                                     <td class="py-3 px-4 text-slate-500 font-mono">
                                         <?php echo date('d M Y - h:i A', strtotime($inflow['date_added'])); ?>
                                     </td>
@@ -313,7 +313,7 @@ require_once 'header.php';
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($app['type']); ?></td>
-                                    <td class="py-3 px-4 font-bold text-slate-900">₹<?php echo number_format($app['amount']); ?>
+                                    <td class="py-3 px-4 font-bold text-slate-900">₹<?php echo formatIndianCurrency($app['amount']); ?>
                                     </td>
                                     <td class="py-3 px-4">
                                         <p class="font-semibold text-slate-700">
