@@ -850,7 +850,7 @@ require_once 'header.php';
                 
                 <!-- Headers -->
                 <div style="text-align: center; margin-bottom: 15px;">
-                    <h1 style="margin: 0; color: #064e3b; font-size: 30px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Jamaath</h1>
+                    <h1 style="margin: 0; color: #064e3b; font-size: 30px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Muslim Jamaath</h1>
                     <p style="margin: 5px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 4px; font-weight: bold; color: #047857;">Vadasery, Nagercoil, Kanyakumari District, Tamil Nadu</p>
                     <div style="width: 250px; height: 3px; background: linear-gradient(to right, transparent, #059669, transparent); margin: 12px auto 4px auto;"></div>
                     <div style="width: 150px; height: 1px; background: #e2e8f0; margin: 0 auto;"></div>
@@ -911,7 +911,9 @@ require_once 'header.php';
                         <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary</div>
                     </div>
                     <div style="text-align: center; width: 140px;">
-                        <div style="border: 2px solid #047857; border-radius: 50%; width: 75px; height: 75px; line-height: 75px; margin: 0 auto; color: #047857; font-size: 10px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif;">Registry Seal</div>
+                        <div style="border: 2px solid #047857; border-radius: 50%; width: 75px; height: 75px; padding-top: 22px; box-sizing: border-box; margin: 0 auto; color: #047857; font-size: 9px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif; text-align: center; line-height: 12px;">
+                            Registry<br>Seal
+                        </div>
                     </div>
                     <div style="text-align: center; width: 180px;">
                         <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">President</div>
