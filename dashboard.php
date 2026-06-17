@@ -91,7 +91,7 @@ require_once 'header.php';
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Chanda Status (Active)</p>
                 <h3 class="text-3xl font-extrabold text-teal-700 mt-2"><?php echo $chanda_percent; ?>%</h3>
-                <p class="text-xs text-slate-500 mt-1">Subscribed up to date</p>
+                <p class="text-xs text-slate-500 mt-1">Subscribed up to date (<b><?php echo date('F Y', strtotime('first day of last month')); ?></b>)</p>
             </div>
             <div class="bg-teal-50 text-teal-600 p-3 rounded-xl">
                 <i class="fa-solid fa-receipt text-xl"></i>
