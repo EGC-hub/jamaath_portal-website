@@ -62,11 +62,12 @@ if ($filter_chanda !== 'All') {
 
 $where_sql = implode(' AND ', $where_clauses);
 
-// Fetch matching dataset along with their precise latest range parameters
+// Fetch matching dataset along with their precise latest range parameters and transaction amounts
 $query_string = "
     SELECT m.*,
            (SELECT cp.paid_from FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS latest_paid_from,
-           (SELECT cp.paid_to FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS latest_paid_to
+           (SELECT cp.paid_to FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS latest_paid_to,
+           (SELECT cp.total_amount FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS latest_total_amount
     FROM members m
     WHERE $where_sql
     ORDER BY m.first_name ASC
@@ -94,6 +95,9 @@ if ($format === 'excel') {
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header("Pragma: public");
 
+    // MODIFICATION: Send the UTF-8 BOM to force Excel to read the Rupee symbol (₹) correctly
+    echo "\xEF\xBB\xBF";
+
     // Construct structural table template directly for Excel interpreter parsing
     echo "<table border='1'>";
     echo "<tr style='background-color: #047857; color: #ffffff; font-weight: bold;'>";
@@ -104,10 +108,15 @@ if ($format === 'excel') {
     echo "<th>Status Tag</th>";
     echo "<th>Paid From</th>";
     echo "<th>Paid To</th>";
+    echo "<th>Amount Paid (₹)</th>"; // Added Header
     echo "</tr>";
 
+    $grand_total_excel = 0;
     foreach ($report_records as $row) {
         $full_name = $row['first_name'] . ' ' . $row['last_name'];
+        $amount = isset($row['latest_total_amount']) ? (float) $row['latest_total_amount'] : 0.00;
+        $grand_total_excel += $amount;
+
         echo "<tr>";
         echo "<td>" . htmlspecialchars($row['card_no']) . "</td>";
         echo "<td>" . htmlspecialchars($full_name) . "</td>";
@@ -116,8 +125,14 @@ if ($format === 'excel') {
         echo "<td>" . htmlspecialchars($row['chanda_status']) . "</td>";
         echo "<td>" . formatReportMonthYear($row['latest_paid_from']) . "</td>";
         echo "<td>" . formatReportMonthYear($row['latest_paid_to']) . "</td>";
+        echo "<td>₹" . number_format($amount, 2) . "</td>"; // Added Cell
         echo "</tr>";
     }
+    // Summary Row for Excel Spreadsheet
+    echo "<tr style='font-weight: bold; background-color: #f1f5f9;'>";
+    echo "<td colspan='7' style='text-align: right;'>Grand Total Accumulated:</td>";
+    echo "<td>₹" . number_format($grand_total_excel, 2) . "</td>";
+    echo "</tr>";
     echo "</table>";
     exit;
 } else {
@@ -196,18 +211,24 @@ if ($format === 'excel') {
                             <th class="p-3">Mahallah Sector</th>
                             <th class="p-3">Phone Line</th>
                             <th class="p-3 text-center">Status Flag</th>
-                            <th class="p-3">Paid From</th>
-                            <th class="p-3">Paid Up To</th>
+                            <th class="p-3">Ledger From</th>
+                            <th class="p-3">Ledger Up To</th>
+                            <th class="p-3 text-right">Amount (₹)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
                         <?php if (count($report_records) === 0): ?>
                             <tr>
-                                <td colspan="7" class="p-8 text-center text-slate-400 italic">No member profiles matched the
+                                <td colspan="8" class="p-8 text-center text-slate-400 italic">No member profiles matched the
                                     given parameters.</td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($report_records as $row): ?>
+                            <?php
+                            $grand_total_print = 0;
+                            foreach ($report_records as $row):
+                                $row_amount = isset($row['latest_total_amount']) ? (float) $row['latest_total_amount'] : 0.00;
+                                $grand_total_print += $row_amount;
+                                ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="p-3 font-mono font-bold text-slate-900">
                                         <?php echo htmlspecialchars($row['card_no']); ?>
@@ -215,12 +236,8 @@ if ($format === 'excel') {
                                     <td class="p-3 font-bold text-slate-800">
                                         <?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>
                                     </td>
-                                    <td class="p-3 text-slate-600">
-                                        <?php echo htmlspecialchars($row['mahallah']); ?>
-                                    </td>
-                                    <td class="p-3 font-mono text-slate-500">
-                                        <?php echo htmlspecialchars($row['phone']); ?>
-                                    </td>
+                                    <td class="p-3 text-slate-600"><?php echo htmlspecialchars($row['mahallah']); ?></td>
+                                    <td class="p-3 font-mono text-slate-500"><?php echo htmlspecialchars($row['phone']); ?></td>
                                     <td class="p-3 text-center">
                                         <span
                                             class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider <?php echo $row['chanda_status'] === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'; ?>">
@@ -234,8 +251,18 @@ if ($format === 'excel') {
                                         class="p-3 font-bold <?php echo ($row['latest_paid_to'] >= $prev_month_boundary) ? 'text-emerald-700' : 'text-rose-700'; ?>">
                                         <?php echo formatReportMonthYear($row['latest_paid_to']); ?>
                                     </td>
+                                    <td class="p-3 text-right font-mono font-bold text-slate-900">
+                                        ₹<?php echo number_format($row_amount, 2); ?></td>
                                 </tr>
                             <?php endforeach; ?>
+
+                            <tr class="bg-slate-50/80 font-bold text-sm border-t-2 border-slate-400">
+                                <td colspan="7" class="p-4 text-right uppercase tracking-wider text-xs text-slate-500">Grand
+                                    Total Financial Pool Summary:</td>
+                                <td
+                                    class="p-4 text-right text-teal-800 font-mono font-black border-b-4 border-double border-teal-600">
+                                    ₹<?php echo number_format($grand_total_print, 2); ?></td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
