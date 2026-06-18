@@ -232,6 +232,91 @@ require_once 'header.php';
             </div>
         </div>
 
+        <!-- Chanda report generator -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all mt-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <div class="bg-amber-50 text-amber-600 p-2 rounded-lg">
+                        <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Chanda Report Builder</h4>
+                        <p class="text-[11px] text-slate-400">Export real-time filtered subscription profiles & ledger
+                            balances</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" id="report_reset_btn"
+                        class="text-[10px] font-bold text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 bg-white">
+                        <i class="fa-solid fa-arrow-rotate-left text-[9px]"></i> Clear
+                    </button>
+                    <div id="report-match-badge"
+                        class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all">
+                        Scanning...
+                    </div>
+                </div>
+            </div>
+
+            <form id="chanda_report_form" method="GET" action="export_chanda_report.php" target="_blank"
+                class="mt-4 space-y-3.5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Search
+                            Identifier</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                            </span>
+                            <input type="text" name="search" id="report_search_input"
+                                placeholder="Name, Card No or Phone..."
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:bg-white transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mahallah
+                            Neighborhood</label>
+                        <select name="mahallah" id="report_mahallah_select"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-teal-500 focus:bg-white transition-all">
+                            <option value="All">All Mahallahs</option>
+                            <option value="Ward 1">Ward 1</option>
+                            <option value="Ward 2">Ward 2</option>
+                            <option value="Ward 3">Ward 3</option>
+                            <option value="Ward 4">Ward 4</option>
+                            <option value="Ward 5">Ward 5</option>
+                            <option value="Ward 6">Ward 6</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chanda
+                            Compliance Status</label>
+                        <select name="filter_chanda" id="report_chanda_select"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-teal-500 focus:bg-white transition-all">
+                            <option value="All">Show All Records</option>
+                            <option value="Paid">Paid (Up to Date)</option>
+                            <option value="Unpaid">Unpaid / Arrears Pending</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button type="submit" id="report_print_btn" name="format" value="print"
+                        class="flex-1 bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-print"></i>
+                        Generate Print Report
+                    </button>
+
+                    <button type="submit" id="report_excel_btn" name="format" value="excel"
+                        class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export Spreadsheet (.xls)
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <!-- System Modules Quick Navigation Desk -->
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex justify-between items-center mb-4">
@@ -388,5 +473,81 @@ require_once 'header.php';
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Compile active dataset lookup map of all living members from database
+        const activeMembersDataset = <?php
+        $feedback_stmt = $db->query("SELECT id, first_name, last_name, card_no, phone, mahallah, chanda_status FROM members WHERE status = 'Alive'");
+        echo json_encode($feedback_stmt->fetchAll(PDO::FETCH_ASSOC));
+        ?>;
+
+        const reportForm = document.getElementById('chanda_report_form');
+        const searchInput = document.getElementById('report_search_input');
+        const mahallahSelect = document.getElementById('report_mahallah_select');
+        const chandaSelect = document.getElementById('report_chanda_select');
+        const matchBadge = document.getElementById('report-match-badge');
+        const resetBtn = document.getElementById('report_reset_btn');
+        const printBtn = document.getElementById('report_print_btn');
+        const excelBtn = document.getElementById('report_excel_btn');
+
+        function calculateLiveReportMatches() {
+            const queryText = searchInput.value.toLowerCase().trim();
+            const selectedMahallah = mahallahSelect.value;
+            const selectedChanda = chandaSelect.value;
+
+            let matchCount = 0;
+
+            activeMembersDataset.forEach(member => {
+                const matchesText = !queryText ||
+                    (member.first_name + ' ' + member.last_name).toLowerCase().includes(queryText) ||
+                    member.card_no.toLowerCase().includes(queryText) ||
+                    member.phone.includes(queryText);
+
+                const matchesMahallah = (selectedMahallah === 'All') || (member.mahallah === selectedMahallah);
+                const matchesChanda = (selectedChanda === 'All') || (member.chanda_status === selectedChanda);
+
+                if (matchesText && matchesMahallah && matchesChanda) {
+                    matchCount++;
+                }
+            });
+
+            if (matchCount === 0) {
+                matchBadge.className = "bg-rose-100 text-rose-700 text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse";
+                matchBadge.textContent = "0 Records Found";
+                printBtn.disabled = true;
+                excelBtn.disabled = true;
+            } else {
+                matchBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full";
+                matchBadge.textContent = matchCount + " Matching Records";
+                printBtn.disabled = false;
+                excelBtn.disabled = false;
+            }
+        }
+
+        // MODIFICATION: Form event listener logic for explicit interactive click reset
+        resetBtn.addEventListener('click', function () {
+            reportForm.reset();
+            calculateLiveReportMatches(); // Instantly sweeps metrics back to baseline counts
+        });
+
+        // MODIFICATION: Reset parameters after download submission to prevent form-state freezing
+        reportForm.addEventListener('submit', function () {
+            // Delays execution for a split millisecond so the processing headers capture initial variables successfully before clearing fields
+            setTimeout(() => {
+                reportForm.reset();
+                calculateLiveReportMatches();
+            }, 150);
+        });
+
+        // Attach real-time evaluation observers
+        searchInput.addEventListener('input', calculateLiveReportMatches);
+        mahallahSelect.addEventListener('change', calculateLiveReportMatches);
+        chandaSelect.addEventListener('change', calculateLiveReportMatches);
+
+        // Initial load scan
+        calculateLiveReportMatches();
+    });
+</script>
 
 <?php require_once 'footer.php'; ?>
