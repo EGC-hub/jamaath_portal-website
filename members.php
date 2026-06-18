@@ -29,12 +29,28 @@ if ($filter_status !== 'All') {
     $where_clauses[] = "status = ?";
     $params[] = $filter_status;
 }
+// MODIFICATION: Check for Paid vs Unpaid status by evaluating the latest entry inside the chanda_payments ledger table
 if ($filter_chanda !== 'All') {
     if ($filter_chanda === 'Paid') {
-        $where_clauses[] = "chanda_paid_to >= ?";
+        $where_clauses[] = "(
+            SELECT cp.paid_to 
+            FROM chanda_payments cp 
+            WHERE cp.member_id = m.id 
+            ORDER BY cp.paid_to DESC LIMIT 1
+        ) >= ?";
         $params[] = $prev_month_boundary;
     } else {
-        $where_clauses[] = "(chanda_paid_to IS NULL OR chanda_paid_to < ?)";
+        $where_clauses[] = "(
+            (SELECT cp.paid_to 
+             FROM chanda_payments cp 
+             WHERE cp.member_id = m.id 
+             ORDER BY cp.paid_to DESC LIMIT 1) IS NULL 
+            OR 
+            (SELECT cp.paid_to 
+             FROM chanda_payments cp 
+             WHERE cp.member_id = m.id 
+             ORDER BY cp.paid_to DESC LIMIT 1) < ?
+        )";
         $params[] = $prev_month_boundary;
     }
 }
@@ -53,8 +69,8 @@ if (!empty($where_clauses)) {
     $where_sql = "WHERE " . implode(" AND ", $where_clauses);
 }
 
-// Get total count
-$count_stmt = $db->prepare("SELECT COUNT(*) FROM members $where_sql");
+// MODIFICATION: Appended table alias 'm' to ensure subquery 'm.id' validation paths evaluate correctly
+$count_stmt = $db->prepare("SELECT COUNT(*) FROM members m $where_sql");
 $count_stmt->execute($params);
 $total_records = $count_stmt->fetchColumn();
 
@@ -65,8 +81,19 @@ if ($page > $total_pages)
     $page = $total_pages;
 $offset = ($page - 1) * $limit;
 
-// Fetch paginated member subset
-$fetch_stmt = $db->prepare("SELECT * FROM members $where_sql ORDER BY date_added DESC LIMIT $limit OFFSET $offset");
+// Fetch paginated member subset with bundled relational Chanda history lists
+$fetch_stmt = $db->prepare("
+    SELECT m.*, 
+           (SELECT cp.paid_from FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_from,
+           (SELECT cp.paid_to FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_to,
+           (SELECT GROUP_CONCAT(CONCAT(cp.id, '|', cp.paid_from, '|', cp.paid_to, '|', cp.total_amount, '|', cp.recorded_by, '|', DATE_FORMAT(cp.date_recorded, '%Y-%m-%d')) ORDER BY cp.paid_to DESC SEPARATOR '||') 
+            FROM chanda_payments cp 
+            WHERE cp.member_id = m.id) AS chanda_history_raw
+    FROM members m 
+    $where_sql 
+    ORDER BY m.date_added DESC 
+    LIMIT $limit OFFSET $offset
+");
 $fetch_stmt->execute($params);
 $members = $fetch_stmt->fetchAll();
 
@@ -740,7 +767,6 @@ require_once 'header.php';
                 </div>
             </div>
 
-            <!-- New Month-Wise Chanda Tracker Interface inside Profile Pop-up -->
             <div class="bg-teal-50/50 p-4 rounded-xl border border-teal-150 space-y-3">
                 <p class="text-[10px] font-bold text-teal-900 uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-calendar-check text-teal-700"></i> Monthly Subscription (Chanda) History
@@ -760,14 +786,15 @@ require_once 'header.php';
                     </div>
                 </div>
 
-                <!-- Collection form embedded inside profile card -->
                 <form id="card-chanda-form" method="POST" action="actions.php"
                     class="p-3 bg-teal-800 text-white rounded-lg space-y-2">
                     <input type="hidden" name="action" value="update_chanda_period">
                     <input type="hidden" name="id" id="chanda-member-id-field">
+
                     <p class="text-[9px] font-bold uppercase tracking-wider text-teal-200">Record Subscription Payments
                     </p>
-                    <div class="grid grid-cols-2 gap-2 text-slate-800">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-800">
                         <div>
                             <label class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Paid
                                 From *</label>
@@ -780,12 +807,39 @@ require_once 'header.php';
                             <input type="month" name="chanda_paid_to" id="chanda_paid_to_input" required
                                 class="w-full bg-white rounded p-1 text-[11px] focus:outline-none">
                         </div>
+                        <div>
+                            <label class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Total
+                                Paid (₹) *</label>
+                            <input type="number" name="total_amount" id="chanda_total_amount_input" min="0" step="0.01"
+                                placeholder="0.00" required
+                                class="w-full bg-white rounded p-1 text-[11px] focus:outline-none">
+                        </div>
                     </div>
+
                     <button type="submit"
                         class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-1.5 rounded text-[10px] uppercase tracking-wide transition-colors">
                         Save Subscription Mapping
                     </button>
                 </form>
+
+                <div class="mt-4 pt-3 border-t border-teal-100 space-y-1.5">
+                    <p class="text-[9px] font-bold uppercase tracking-wider text-teal-900">Ledger Audit History Logs</p>
+                    <div class="overflow-x-auto rounded-lg border border-slate-100 max-h-40 overflow-y-auto">
+                        <table class="w-full text-left text-[11px] bg-white">
+                            <thead
+                                class="bg-slate-50 text-[9px] uppercase tracking-wider text-slate-500 font-bold sticky top-0">
+                                <tr>
+                                    <th class="p-2">Period Range</th>
+                                    <th class="p-2">Amount</th>
+                                    <th class="p-2">Recorded By</th>
+                                    <th class="p-2">Date Saved</th>
+                                </tr>
+                            </thead>
+                            <tbody id="card-chanda-history-rows" class="divide-y divide-slate-100 text-slate-700">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- Dynamic Dependents List Section -->
@@ -1249,6 +1303,42 @@ require_once 'header.php';
             closeProfileCard();
             populateEditForm(member);
         };
+
+        // MODIFICATION: Render Ledger Audit Table Rows Dynamically
+        const historyRowsContainer = document.getElementById('card-chanda-history-rows');
+        historyRowsContainer.innerHTML = ''; // Reset container rows safely
+
+        if (member.chanda_history_raw && member.chanda_history_raw.trim() !== '') {
+            // Split by transaction records delimiter
+            const records = member.chanda_history_raw.split('||');
+
+            records.forEach(recordStr => {
+                const parts = recordStr.split('|');
+                if (parts.length >= 6) {
+                    const recId = parts[0];
+                    const pFrom = parts[1];
+                    const pTo = parts[2];
+                    const pAmount = parseFloat(parts[3]).toFixed(2);
+                    const pUser = parts[4];
+                    const pDate = parts[5];
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50/75 transition-colors";
+                    tr.innerHTML = `
+                        <td class="p-2 font-medium text-slate-900">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</td>
+                        <td class="p-2 font-bold text-emerald-700">₹${pAmount}</td>
+                        <td class="p-2 font-mono text-slate-500">${escapeHtml(pUser)}</td>
+                        <td class="p-2 text-slate-400">${pDate}</td>
+                    `;
+                    historyRowsContainer.appendChild(tr);
+                }
+            });
+        } else {
+            // Fallback empty view placeholder
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="4" class="p-4 text-center text-slate-400 italic">No historical subscription payments logged yet.</td>`;
+            historyRowsContainer.appendChild(tr);
+        }
 
         document.getElementById('profile-card-modal').classList.remove('hidden');
     }

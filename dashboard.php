@@ -9,8 +9,18 @@ $prev_month_boundary = date('Y-m-01', strtotime('first day of last month'));
 $total_active = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Alive'")->fetchColumn();
 $total_deceased = $db->query("SELECT COUNT(*) FROM members WHERE status = 'Deceased'")->fetchColumn();
 
-// Fetch active members who have paid at least up to the previous month dynamically
-$paid_active = $db->prepare("SELECT COUNT(*) FROM members WHERE status = 'Alive' AND chanda_paid_to >= ?");
+// MODIFICATION: Fetch active members whose LATEST ledger payment covers at least up to the previous month boundary
+$paid_active = $db->prepare("
+    SELECT COUNT(*) 
+    FROM members m 
+    WHERE m.status = 'Alive' 
+      AND (
+        SELECT cp.paid_to 
+        FROM chanda_payments cp 
+        WHERE cp.member_id = m.id 
+        ORDER BY cp.paid_to DESC LIMIT 1
+      ) >= ?
+");
 $paid_active->execute([$prev_month_boundary]);
 $paid_active_count = $paid_active->fetchColumn();
 
@@ -44,12 +54,24 @@ $max_demographics_count = max(array_values($ward_demographics)) ?: 1;
 // Fetch recent lists
 $deceased_recent = $db->query("SELECT * FROM members WHERE status = 'Deceased' ORDER BY deceased_date DESC LIMIT 4")->fetchAll();
 
-// Fetch 4 active members whose subscriptions are pending for the previous month compared to today
+// MODIFICATION: Fetch 4 active members whose latest subscription record is missing or pending compared to the previous month boundary
 $unpaid_chanda_stmt = $db->prepare("
-    SELECT * FROM members 
-    WHERE status = 'Alive' 
-    AND (chanda_paid_to IS NULL OR chanda_paid_to < ?)
-    ORDER BY first_name ASC LIMIT 4
+    SELECT m.* FROM members m
+    WHERE m.status = 'Alive' 
+      AND (
+        SELECT cp.paid_to 
+        FROM chanda_payments cp 
+        WHERE cp.member_id = m.id 
+        ORDER BY cp.paid_to DESC LIMIT 1
+      ) IS NULL 
+      OR (
+        SELECT cp.paid_to 
+        FROM chanda_payments cp 
+        WHERE cp.member_id = m.id 
+        ORDER BY cp.paid_to DESC LIMIT 1
+      ) < ?
+    ORDER BY m.first_name ASC 
+    LIMIT 4
 ");
 $unpaid_chanda_stmt->execute([$prev_month_boundary]);
 $unpaid_chanda_list = $unpaid_chanda_stmt->fetchAll();
@@ -91,7 +113,8 @@ require_once 'header.php';
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Chanda Status (Active)</p>
                 <h3 class="text-3xl font-extrabold text-teal-700 mt-2"><?php echo $chanda_percent; ?>%</h3>
-                <p class="text-xs text-slate-500 mt-1">Subscribed up to date (<b><?php echo date('F Y', strtotime('first day of last month')); ?></b>)</p>
+                <p class="text-xs text-slate-500 mt-1">Subscribed up to date
+                    (<b><?php echo date('F Y', strtotime('first day of last month')); ?></b>)</p>
             </div>
             <div class="bg-teal-50 text-teal-600 p-3 rounded-xl">
                 <i class="fa-solid fa-receipt text-xl"></i>
@@ -226,7 +249,8 @@ require_once 'header.php';
                     class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
                     <div
                         class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-chart-line text-sm"></i></div>
+                        <i class="fa-solid fa-chart-line text-sm"></i>
+                    </div>
                     <div>
                         <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Dashboard</p>
                         <p class="text-[10px] text-slate-400 font-medium">Core Metrics</p>
@@ -237,7 +261,8 @@ require_once 'header.php';
                     class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
                     <div
                         class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-users text-sm"></i></div>
+                        <i class="fa-solid fa-users text-sm"></i>
+                    </div>
                     <div>
                         <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Members Directory</p>
                         <p class="text-[10px] text-slate-400 font-medium">Family Archives</p>
@@ -248,7 +273,8 @@ require_once 'header.php';
                     class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
                     <div
                         class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-handshake-angle text-sm"></i></div>
+                        <i class="fa-solid fa-handshake-angle text-sm"></i>
+                    </div>
                     <div>
                         <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Bait-Ul-Mal</p>
                         <p class="text-[10px] text-slate-400 font-medium">Welfare Ledger</p>
@@ -259,7 +285,8 @@ require_once 'header.php';
                     class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
                     <div
                         class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-ring text-sm"></i></div>
+                        <i class="fa-solid fa-ring text-sm"></i>
+                    </div>
                     <div>
                         <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Nikah</p>
                         <p class="text-[10px] text-slate-400 font-medium">Marriage Register</p>
@@ -270,7 +297,8 @@ require_once 'header.php';
                     class="p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 rounded-xl transition-all duration-200 group flex items-center space-x-3">
                     <div
                         class="w-9 h-9 rounded-lg bg-white text-slate-500 group-hover:text-emerald-700 shadow-sm border border-slate-100 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-monument text-sm"></i></div>
+                        <i class="fa-solid fa-monument text-sm"></i>
+                    </div>
                     <div>
                         <p class="font-bold text-slate-800 text-xs group-hover:text-emerald-950">Burial</p>
                         <p class="text-[10px] text-slate-400 font-medium">Burial Records</p>

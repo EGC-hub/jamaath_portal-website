@@ -1,4 +1,8 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'db.php';
 require_once 'helpers.php';
 
@@ -226,10 +230,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $chanda_from = $_POST['chanda_paid_from'] . '-01'; // Append first day to match SQL DATE format
             $chanda_to = $_POST['chanda_paid_to'] . '-01';
 
+            // MODIFICATION: Capture the new amount from form input casting it safely to float
+            $total_amount = isset($_POST['total_amount']) ? (float) $_POST['total_amount'] : 0.00;
+
+            // MODIFICATION: Dynamically capture the authenticated user from active session
+            $recorded_by = isset($_SESSION['display_name']) ? $_SESSION['display_name'] : 'Admin';
+
             // Server-Side Asymmetric Strict Date Boundaries Validation
             $min_allowed_boundary = date('Y-m-01', strtotime('-2 years')); // Past 2 years boundary
 
-            // MODIFICATION: Separate boundaries matching our new frontend logic
             $max_from_boundary = date('Y-m-01'); // Paid From max = Current Active Month
             $max_to_boundary = date('Y-12-01');  // Paid To max = December of Current Year
 
@@ -251,27 +260,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $prev_month = date('Y-m-01', strtotime('first day of last month'));
             $chanda_status = ($chanda_to >= $prev_month) ? 'Paid' : 'Unpaid';
 
-            $stmt = $db->prepare("UPDATE members SET chanda_paid_from = ?, chanda_paid_to = ?, chanda_status = ? WHERE id = ?");
-            $stmt->execute([$chanda_from, $chanda_to, $chanda_status, $id]);
+            // MODIFICATION 1: Insert an entirely new historical ledger line entry into chanda_payments
+            $insert_stmt = $db->prepare("
+                INSERT INTO chanda_payments (member_id, paid_from, paid_to, total_amount, recorded_by, date_recorded) 
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            $insert_stmt->execute([$id, $chanda_from, $chanda_to, $total_amount, $recorded_by]);
+
+            // MODIFICATION 2: Update only the fast chanda_status status flag inside the parent members entity
+            $update_stmt = $db->prepare("UPDATE members SET chanda_status = ? WHERE id = ?");
+            $update_stmt->execute([$chanda_status, $id]);
 
             $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'members.php';
-            header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "msg=Chanda payment period successfully updated");
+            header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "msg=Chanda payment period successfully recorded in ledger");
             exit;
         }
 
-        // Action: Collect Chanda Directly (Fallback quick collection action - sets current active month as paid)
+        // Action: Collect Chanda Directly (Fallback quick collection action - sets targeted past period)
         if ($_POST['action'] === 'collect_chanda') {
             $id = (int) $_POST['id'];
 
-            // MODIFICATION: Set default paid period to cover up to current active month dynamically
-            $default_from = date('Y-m-01', strtotime('-6 months'));
-            $current_month = date('Y-m-01'); // Safe baseline sync
+            // Boot sessions to ensure user attribution is logged accurately
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $recorded_by = isset($_SESSION['display_name']) ? $_SESSION['display_name'] : 'Admin';
 
-            $stmt = $db->prepare("UPDATE members SET chanda_paid_from = ?, chanda_paid_to = ?, chanda_status = 'Paid' WHERE id = ?");
-            $stmt->execute([$default_from, $current_month, $id]);
+            // Establish the quick collect target boundary (First day of the previous calendar month)
+            $target_to_month = date('Y-m-01', strtotime('first day of last month'));
+            $default_quick_amount = 0.00; // Standard fallback allocation amount
+
+            // Look up if this member already has an existing payment history ledger entry
+            $history_check = $db->prepare("
+                SELECT paid_to 
+                FROM chanda_payments 
+                WHERE member_id = ? 
+                ORDER BY paid_to DESC 
+                LIMIT 1
+            ");
+            $history_check->execute([$id]);
+            $last_payment = $history_check->fetch(PDO::FETCH_ASSOC);
+
+            if ($last_payment) {
+                // MODIFICATION: If history exists, start from the immediate next month following their last record
+                $default_from = date('Y-m-01', strtotime('+1 month', strtotime($last_payment['paid_to'])));
+
+                // Safety checkpoint check: if the next month would push past the target month, normalize it to the target month
+                if ($default_from > $target_to_month) {
+                    $default_from = $target_to_month;
+                }
+            } else {
+                // MODIFICATION: If never paid, collect just for that one single target month alone
+                $default_from = $target_to_month;
+            }
+
+            // 1. Insert transaction historical trace entry into the separate ledger table
+            $insert_stmt = $db->prepare("
+                INSERT INTO chanda_payments (member_id, paid_from, paid_to, total_amount, recorded_by, date_recorded) 
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            $insert_stmt->execute([$id, $default_from, $target_to_month, $default_quick_amount, $recorded_by]);
+
+            // 2. Sync the fast cache flag update state back on the primary member record
+            $update_stmt = $db->prepare("UPDATE members SET chanda_status = 'Paid' WHERE id = ?");
+            $update_stmt->execute([$id]);
 
             $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'index.php';
-            header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "msg=Chanda collection updated successfully");
+            header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "msg=Chanda quick collection recorded successfully");
             exit;
         }
 
