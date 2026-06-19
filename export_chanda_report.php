@@ -176,7 +176,7 @@ if ($format === 'excel') {
                 <div>
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight uppercase">NVK Muslim Jamaath
                     </h1>
-                    <p class="text-xs text-slate-500 font-medium">Headquarters Registry Office | Financial Subscription
+                    <p class="text-xs text-slate-500 font-medium">Headquarters Registry Office | Chanda
                         Statement</p>
                     <div
                         class="mt-2 text-[11px] text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg inline-block border border-slate-200">
@@ -211,8 +211,8 @@ if ($format === 'excel') {
                             <th class="p-3">Mahallah Sector</th>
                             <th class="p-3">Phone Line</th>
                             <th class="p-3 text-center">Status Flag</th>
-                            <th class="p-3">Ledger From</th>
-                            <th class="p-3">Ledger Up To</th>
+                            <th class="p-3">Paid From</th>
+                            <th class="p-3">Paid Up To</th>
                             <th class="p-3 text-right">Amount (₹)</th>
                         </tr>
                     </thead>
