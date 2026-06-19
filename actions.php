@@ -861,6 +861,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
                 $reporter_relationship = !empty($_POST['reporter_relationship']) ? trim($_POST['reporter_relationship']) : null;
 
+                // MODIFICATION: Server-side validation safeguard checking time boundaries
+                $death_timestamp = strtotime($_POST['death_datetime']);
+                $burial_timestamp = strtotime($_POST['burial_datetime']);
+
+                if ($death_timestamp !== false && $burial_timestamp <= $death_timestamp) {
+                    $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'burial.php';
+                    header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "error=Burial time must be after demise time");
+                    exit;
+                }
+
                 $ins_stmt = $db->prepare("
                     INSERT INTO burial_registry (
                         is_jamaath_member, deceased_member_id, deceased_dependent_id, deceased_name, 
@@ -914,12 +924,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Burial registry record not found.");
                 }
 
-                // If previous was primary member, temporarily revert them to Alive
+                // If previous was primary member, temporarily revert them to Alive status
                 if (!empty($orig['deceased_member_id'])) {
                     $rev_stmt = $db->prepare("UPDATE members SET status = 'Alive', deceased_date = NULL WHERE id = ?");
                     $rev_stmt->execute([$orig['deceased_member_id']]);
                 }
-                // If previous was dependent, temporarily revert them to Alive
+
+                // If previous was dependent, temporarily revert them to Alive status
                 if (!empty($orig['deceased_dependent_id'])) {
                     $rev_stmt = $db->prepare("UPDATE member_dependents SET status = 'Alive' WHERE id = ?");
                     $rev_stmt->execute([$orig['deceased_dependent_id']]);
@@ -943,29 +954,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $m_stmt->execute([$deceased_member_id]);
                     $member = $m_stmt->fetch();
                     if ($member) {
-                        $deceased_name = $member['first_name'] . ' ' . $member['last_name'];
+                        // MODIFICATION: Appended ' (Marhoom)' to keep naming matches unified for print certificates
+                        $deceased_name = $member['first_name'] . ' ' . $member['last_name'] . ' (Marhoom)';
                         $deceased_father_husband = $member['father_husband_name'];
                         $deceased_gender = $member['gender'];
                         if (!empty($member['dob'])) {
                             $deceased_age = calculateAge($member['dob']);
                         }
                         // Set primary member status to Deceased
-                        $up_stmt = $db->prepare("UPDATE members SET status = 'Deceased', deceased_date = ? WHERE id = ?");
+                        $up_stmt = $db->prepare("UPDATE members SET status = 'Deceased', deceased_date = ?, chanda_status = 'Paid' WHERE id = ?");
                         $up_stmt->execute([substr($_POST['burial_datetime'], 0, 10), $deceased_member_id]);
                     }
                 } elseif ($is_jamaath_member_input === 2) {
                     $actual_is_jamaath = 1;
                     $deceased_dependent_id = (int) $_POST['deceased_dependent_id'];
                     $d_stmt = $db->prepare("
-                        SELECT d.*, m.first_name AS prim_first, m.last_name AS prim_last, m.father_husband_name AS prim_father
-                        FROM member_dependents d
-                        JOIN members m ON d.member_id = m.id
-                        WHERE d.id = ?
-                    ");
+                SELECT d.*, m.first_name AS prim_first, m.last_name AS prim_last, m.father_husband_name AS prim_father
+                FROM member_dependents d
+                JOIN members m ON d.member_id = m.id
+                WHERE d.id = ?
+            ");
                     $d_stmt->execute([$deceased_dependent_id]);
                     $dep = $d_stmt->fetch();
                     if ($dep) {
-                        $deceased_name = $dep['name'];
+                        // MODIFICATION: Appended ' (Marhoom)' to dependents as well for name registry standard mapping
+                        $deceased_name = $dep['name'] . ' (Marhoom)';
                         $deceased_father_husband = ($dep['relationship'] === 'Son' || $dep['relationship'] === 'Daughter') ? ($dep['prim_first'] . ' ' . $dep['prim_last']) : $dep['prim_father'];
                         $deceased_gender = $dep['gender'];
                         if (!empty($dep['dob'])) {
@@ -996,16 +1009,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
                 $reporter_relationship = !empty($_POST['reporter_relationship']) ? trim($_POST['reporter_relationship']) : null;
 
+                // MODIFICATION: Server-side validation safeguard checking time boundaries
+                $death_timestamp = strtotime($_POST['death_datetime']);
+                $burial_timestamp = strtotime($_POST['burial_datetime']);
+
+                if ($death_timestamp !== false && $burial_timestamp <= $death_timestamp) {
+                    $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'burial.php';
+                    header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "error=Burial time must be after demise time");
+                    exit;
+                }
+
                 $upd_stmt = $db->prepare("
-                    UPDATE burial_registry SET 
-                        is_jamaath_member = ?, deceased_member_id = ?, deceased_dependent_id = ?, 
-                        deceased_name = ?, deceased_father_husband = ?, deceased_age = ?, 
-                        deceased_gender = ?, deceased_jamath = ?, death_datetime = ?, 
-                        burial_datetime = ?, plot_details = ?, noc_provided = ?, 
-                        reported_by_member = ?, reporter_member_id = ?, reporter_name = ?, 
-                        reporter_phone = ?, reporter_relationship = ?
-                    WHERE id = ?
-                ");
+            UPDATE burial_registry SET 
+                is_jamaath_member = ?, deceased_member_id = ?, deceased_dependent_id = ?, 
+                deceased_name = ?, deceased_father_husband = ?, deceased_age = ?, 
+                deceased_gender = ?, deceased_jamath = ?, death_datetime = ?, 
+                burial_datetime = ?, plot_details = ?, noc_provided = ?, 
+                reported_by_member = ?, reporter_member_id = ?, reporter_name = ?, 
+                reporter_phone = ?, reporter_relationship = ?
+            WHERE id = ?
+        ");
                 $upd_stmt->execute([
                     $actual_is_jamaath,
                     $deceased_member_id,

@@ -137,7 +137,7 @@ require_once 'header.php';
                                 <?php if ($burial['is_jamaath_member'] == 1): ?>
                                     <span
                                         class="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded border border-emerald-150 uppercase tracking-wider">
-                                        Jamaath Family
+                                        Jamaath Member
                                     </span>
                                 <?php else: ?>
                                     <span
@@ -404,9 +404,10 @@ require_once 'header.php';
                     <select id="deceased_member_select" name="deceased_member_id"
                         class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-rose-500 focus:outline-none">
                         <option value="">-- Choose Member --</option>
-                        <?php foreach ($alive_members as $m): ?>
+                        <?php foreach ($alive_members as $m):
+                            $age = calculateAge($m['dob']); ?>
                             <option value="<?php echo $m['id']; ?>">
-                                <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (Card: ' . $m['card_no'] . ')'); ?>
+                                <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (Age: ' . $age . ')'); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -591,6 +592,40 @@ require_once 'header.php';
 </div>
 
 <script>
+    // For date and time of burial validation
+    document.addEventListener("DOMContentLoaded", function () {
+        const deathInput = document.getElementById('death-datetime-field');
+        const burialInput = document.getElementById('burial-datetime-field');
+        const burialForm = document.getElementById('chanda_report_form') || deathInput.closest('form');
+
+        // 1. Lock/Unlock burial picker constraints dynamically based on demise selection
+        deathInput.addEventListener('change', function () {
+            if (this.value) {
+                // Forces the burial input to only allow timestamps AFTER the chosen demise time
+                burialInput.min = this.value;
+            } else {
+                burialInput.removeAttribute('min');
+            }
+        });
+
+        // 2. Fail-safe verification interceptor when clicking submit
+        if (burialForm) {
+            burialForm.addEventListener('submit', function (e) {
+                if (deathInput.value && burialInput.value) {
+                    const deathTime = new Date(deathInput.value).getTime();
+                    const burialTime = new Date(burialInput.value).getTime();
+
+                    if (burialTime <= deathTime) {
+                        e.preventDefault(); // Stop form submission entirely
+                        alert("⚠️ Validation Error: The Date & Time of Burial must be strictly after the Date & Time of Demise.");
+                        burialInput.focus();
+                        return false;
+                    }
+                }
+            });
+        }
+    });
+
     // Open Pop-up details card modal
     function openBurialCard(burial) {
         document.getElementById('card-date-header').textContent = "Buried Date: " + formatDateJS(burial.burial_datetime);
@@ -748,12 +783,46 @@ require_once 'header.php';
         document.getElementById('deceased-origin-options-container').classList.add('hidden');
 
         // Set inputs
-        if (burial.is_jamaath_member == 1 && burial.deceased_member_id) {
+        if ((burial.is_jamaath_member == 1 || burial.is_jamaath_member == true) && burial.deceased_member_id) {
             document.getElementById('dec_origin_member').checked = true;
-            document.getElementById('deceased_member_select').value = burial.deceased_member_id;
-        } else if (burial.is_jamaath_member == 1 && burial.deceased_dependent_id) {
+
+            // MODIFICATION: Target the select dropdown element
+            const memberSelect = document.getElementById('deceased_member_select');
+
+            // Check if an option with this member's ID already exists in the dropdown list
+            let optionExists = Array.from(memberSelect.options).some(opt => opt.value == burial.deceased_member_id);
+
+            // If it doesn't exist (because they are marked Deceased), dynamically inject them so they show perfectly!
+            if (!optionExists) {
+                const opt = document.createElement('option');
+                opt.value = burial.deceased_member_id;
+
+                // Strip out '(Marhoom)' from the name if it's already there to keep it looking clean in the dropdown
+                let baseName = burial.deceased_name ? burial.deceased_name.replace(' (Marhoom)', '') : "Assigned Member";
+                opt.textContent = baseName + " (Deceased Member)";
+
+                memberSelect.appendChild(opt);
+            }
+
+            // Securely select the newly appended or existing ID value
+            memberSelect.value = burial.deceased_member_id;
+
+        } else if ((burial.is_jamaath_member == 1 || burial.is_jamaath_member == true) && burial.deceased_dependent_id) {
             document.getElementById('dec_origin_dependent').checked = true;
-            document.getElementById('deceased_dependent_select').value = burial.deceased_dependent_id;
+
+            // MODIFICATION: Apply the same dynamic fallback rule for Deceased Dependents dropdown
+            const depSelect = document.getElementById('deceased_dependent_select');
+            let optionExists = Array.from(depSelect.options).some(opt => opt.value == burial.deceased_dependent_id);
+
+            if (!optionExists) {
+                const opt = document.createElement('option');
+                opt.value = burial.deceased_dependent_id;
+                let baseName = burial.deceased_name ? burial.deceased_name.replace(' (Marhoom)', '') : "Assigned Dependent";
+                opt.textContent = baseName + " (Deceased Dependent)";
+                depSelect.appendChild(opt);
+            }
+
+            depSelect.value = burial.deceased_dependent_id;
         } else {
             document.getElementById('dec_origin_external').checked = true;
             document.getElementById('manual_deceased_name').value = burial.deceased_name;

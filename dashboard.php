@@ -52,7 +52,11 @@ foreach ($wards_list as $ward) {
 $max_demographics_count = max(array_values($ward_demographics)) ?: 1;
 
 // Fetch recent lists
-$deceased_recent = $db->query("SELECT * FROM members WHERE status = 'Deceased' ORDER BY deceased_date DESC LIMIT 4")->fetchAll();
+$deceased_recent = $db->query("SELECT b.*, m.card_no AS deceased_member_card_no, m.mahallah AS deceased_mahallah
+FROM burial_registry b
+LEFT JOIN members m ON b.deceased_member_id = m.id
+ORDER BY b.death_datetime DESC 
+LIMIT 4;")->fetchAll();
 
 // MODIFICATION: Fetch 4 active members whose latest subscription record is missing or pending compared to the previous month boundary
 $unpaid_chanda_stmt = $db->prepare("
@@ -174,8 +178,8 @@ require_once 'header.php';
             <div class="flex justify-between items-center mb-4">
                 <div>
                     <h3 class="text-lg font-bold text-slate-800">Deceased Member Records (Marhoom)</h3>
-                    <p class="text-xs text-slate-500">Demise entries mapped directly to official graveyard and burial
-                        plot archives</p>
+                    <p class="text-xs text-slate-500">Demise entries mapped directly to official burial details
+                    </p>
                 </div>
                 <i class="fa-solid fa-dove text-slate-400"></i>
             </div>
@@ -187,7 +191,7 @@ require_once 'header.php';
                             <th class="py-3 px-4 font-semibold">Card No</th>
                             <th class="py-3 px-4 font-semibold">Mahallah</th>
                             <th class="py-3 px-4 font-semibold">Demise Date</th>
-                            <th class="py-3 px-4 font-semibold text-right">Actions</th>
+                            <th class="py-3 px-4 font-semibold">Age</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-sm">
@@ -201,28 +205,37 @@ require_once 'header.php';
                                 <tr class="hover:bg-slate-50/50">
                                     <td class="py-3.5 px-4">
                                         <p class="font-bold text-slate-800 text-xs">
-                                            <?php echo htmlspecialchars($m_dec['first_name'] . ' ' . $m_dec['last_name']); ?>
+                                            <?php echo htmlspecialchars($m_dec['deceased_name']); ?>
                                         </p>
                                         <span class="text-[10px] text-slate-400">S/O:
-                                            <?php echo htmlspecialchars($m_dec['father_husband_name']); ?></span>
+                                            <?php echo htmlspecialchars($m_dec['deceased_father_husband']); ?></span>
                                     </td>
                                     <td class="py-3.5 px-4 text-slate-600 font-bold text-xs">
-                                        <?php echo htmlspecialchars($m_dec['card_no']); ?>
+                                        <?php echo htmlspecialchars($m_dec['deceased_member_card_no']); ?>
                                     </td>
                                     <td class="py-3.5 px-4 text-xs text-slate-500">
-                                        <?php echo htmlspecialchars($m_dec['mahallah']); ?>
+                                        <?php echo date('d M Y - h:i A', strtotime($m_dec['death_datetime'])); ?>
                                     </td>
                                     <td class="py-3.5 px-4 text-rose-600 font-semibold text-xs">
-                                        <?php echo htmlspecialchars($m_dec['deceased_date']); ?>
+                                        <span class="bg-teal-50 px-2.5 py-1 rounded-md text-[10px]">
+                                            <i class="fa-solid fa-clock mr-1"></i>
+                                            <?php
+                                            if (!empty($m_dec['death_datetime'])) {
+                                                // Standardizes parsing from database format
+                                                $dateObj = date_create($m_dec['death_datetime']);
+                                                if ($dateObj) {
+                                                    echo date_format($dateObj, 'd M Y - h:i A');
+                                                } else {
+                                                    echo htmlspecialchars($m_dec['death_datetime']); // Fallback if string is purely text
+                                                }
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
+                                        </span>
                                     </td>
-                                    <td class="py-3.5 px-4 text-right">
-                                        <form method="POST" action="actions.php">
-                                            <input type="hidden" name="action" value="revert_active">
-                                            <input type="hidden" name="id" value="<?php echo $m_dec['id']; ?>">
-                                            <button type="submit"
-                                                class="text-emerald-700 text-xs font-bold hover:underline">Revert
-                                                Status</button>
-                                        </form>
+                                    <td class="py-3.5 px-4">
+                                        <?php echo htmlspecialchars($m_dec['deceased_age']) ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
