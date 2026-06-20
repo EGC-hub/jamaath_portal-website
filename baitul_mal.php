@@ -33,7 +33,8 @@ require_once 'header.php';
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Base Reserve Fund</p>
-                <h3 class="text-2xl font-black text-slate-800 mt-1">₹<?php echo formatIndianCurrency($base_reserve); ?></h3>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">₹<?php echo formatIndianCurrency($base_reserve); ?>
+                </h3>
                 <button onclick="openBaselineModal()"
                     class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold mt-1 flex items-center gap-1">
                     <i class="fa-solid fa-pen-to-square"></i> Configure Baseline
@@ -48,7 +49,8 @@ require_once 'header.php';
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Received (Inflows)</p>
-                <h3 class="text-2xl font-black text-emerald-600 mt-1">+ ₹<?php echo formatIndianCurrency($total_inflows); ?>
+                <h3 class="text-2xl font-black text-emerald-600 mt-1">+
+                    ₹<?php echo formatIndianCurrency($total_inflows); ?>
                 </h3>
                 <p class="text-xs text-slate-400 mt-1">Zakath, Sadaqa & Chanda</p>
             </div>
@@ -75,7 +77,8 @@ require_once 'header.php';
             class="bg-gradient-to-br from-emerald-900 to-teal-950 text-white p-5 rounded-2xl shadow-md flex items-center justify-between">
             <div>
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Net Available Reserves</p>
-                <h3 class="text-2xl font-black text-white mt-1">₹<?php echo formatIndianCurrency($total_reserves_available); ?>
+                <h3 class="text-2xl font-black text-white mt-1">
+                    ₹<?php echo formatIndianCurrency($total_reserves_available); ?>
                 </h3>
                 <p class="text-xs text-emerald-300 mt-1">Dynamic Liquidity Scale</p>
             </div>
@@ -148,6 +151,7 @@ require_once 'header.php';
                                 <th class="py-3 px-4">Applicant Profile</th>
                                 <th class="py-3 px-4">Category</th>
                                 <th class="py-3 px-4">Requested Amount</th>
+                                <th class="py-3 px-4">Converted Date & Time</th>
                                 <th class="py-3 px-4">Payment Proof</th>
                                 <th class="py-3 px-4">Status State</th>
                                 <th class="py-3 px-4 text-right">Administrative Actions</th>
@@ -161,7 +165,11 @@ require_once 'header.php';
                                     </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($outflow['type']); ?></td>
                                     <td class="py-3 px-4 font-black text-rose-600">
-                                        ₹<?php echo formatIndianCurrency($outflow['amount']); ?></td>
+                                        ₹<?php echo formatIndianCurrency($outflow['amount']); ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate500 font-mono whitespace-nowrap">
+                                        <?php echo date('d M Y - h:i A', strtotime($outflow['date_added'])) ?>
+                                    </td>
                                     <td class="py-3 px-4">
                                         <?php if (!empty($outflow['proof_of_payment'])): ?>
                                             <button
@@ -173,7 +181,7 @@ require_once 'header.php';
                                             <span class="text-slate-400 text-[10px]">No document attached</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="py-3 px-4">
+                                    <td class="py-3 px-4 whitespace-nowrap">
                                         <?php if ($outflow['status'] === 'Paid'): ?>
                                             <span
                                                 class="bg-emerald-50 text-emerald-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit"><i
@@ -217,15 +225,15 @@ require_once 'header.php';
                 </div>
             <?php else: ?>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <table class="w-full text-left border-collapse text-xs table-fixed">
                         <thead>
                             <tr
                                 class="border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                                <th class="py-3 px-4">Donor Label</th>
-                                <th class="py-3 px-4">Donation Type</th>
-                                <th class="py-3 px-4">Inward Amount</th>
-                                <th class="py-3 px-4">Receipt Date</th>
-                                <th class="py-3 px-4 text-right">Administrative Actions</th>
+                                <th class="py-3 px-4 w-1/4">Donor Label</th>
+                                <th class="py-3 px-4 w-1/5">Donation Type</th>
+                                <th class="py-3 px-4 w-1/6">Inward Amount</th>
+                                <th class="py-3 px-4 w-1/4">Receipt Date</th>
+                                <th class="py-3 px-4 w-1/6 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
@@ -287,6 +295,7 @@ require_once 'header.php';
                                 <th class="py-3 px-4">Aid Type</th>
                                 <th class="py-3 px-4">Requested Amount</th>
                                 <th class="py-3 px-4">Payment Parameters</th>
+                                <th class="py-2 px-4">Applied Date & Time</th>
                                 <th class="py-3 px-4">Status State</th>
                                 <th class="py-3 px-4 text-right">Administrative Actions</th>
                             </tr>
@@ -297,7 +306,7 @@ require_once 'header.php';
                                     <td class="py-3 px-4 flex items-center gap-2.5">
                                         <?php if (!empty($app['photo'])): ?>
                                             <img src="<?php echo (strpos($app['photo'], 'data:image') === 0 || file_exists($app['photo'])) ? $app['photo'] : 'uploads/welfare/photos/' . $app['photo']; ?>"
-                                                class="w-8 h-8 rounded-full object-cover border shadow-xs">
+                                                class="w-12 h-12 rounded-full object-cover border shadow-xs">
                                         <?php else: ?>
                                             <div
                                                 class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[9px] text-slate-400 font-bold border">
@@ -313,7 +322,8 @@ require_once 'header.php';
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-slate-500"><?php echo htmlspecialchars($app['type']); ?></td>
-                                    <td class="py-3 px-4 font-bold text-slate-900">₹<?php echo formatIndianCurrency($app['amount']); ?>
+                                    <td class="py-3 px-4 font-bold text-slate-900">
+                                        ₹<?php echo formatIndianCurrency($app['amount']); ?>
                                     </td>
                                     <td class="py-3 px-4">
                                         <p class="font-semibold text-slate-700">
@@ -323,7 +333,10 @@ require_once 'header.php';
                                             <?php echo $app['date_of_payment'] ? date('d M Y', strtotime($app['date_of_payment'])) : 'Immediate'; ?>
                                         </p>
                                     </td>
-                                    <td class="py-3 px-4">
+                                    <td class="py-3 px-4 text-slate-500 font-mono whitespace-nowrap">
+                                        <?php echo date('d M Y - h:i A', strtotime($app['date_added'])) ?>
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
                                         <?php if ($app['status'] === 'Pending'): ?>
                                             <span
                                                 class="bg-amber-50 text-amber-700 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">Pending
@@ -642,7 +655,7 @@ require_once 'header.php';
         </div>
         <div class="flex-grow overflow-y-auto p-6 space-y-5">
             <div class="flex items-center gap-4 border-b border-slate-100 pb-4">
-                <img id="view_photo" src="" class="w-16 h-16 rounded-full object-cover border shadow-inner">
+                <img id="view_photo" src="" class="w-20 h-20 rounded-full object-cover border shadow-inner">
                 <div>
                     <h4 id="view_name" class="text-base font-black text-slate-800"></h4>
                     <p id="view_father_name" class="text-xs text-slate-400 mt-0.5"></p>
