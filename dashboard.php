@@ -315,19 +315,39 @@ require_once 'header.php';
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-2 pt-2">
-                    <button type="submit" id="report_print_btn" name="format" value="print"
+                    <button type="button" onclick="fetchChandaReportPreview()" id="report_preview_btn"
                         class="flex-1 bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        Compile Preview
+                    </button>
+
+                    <button type="submit" id="report_print_btn" name="format" value="print"
+                        class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-print"></i>
-                        Generate Print Report
+                        Print
                     </button>
 
                     <button type="submit" id="report_excel_btn" name="format" value="excel"
-                        class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-file-excel"></i>
-                        Export Spreadsheet (.xls)
+                        Spreadsheet (.xls)
                     </button>
                 </div>
             </form>
+            <div class="mt-6 bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden hidden flex flex-col"
+                id="chanda-preview-wrapper">
+                <div class="border-b border-slate-100 bg-slate-50/50 px-4 py-3 flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Chanda Live Report
+                        Preview Sandbox</span>
+
+                    <button type="button" onclick="clearChandaReportPreview()"
+                        class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-trash-can"></i> Clear Preview
+                    </button>
+                </div>
+
+                <iframe id="chanda-preview-frame" class="w-full h-[650px] border-0 m-0 p-0" src="about:blank"></iframe>
+            </div>
         </div>
 
         <!-- System Modules Quick Navigation Desk -->
@@ -561,6 +581,47 @@ require_once 'header.php';
         // Initial load scan
         calculateLiveReportMatches();
     });
+
+    // ATTACH THESE INSIDE YOUR MAIN SCRIPT TAG WINDOW BINDINGS AREA
+    function fetchChandaReportPreview() {
+        var search = document.getElementById('report_search_input').value;
+        var mahallah = document.getElementById('report_mahallah_select').value;
+        var chanda = document.getElementById('report_chanda_select').value;
+
+        var wrapper = document.getElementById('chanda-preview-wrapper');
+        var iframe = document.getElementById('chanda-preview-frame');
+
+        // Build the query sequence pointing directly to your existing export router mapping
+        var url = 'export_chanda_report.php?search=' + encodeURIComponent(search) +
+            '&mahallah=' + encodeURIComponent(mahallah) +
+            '&filter_chanda=' + encodeURIComponent(chanda) +
+            '&format=preview';
+
+        // Reveal the sandbox dashboard frame module wrapper view container layout box
+        wrapper.classList.remove('hidden');
+
+        // Set targeted iframe resource source path trigger parameter array safely
+        iframe.src = url;
+    }
+
+    function clearChandaReportPreview() {
+        var reportForm = document.getElementById('chanda_report_form');
+        var wrapper = document.getElementById('chanda-preview-wrapper');
+        var iframe = document.getElementById('chanda-preview-frame');
+
+        // 1. Reset selection options layout inside form parameters back to baseline indices
+        reportForm.reset();
+
+        // 2. Clear values map internally by executing your live counter recalculator update rule
+        // Note: Assuming calculateLiveReportMatches is exposed globally or inside the same scope tree container
+        if (typeof calculateLiveReportMatches === 'function') {
+            calculateLiveReportMatches();
+        }
+
+        // 3. Reset preview window target array and tuck layout element back safely
+        iframe.src = 'about:blank';
+        wrapper.classList.add('hidden');
+    }
 </script>
 
 <?php require_once 'footer.php'; ?>
