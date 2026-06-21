@@ -883,7 +883,7 @@ require_once 'header.php';
     function issueBurialCertificate(burial) {
         const formattedBurialDate = formatDateJS(burial.burial_datetime);
         const formattedDeathDate = burial.death_datetime ? formatDateJS(burial.death_datetime) : "N/A";
-        const relationLabel = burial.deceased_father_husband ? "Father / Husband Name: " + burial.deceased_father_husband : "Biographical Details Verified";
+        const relationLabel = burial.deceased_father_husband ? burial.deceased_father_husband : "Biographical Details Verified";
 
         let originStatus = '';
         if (burial.is_jamaath_member == 1) {
@@ -940,7 +940,7 @@ require_once 'header.php';
                         </td>
                         <td style="width: 50%; padding: 12px; vertical-align: top;">
                             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #047857; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Family References</strong>
+                                <strong style="color: #047857; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Father / Husband Name</strong>
                                 <span style="font-size: 15px; color: #1e293b; font-weight: bold;">${relationLabel}</span>
                             </div>
                         </td>
@@ -948,13 +948,13 @@ require_once 'header.php';
                     <tr>
                         <td style="padding: 12px; vertical-align: top; padding-top: 20px;">
                             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #047857; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Timeline of Demise</strong>
+                                <strong style="color: #047857; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Date & Time of Demise</strong>
                                 <span style="font-size: 15px; color: #1e293b; font-weight: 600;">${formattedDeathDate}</span>
                             </div>
                         </td>
                         <td style="padding: 12px; vertical-align: top; padding-top: 20px;">
                             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #047857; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Timeline of Burial</strong>
+                                <strong style="color: #047857; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Date & Time of Burial</strong>
                                 <span style="font-size: 15px; color: #1e293b; font-weight: 600;">${formattedBurialDate}</span>
                             </div>
                         </td>
