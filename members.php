@@ -86,7 +86,7 @@ $fetch_stmt = $db->prepare("
     SELECT m.*, 
            (SELECT cp.paid_from FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_from,
            (SELECT cp.paid_to FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_to,
-           (SELECT GROUP_CONCAT(CONCAT(cp.id, '|', cp.paid_from, '|', cp.paid_to, '|', cp.total_amount, '|', cp.recorded_by, '|', DATE_FORMAT(cp.date_recorded, '%Y-%m-%d')) ORDER BY cp.paid_to DESC SEPARATOR '||') 
+           (SELECT GROUP_CONCAT(CONCAT(cp.id, '|', cp.paid_from, '|', cp.paid_to, '|', cp.total_amount, '|', cp.recorded_by, '|', DATE_FORMAT(cp.date_recorded, '%Y-%m-%d %H:%i:%s')) ORDER BY cp.paid_to DESC SEPARATOR '||') 
             FROM chanda_payments cp 
             WHERE cp.member_id = m.id) AS chanda_history_raw
     FROM members m 
@@ -141,7 +141,8 @@ require_once 'header.php';
 ?>
 
 <?php if (isset($_GET['error'])): ?>
-    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs animate-pulse">
+    <div
+        class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs animate-pulse">
         <div class="bg-rose-600 text-white w-5 h-5 rounded-full flex items-center justify-center font-black">!</div>
         <div>
             <span class="block font-black text-[13px] text-rose-950">Database Dependency Conflict</span>
@@ -151,7 +152,8 @@ require_once 'header.php';
 <?php endif; ?>
 
 <?php if (isset($_GET['msg'])): ?>
-    <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
+    <div
+        class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
         <div class="bg-emerald-600 text-white w-5 h-5 rounded-full flex items-center justify-center font-black">✓</div>
         <div>
             <span class="block font-black text-[13px] text-emerald-950">Operation Successful</span>
@@ -852,7 +854,7 @@ require_once 'header.php';
                                     <th class="p-2">Period Range</th>
                                     <th class="p-2">Amount</th>
                                     <th class="p-2">Recorded By</th>
-                                    <th class="p-2">Date Saved</th>
+                                    <th class="p-2">Date & Time Saved</th>
                                 </tr>
                             </thead>
                             <tbody id="card-chanda-history-rows" class="divide-y divide-slate-100 text-slate-700">
@@ -1340,7 +1342,24 @@ require_once 'header.php';
                     const pTo = parts[2];
                     const pAmount = parseFloat(parts[3]).toFixed(2);
                     const pUser = parts[4];
-                    const pDate = parts[5];
+                    const pDateRaw = parts[5]; // Now successfully captures "YYYY-MM-DD HH:MM:SS"
+                    // Format raw database string safely into localized text
+                    let formattedDateTime = pDateRaw;
+                    if (pDateRaw) {
+                        // Replaces dashes with slashes to avoid browser date-parsing inconsistencies
+                        const dateObj = new Date(pDateRaw.replace(/-/g, "/"));
+                        if (!isNaN(dateObj.getTime())) {
+                            formattedDateTime = dateObj.toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                            }) + ' ' + dateObj.toLocaleTimeString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                        }
+                    }
 
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50/75 transition-colors";
@@ -1348,7 +1367,7 @@ require_once 'header.php';
                         <td class="p-2 font-medium text-slate-900">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</td>
                         <td class="p-2 font-bold text-emerald-700">₹${pAmount}</td>
                         <td class="p-2 font-mono text-slate-500">${escapeHtml(pUser)}</td>
-                        <td class="p-2 text-slate-400">${pDate}</td>
+                        <td class="p-2 text-slate-400 font-mono text-[11px]">${formattedDateTime}</td>
                     `;
                     historyRowsContainer.appendChild(tr);
                 }
