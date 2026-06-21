@@ -256,30 +256,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $chanda_from = $_POST['chanda_paid_from'] . '-01'; // Append first day to match SQL DATE format
             $chanda_to = $_POST['chanda_paid_to'] . '-01';
 
+            $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'members.php';
+            // Clean trailing query parameters from referrer to prevent duplication loops
+            $base_referrer = strtok($referrer, '?');
+
             // MODIFICATION: Capture the new amount from form input casting it safely to float
             $total_amount = isset($_POST['total_amount']) ? (float) $_POST['total_amount'] : 0.00;
+
+            // 1. Enforce minimum subscription amount server-side validation rules inside UI
+            if ($total_amount < 150.00) {
+                header("Location: " . $base_referrer . "?error=" . urlencode("The minimum subscription value required is ₹150."));
+                exit;
+            }
 
             // MODIFICATION: Dynamically capture the authenticated user from active session
             $recorded_by = isset($_SESSION['display_name']) ? $_SESSION['display_name'] : 'Admin';
 
             // Server-Side Asymmetric Strict Date Boundaries Validation
             $min_allowed_boundary = date('Y-m-01', strtotime('-2 years')); // Past 2 years boundary
-
             $max_from_boundary = date('Y-m-01'); // Paid From max = Current Active Month
             $max_to_boundary = date('Y-12-01');  // Paid To max = December of Current Year
 
             // Validate Paid From separately
             if ($chanda_from < $min_allowed_boundary || $chanda_from > $max_from_boundary) {
-                die("Failed to update: 'Paid From' must be within the past 2 years and cannot exceed the current month.");
+                header("Location: " . $base_referrer . "?error=" . urlencode("'Paid From' must be within the past 2 years and cannot exceed the current month."));
+                exit;
             }
 
             // Validate Paid To separately
             if ($chanda_to < $min_allowed_boundary || $chanda_to > $max_to_boundary) {
-                die("Failed to update: 'Paid To' must be within the past 2 years and cannot exceed December of " . date('Y') . ".");
+                header("Location: " . $base_referrer . "?error=" . urlencode("'Paid To' must be within the past 2 years and cannot exceed December of " . date('Y') . "."));
+                exit;
             }
 
             if ($chanda_to < $chanda_from) {
-                die("Failed to update: The 'Paid To' month cannot be earlier than the 'Paid From' month.");
+                header("Location: " . $base_referrer . "?error=" . urlencode("The 'Paid To' month cannot be earlier than the 'Paid From' month."));
+                exit;
+            }
+
+            // 2. Strict Overlapping Subscription Period Duplicate Validation Engine redirected cleanly to UI
+            $check_stmt = $db->prepare("
+                SELECT COUNT(*) 
+                FROM chanda_payments 
+                WHERE member_id = ? 
+                  AND (
+                       (paid_from <= ? AND paid_to >= ?) OR  -- Check if new 'From' date falls inside an existing entry
+                       (paid_from <= ? AND paid_to >= ?) OR  -- Check if new 'To' date falls inside an existing entry
+                       (? <= paid_from AND ? >= paid_to)     -- Check if new entry fully covers/swallows an old entry
+                  )
+            ");
+            $check_stmt->execute([
+                $id,
+                $chanda_from,
+                $chanda_from,
+                $chanda_to,
+                $chanda_to,
+                $chanda_from,
+                $chanda_to
+            ]);
+
+            if ((int) $check_stmt->fetchColumn() > 0) {
+                header("Location: " . $base_referrer . "?error=" . urlencode("Subscription overlap: The selected timeline range conflicts with an existing entry."));
+                exit;
             }
 
             // Calculate if the payment period covers up to the previous month dynamically
@@ -297,8 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update_stmt = $db->prepare("UPDATE members SET chanda_status = ? WHERE id = ?");
             $update_stmt->execute([$chanda_status, $id]);
 
-            $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'members.php';
-            header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "msg=Chanda payment period successfully recorded in ledger");
+            header("Location: " . $base_referrer . "?msg=" . urlencode("Chanda payment period successfully recorded in ledger"));
             exit;
         }
 

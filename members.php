@@ -145,7 +145,7 @@ require_once 'header.php';
         class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs animate-pulse">
         <div class="bg-rose-600 text-white w-5 h-5 rounded-full flex items-center justify-center font-black">!</div>
         <div>
-            <span class="block font-black text-[13px] text-rose-950">Database Dependency Conflict</span>
+            <span class="block font-black text-[13px] text-rose-950">Error</span>
             <p class="text-xs font-medium text-rose-800/90 mt-0.5"><?php echo htmlspecialchars($_GET['error']); ?></p>
         </div>
     </div>
@@ -832,8 +832,8 @@ require_once 'header.php';
                         <div>
                             <label class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Total
                                 Paid (₹) *</label>
-                            <input type="number" name="total_amount" id="chanda_total_amount_input" min="0" step="0.01"
-                                placeholder="0.00" required
+                            <input type="number" name="total_amount" id="chanda_total_amount_input" min="150"
+                                step="0.01" placeholder="150.00" required
                                 class="w-full bg-white rounded p-1 text-[11px] focus:outline-none">
                         </div>
                     </div>
@@ -1237,6 +1237,14 @@ require_once 'header.php';
         chandaForm.onsubmit = function (e) {
             const valFrom = fromInput.value;
             const valTo = toInput.value;
+            const totalAmount = parseFloat(document.getElementById('chanda_total_amount_input').value) || 0;
+
+            // NEW MODIFICATION 1: Enforce minimum ledger payment rules
+            if (totalAmount < 150) {
+                alert("Error: The minimum accepted subscription payment amount is ₹150.");
+                e.preventDefault();
+                return false;
+            }
 
             // MODIFICATION: Separate evaluation matching distinct field requirements
             if (valFrom < minMonthStr || valFrom > maxMonthStrFrom) {
