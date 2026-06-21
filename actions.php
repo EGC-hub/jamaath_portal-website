@@ -704,6 +704,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        // ==================== BAIT-UL-MAL REPORT LIVE PREVIEW ROUTE ====================
+        if (isset($_GET['action']) && $_GET['action'] === 'fetch_mal_report') {
+            $type = $_GET['type'] ?? '';
+            $start_date = $_GET['start_date'] ?? '';
+            $end_date = $_GET['end_date'] ?? '';
+
+            if (empty($start_date) || empty($end_date)) {
+                echo '<div class="p-4 text-xs font-bold text-amber-700 bg-amber-50 rounded-lg">Please choose both date parameters first.</div>';
+                exit;
+            }
+
+            $whereClauses = ["DATE(date_added) >= :start_date", "DATE(date_added) <= :end_date"];
+            $params = [':start_date' => $start_date, ':end_date' => $end_date];
+            $whereSql = " WHERE " . implode(" AND ", $whereClauses);
+
+            try {
+                if ($type === 'inflows') {
+                    $stmt = $db->prepare("SELECT donor_name AS name, type, amount, date_added FROM baitulmal_inflows" . $whereSql . " ORDER BY date_added DESC");
+                    $title = "Contribution Inflows Summary";
+                    $text_color = "text-emerald-600";
+                } elseif ($type === 'outflows') {
+                    $stmt = $db->prepare("SELECT name, type, amount, date_added FROM welfare" . $whereSql . " ORDER BY date_added DESC");
+                    $title = "Welfare Disbursements Summary";
+                    $text_color = "text-rose-600";
+                } else {
+                    $stmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name, type, amount, date_added FROM baitulmal_applications" . $whereSql . " ORDER BY date_added DESC");
+                    $title = "Aid Applications Summary";
+                    $text_color = "text-blue-600";
+                }
+
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $total = 0;
+                foreach ($rows as $r) {
+                    $total += $r['amount'];
+                }
+
+                if (empty($rows)) {
+                    echo '<div class="text-center py-12 text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">No verified data streams match these parameters inside the designated timeframe.</div>';
+                    exit;
+                }
+
+                // Professional Chanda-Style Dashboard Preview Panel Container Matrix Layout
+                echo '<div class="mb-6 p-5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">';
+                echo '<div><h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide">' . $title . '</h4>';
+                echo '<p class="text-[10px] text-slate-400 mt-0.5">' . date('d M Y', strtotime($start_date)) . ' to ' . date('d M Y', strtotime($end_date)) . '</p></div>';
+                echo '<div class="text-right"><span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Aggregate Sum</span>';
+                echo '<span class="text-lg font-black ' . $text_color . '">₹' . number_format($total) . '</span> <span class="text-xs text-slate-400 font-medium">(' . count($rows) . ' entries)</span></div>';
+                echo '</div>';
+
+                echo '<div class="overflow-x-auto"><table class="w-full text-left border-collapse text-xs"><thead>';
+                echo '<tr class="border-b border-slate-200 text-[10px] uppercase font-bold text-slate-400 tracking-wider">';
+                echo '<th class="py-2.5 px-4 text-slate-500">Line Participant</th><th class="py-2.5 px-4 text-slate-500">Category Type</th><th class="py-2.5 px-4 text-slate-500">Filing Date</th><th class="py-2.5 px-4 text-right text-slate-500">Value Amount</th>';
+                echo '</tr></thead><tbody class="divide-y divide-slate-100 font-medium text-slate-700">';
+
+                foreach ($rows as $row) {
+                    echo '<tr class="hover:bg-slate-50/50 transition-all">';
+                    echo '<td class="py-3 px-4 font-bold text-slate-800">' . htmlspecialchars($row['name']) . '</td>';
+                    echo '<td class="py-3 px-4 text-slate-500">' . htmlspecialchars($row['type']) . '</td>';
+                    echo '<td class="py-3 px-4 text-slate-400 font-mono">' . date('d M Y', strtotime($row['date_added'])) . '</td>';
+                    echo '<td class="py-3 px-4 text-right font-black text-slate-900">₹' . number_format($row['amount']) . '</td>';
+                    echo '</tr>';
+                }
+
+                echo '</tbody></table></div>';
+                exit;
+
+            } catch (Exception $e) {
+                echo '<div class="p-4 text-xs font-bold text-rose-700 bg-rose-50 rounded-lg">Database Link Interrupted.</div>';
+                exit;
+            }
+        }
+
         // ==========================================
         // OTHER SYSTEM SERVICES
         // ==========================================

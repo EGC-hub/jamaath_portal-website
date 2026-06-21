@@ -94,7 +94,6 @@ require_once 'header.php';
         <!-- Tab Bar and Actions Area -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
 
-            <!-- CAPSULE TABS BAR MATCHING image_bbc7b2.png -->
             <div class="bg-slate-100 p-1 rounded-xl flex flex-wrap gap-1 w-fit">
                 <button onclick="switchTab('tab-outflows')" id="btn-tab-outflows"
                     class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none">
@@ -108,24 +107,24 @@ require_once 'header.php';
                     class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none">
                     📋 Aid Applications Queue
                 </button>
+                <button onclick="switchTab('tab-reports')" id="btn-tab-reports"
+                    class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none">
+                    📊 Summary Reports Engine
+                </button>
             </div>
 
-            <!-- ACTION BUTTON REGISTRY MATCHING RED BURGUNDY BRANDING -->
             <div class="flex items-center gap-2">
-                <!-- Outflow tab button triggers application popup -->
-                <!-- <button onclick="openApplicationModal()" id="btn-action-outflows"
-                    class="bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-money-bill-transfer"></i> Log Welfare Outflow
-                </button> -->
-                <!-- Inflow tab button triggers donation popup -->
                 <button onclick="openInflowModal()" id="btn-action-inflows"
                     class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hidden">
                     <i class="fa-solid fa-circle-plus"></i> Log Contribution Inflow
                 </button>
-                <!-- Applications tab button -->
                 <button onclick="openApplicationModal()" id="btn-action-applications"
                     class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hidden">
                     <i class="fa-solid fa-file-signature"></i> File Aid Application
+                </button>
+                <button onclick="triggerReportPrint()" id="btn-action-reports"
+                    class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hidden">
+                    <i class="fa-solid fa-print"></i> Print Statement
                 </button>
             </div>
         </div>
@@ -404,6 +403,71 @@ require_once 'header.php';
                     </table>
                 </div>
             <?php endif; ?>
+        </div>
+
+        <!-- ==================== TAB CONTENT: REPORTS ==================== -->
+        <div id="tab-reports" class="tab-content hidden">
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-800">Bait-ul-Mal Financial Audit Reports</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Filter, preview, and generate clean print-ready accounts logs
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-xs">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label
+                            class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Statement
+                            Target</label>
+                        <select id="report-type"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-700 focus:outline-none">
+                            <option value="inflows">💰 Contribution Inflows (Collections)</option>
+                            <option value="outflows">🤝 Welfare Outflows (Disbursements)</option>
+                            <option value="applications">📋 Aid Applications Registry</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Start
+                            Date</label>
+                        <input type="date" id="report-start-date"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-700 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">End
+                            Date</label>
+                        <input type="date" id="report-end-date"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-700 focus:outline-none">
+                    </div>
+                    <div>
+                        <button onclick="fetchMalReportPreview()"
+                            class="w-full bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs p-2.5 rounded-lg shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                            Compile Statement
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col transition-all duration-300"
+                id="report-container-box">
+                <div class="border-b border-slate-100 bg-slate-50/50 px-4 py-3 flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Live Statements Audit
+                        Preview Window</span>
+
+                    <button onclick="triggerExcelExport()" id="btn-export-excel"
+                        class="hidden bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all shadow-sm items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-excel"></i> Export Excel Sheet
+                    </button>
+                </div>
+
+                <div id="report-blank-state"
+                    class="py-16 flex flex-col items-center justify-center text-slate-400 text-xs font-medium p-6">
+                    <i class="fa-solid fa-file-invoice-dollar text-slate-300 text-3xl mb-2 animate-pulse"></i>
+                    <p>Select timeline brackets above and compile to process live ledger records frame arrays.</p>
+                </div>
+
+                <iframe id="report-preview-frame" class="hidden w-full h-[650px] border-0 m-0 p-0"
+                    src="about:blank"></iframe>
+            </div>
         </div>
 
     </div>
@@ -833,17 +897,17 @@ require_once 'header.php';
         document.getElementById(tabId).classList.remove('hidden');
 
         // Hide all operational buttons first
-        // document.getElementById('btn-action-outflows').classList.add('hidden');
         document.getElementById('btn-action-inflows').classList.add('hidden');
         document.getElementById('btn-action-applications').classList.add('hidden');
+        document.getElementById('btn-action-reports').classList.add('hidden');
 
         // Show active contextual action buttons matching navigation context
-        if (tabId === 'tab-outflows') {
-            // document.getElementById('btn-action-outflows').classList.remove('hidden');
-        } else if (tabId === 'tab-inflows') {
+        if (tabId === 'tab-inflows') {
             document.getElementById('btn-action-inflows').classList.remove('hidden');
         } else if (tabId === 'tab-applications') {
             document.getElementById('btn-action-applications').classList.remove('hidden');
+        } else if (tabId === 'tab-reports') {
+            document.getElementById('btn-action-reports').classList.remove('hidden');
         }
 
         // Apply active background layout capsule switches on tabs matching image_bbc7b2.png
@@ -1151,6 +1215,72 @@ require_once 'header.php';
             if (preservedPath) {
                 window.open(preservedPath, '_blank');
             }
+        }
+    }
+
+    function fetchMalReportPreview() {
+        var type = document.getElementById('report-type').value;
+        var start = document.getElementById('report-start-date').value;
+        var end = document.getElementById('report-end-date').value;
+
+        var blankState = document.getElementById('report-blank-state');
+        var iframe = document.getElementById('report-preview-frame');
+        var excelBtn = document.getElementById('btn-export-excel');
+
+        if (!start || !end) {
+            alert('Please configure both a start and end accounting date range first.');
+            return;
+        }
+
+        // 1. Reset layout states instantly on click
+        blankState.classList.add('hidden');
+        iframe.classList.remove('hidden');
+        excelBtn.style.display = 'none'; // Keep hidden during initial processing trace
+        iframe.style.height = "200px"; // Shrink back down dynamically to look like a small loading window
+
+        // 2. Feed the new URL source rule directly
+        iframe.src = 'print_report.php?type=' + type + '&start_date=' + start + '&end_date=' + end;
+
+        // 3. DYNAMIC RESIZING: Fires immediately after the target page finishes parsing inside the window frame
+        iframe.onload = function () {
+            // Enlarge the preview window panel size to 650px to view long data lists professionally
+            iframe.style.height = "650px";
+
+            // Unveil the professional Chanda-style excel exporter switch
+            excelBtn.style.display = 'flex';
+        };
+    }
+
+    function triggerExcelExport() {
+        var type = document.getElementById('report-type').value;
+        var start = document.getElementById('report-start-date').value;
+        var end = document.getElementById('report-end-date').value;
+
+        if (!start || !end) {
+            alert('Please select valid parameters first.');
+            return;
+        }
+
+        // Direct stream target routing bypassing client mutations
+        window.location.href = 'print_report.php?type=' + type + '&start_date=' + start + '&end_date=' + end + '&format=excel';
+    }
+
+    function triggerReportPrint() {
+        var iframe = document.getElementById('report-preview-frame');
+
+        // Check if report has been compiled into the iframe yet
+        if (!iframe || iframe.src === 'about:blank' || iframe.classList.contains('hidden')) {
+            alert('Please compile report entries first before generating a print ledger statement.');
+            return;
+        }
+
+        // Leverages print pipeline directly from inside the compiled document frame
+        try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+        } catch (e) {
+            // Fallback option opens the executive page cleanly in a new window tab
+            window.open(iframe.src, '_blank');
         }
     }
 </script>
