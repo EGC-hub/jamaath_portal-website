@@ -130,7 +130,7 @@ if ($format === 'excel') {
     }
     // Summary Row for Excel Spreadsheet
     echo "<tr style='font-weight: bold; background-color: #f1f5f9;'>";
-    echo "<td colspan='7' style='text-align: right;'>Grand Total Accumulated:</td>";
+    echo "<td colspan='7' style='text-align: right;'>Grand Total:</td>";
     echo "<td>₹" . number_format($grand_total_excel, 2) . "</td>";
     echo "</tr>";
     echo "</table>";
