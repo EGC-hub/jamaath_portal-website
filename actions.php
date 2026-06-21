@@ -202,16 +202,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Action: Permanent Delete Member Record (Cleans up profile image file from disk automatically)
+        // Action: Safe Delete Member Record (Checks cross-module relational dependencies first)
         if ($_POST['action'] === 'delete_member') {
             $id = (int) $_POST['id'];
+
+            // 1. Check Bait-ul-Mal Aid Applications Registry
+            $check_mal = $db->prepare("SELECT COUNT(*) FROM baitulmal_applications WHERE member_id = ?");
+            $check_mal->execute([$id]);
+            if ($check_mal->fetchColumn() > 0) {
+                header("Location: members.php?error=" . urlencode("Cannot delete member. Active aid applications exist inside the Bait-ul-Mal registry."));
+                exit;
+            }
+
+            // 2. Check Burial Registry (Both Deceased and Reporter links)
+            $check_burial = $db->prepare("SELECT COUNT(*) FROM burial_registry WHERE deceased_member_id = ? OR reporter_member_id = ?");
+            $check_burial->execute([$id, $id]);
+            if ($check_burial->fetchColumn() > 0) {
+                header("Location: members.php?error=" . urlencode("Cannot delete member. Attached record files discovered inside the Burial Ground registry."));
+                exit;
+            }
+
+            // 3. Check Family Dependents Registry
+            $check_dependents = $db->prepare("SELECT COUNT(*) FROM member_dependents WHERE member_id = ?");
+            $check_dependents->execute([$id]);
+            if ($check_dependents->fetchColumn() > 0) {
+                header("Location: members.php?error=" . urlencode("Cannot delete member. Family dependent records are currently mapped to this profile."));
+                exit;
+            }
+
+            // ==================== ALL INTEGRITY CHECKS PASSED: PROCEED TO DELETE ====================
 
             // Track photo path reference before deleting database records
             $photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
             $photo_stmt->execute([$id]);
             $member_photo_path = $photo_stmt->fetchColumn();
 
-            // Clear database row properties (Cascades down and safely wipes associated dependents row properties)
+            // Clear database row properties
             $stmt = $db->prepare("DELETE FROM members WHERE id = ?");
             $stmt->execute([$id]);
 
@@ -220,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 @unlink($member_photo_path);
             }
 
-            header("Location: members.php?msg=Member record deleted permanently");
+            header("Location: members.php?msg=" . urlencode("Member record deleted permanently from portal database registry."));
             exit;
         }
 

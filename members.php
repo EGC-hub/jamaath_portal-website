@@ -140,6 +140,26 @@ $designation_colors = [
 require_once 'header.php';
 ?>
 
+<?php if (isset($_GET['error'])): ?>
+    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs animate-pulse">
+        <div class="bg-rose-600 text-white w-5 h-5 rounded-full flex items-center justify-center font-black">!</div>
+        <div>
+            <span class="block font-black text-[13px] text-rose-950">Database Dependency Conflict</span>
+            <p class="text-xs font-medium text-rose-800/90 mt-0.5"><?php echo htmlspecialchars($_GET['error']); ?></p>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['msg'])): ?>
+    <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
+        <div class="bg-emerald-600 text-white w-5 h-5 rounded-full flex items-center justify-center font-black">✓</div>
+        <div>
+            <span class="block font-black text-[13px] text-emerald-950">Operation Successful</span>
+            <p class="text-xs font-medium text-emerald-800/90 mt-0.5"><?php echo htmlspecialchars($_GET['msg']); ?></p>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Directory container -->
 <div class="space-y-6">
     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
