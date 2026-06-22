@@ -86,7 +86,7 @@ $fetch_stmt = $db->prepare("
     SELECT m.*, 
            (SELECT cp.paid_from FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_from,
            (SELECT cp.paid_to FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_to,
-           (SELECT GROUP_CONCAT(CONCAT(cp.id, '|', cp.paid_from, '|', cp.paid_to, '|', cp.total_amount, '|', cp.recorded_by, '|', DATE_FORMAT(cp.date_recorded, '%Y-%m-%d %H:%i:%s')) ORDER BY cp.paid_to DESC SEPARATOR '||') 
+           (SELECT GROUP_CONCAT(CONCAT(cp.id, '|', cp.paid_from, '|', cp.paid_to, '|', cp.total_amount, '|', cp.recorded_by, '|', DATE_FORMAT(cp.date_recorded, '%Y-%m-%d %H:%i:%s'), '|', cp.payment_mode, '|', IFNULL(cp.payment_narrative, ''), '|', cp.paid_by_self) ORDER BY cp.paid_to DESC SEPARATOR '||') 
             FROM chanda_payments cp 
             WHERE cp.member_id = m.id) AS chanda_history_raw
     FROM members m 
@@ -838,6 +838,50 @@ require_once 'header.php';
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-800 pt-1">
+                        <div>
+                            <label
+                                class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Payment
+                                Mode *</label>
+                            <select name="payment_mode" id="chanda_payment_mode" required
+                                onchange="toggleChandaNarrativeField();"
+                                class="w-full bg-white rounded p-1 text-[11px] focus:outline-none appearance-none">
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Depositor
+                                / Paid By *</label>
+                            <div
+                                class="flex items-center gap-4 bg-teal-900/40 p-1 rounded border border-teal-700/60 h-[26px] px-2 text-teal-100">
+                                <label
+                                    class="inline-flex items-center gap-1.5 text-[10px] font-bold cursor-pointer select-none">
+                                    <input type="radio" name="paid_by_self" value="1" checked
+                                        onclick="togglePaidByNarrativeHint(true);" class="accent-amber-500 scale-90">
+                                    Member Self
+                                </label>
+                                <label
+                                    class="inline-flex items-center gap-1.5 text-[10px] font-bold cursor-pointer select-none">
+                                    <input type="radio" name="paid_by_self" value="0"
+                                        onclick="togglePaidByNarrativeHint(false);" class="accent-amber-500 scale-90">
+                                    Someone Else
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="chanda_narrative_wrapper" class="hidden transition-all duration-200">
+                        <label id="chanda_narrative_label"
+                            class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Transaction
+                            Reference / Narrative *</label>
+                        <input type="text" name="payment_narrative" id="chanda_payment_narrative"
+                            placeholder="Enter UPI Transaction ID or Cheque Number"
+                            class="w-full bg-white text-slate-800 rounded p-1.5 text-[11px] focus:outline-none placeholder:text-slate-400">
+                    </div>
+
                     <button type="submit"
                         class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-1.5 rounded text-[10px] uppercase tracking-wide transition-colors">
                         Save Subscription Mapping
@@ -1334,27 +1378,33 @@ require_once 'header.php';
             populateEditForm(member);
         };
 
-        // MODIFICATION: Render Ledger Audit Table Rows Dynamically
+        // MODIFICATION: Render Ledger Audit Table Rows Dynamically (Option A Compact Badges)
         const historyRowsContainer = document.getElementById('card-chanda-history-rows');
         historyRowsContainer.innerHTML = ''; // Reset container rows safely
 
         if (member.chanda_history_raw && member.chanda_history_raw.trim() !== '') {
-            // Split by transaction records delimiter
             const records = member.chanda_history_raw.split('||');
 
             records.forEach(recordStr => {
                 const parts = recordStr.split('|');
+
+                // CHANGED: Change the check to >= 6 so older ledger items load properly
                 if (parts.length >= 6) {
                     const recId = parts[0];
                     const pFrom = parts[1];
                     const pTo = parts[2];
                     const pAmount = parseFloat(parts[3]).toFixed(2);
                     const pUser = parts[4];
-                    const pDateRaw = parts[5]; // Now successfully captures "YYYY-MM-DD HH:MM:SS"
+                    const pDateRaw = parts[5];
+
+                    // NEW FALLBACK HANDLING: Fallback values if it's an old legacy payment record
+                    const pMode = (parts.length >= 7 && parts[6]) ? parts[6] : 'Cash';
+                    const pNarrative = (parts.length >= 8 && parts[7]) ? parts[7] : '';
+                    const pIsSelf = (parts.length >= 9 && parts[8] !== undefined) ? (parseInt(parts[8]) === 1) : true;
+
                     // Format raw database string safely into localized text
                     let formattedDateTime = pDateRaw;
                     if (pDateRaw) {
-                        // Replaces dashes with slashes to avoid browser date-parsing inconsistencies
                         const dateObj = new Date(pDateRaw.replace(/-/g, "/"));
                         if (!isNaN(dateObj.getTime())) {
                             formattedDateTime = dateObj.toLocaleDateString('en-IN', {
@@ -1369,19 +1419,42 @@ require_once 'header.php';
                         }
                     }
 
+                    // Build payment mode badge utility styles dynamically
+                    let modeBadgeClass = "bg-slate-100 text-slate-700 border border-slate-200/60";
+                    if (pMode === 'UPI') modeBadgeClass = "bg-indigo-50 text-indigo-700 border border-indigo-100";
+                    if (pMode === 'Cheque') modeBadgeClass = "bg-amber-50 text-amber-700 border border-amber-100";
+
+                    // Build dynamic reference details subtitle label text
+                    let subtitleMetaHtml = "";
+                    if ((pMode === 'UPI' || pMode === 'Cheque') && pNarrative) {
+                        subtitleMetaHtml = `<span class="block text-[10px] text-slate-400 mt-0.5 italic truncate font-mono">Ref: ${escapeHtml(pNarrative)}</span>`;
+                    }
+
+                    // Append Payer Identity indicator subtitle meta description
+                    const payerLabel = pIsSelf ? "Member Self" : "Third Party / Rep";
+                    const periodMetaSubtitle = `<span class="block text-[10px] text-slate-400 mt-0.5 tracking-wide">By: ${payerLabel}</span>`;
+
                     const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50/75 transition-colors";
+                    tr.className = "hover:bg-slate-50/75 transition-colors border-b border-slate-100";
                     tr.innerHTML = `
-                        <td class="p-2 font-medium text-slate-900">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</td>
-                        <td class="p-2 font-bold text-emerald-700">₹${pAmount}</td>
-                        <td class="p-2 font-mono text-slate-500">${escapeHtml(pUser)}</td>
-                        <td class="p-2 text-slate-400 font-mono text-[11px]">${formattedDateTime}</td>
+                        <td class="p-2 py-2.5 text-slate-900 align-top">
+                            <div class="font-medium">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</div>
+                            ${periodMetaSubtitle}
+                        </td>
+                        <td class="p-2 py-2.5 align-top">
+                            <div class="font-bold text-emerald-700">₹${pAmount}</div>
+                            <span class="inline-block px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase mt-1 ${modeBadgeClass}">
+                                ${pMode}
+                            </span>
+                            ${subtitleMetaHtml}
+                        </td>
+                        <td class="p-2 py-2.5 font-mono text-slate-500 align-top">${escapeHtml(pUser)}</td>
+                        <td class="p-2 py-2.5 text-slate-400 font-mono text-[11px] align-top whitespace-nowrap">${formattedDateTime}</td>
                     `;
                     historyRowsContainer.appendChild(tr);
                 }
             });
         } else {
-            // Fallback empty view placeholder
             const tr = document.createElement('tr');
             tr.innerHTML = `<td colspan="4" class="p-4 text-center text-slate-400 italic">No historical subscription payments logged yet.</td>`;
             historyRowsContainer.appendChild(tr);
@@ -1503,6 +1576,35 @@ require_once 'header.php';
             }
         }
     });
+
+    function toggleChandaNarrativeField() {
+        const mode = document.getElementById('chanda_payment_mode').value;
+        const wrapper = document.getElementById('chanda_narrative_wrapper');
+        const input = document.getElementById('chanda_payment_narrative');
+
+        if (mode === 'UPI' || mode === 'Cheque') {
+            wrapper.classList.remove('hidden');
+            input.required = true;
+
+            if (mode === 'UPI') {
+                input.placeholder = "Enter UPI Reference ID (UTR Number)";
+            } else {
+                input.placeholder = "Enter 6-Digit Cheque Number & Bank Name";
+            }
+        } else {
+            wrapper.classList.add('hidden');
+            input.required = false;
+            input.value = ''; // Clean field if changed back to Cash
+        }
+    }
+
+    function togglePaidByNarrativeHint(isSelf) {
+        const input = document.getElementById('chanda_payment_narrative');
+        // Optional feature: Appends a note if premium mode field is open or values require names
+        if (!isSelf) {
+            console.log("Third party payer flagged.");
+        }
+    }
 </script>
 
 <?php require_once 'footer.php'; ?>

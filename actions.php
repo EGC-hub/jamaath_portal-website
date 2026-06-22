@@ -263,9 +263,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // MODIFICATION: Capture the new amount from form input casting it safely to float
             $total_amount = isset($_POST['total_amount']) ? (float) $_POST['total_amount'] : 0.00;
 
+            // NEW FIELDS CAPTURED FROM FRONTEND MAPS
+            $payment_mode = isset($_POST['payment_mode']) ? trim($_POST['payment_mode']) : 'Cash';
+            $payment_narrative = isset($_POST['payment_narrative']) ? trim($_POST['payment_narrative']) : '';
+            $paid_by_self = isset($_POST['paid_by_self']) ? (int) $_POST['paid_by_self'] : 1;
+
             // 1. Enforce minimum subscription amount server-side validation rules inside UI
             if ($total_amount < 150.00) {
                 header("Location: " . $base_referrer . "?error=" . urlencode("The minimum subscription value required is ₹150."));
+                exit;
+            }
+
+            // NEW CONDITIONAL VALIDATION: Narrative check for UPI/Cheque modes
+            if (($payment_mode === 'UPI' || $payment_mode === 'Cheque') && empty($payment_narrative)) {
+                header("Location: " . $base_referrer . "?error=" . urlencode("Transaction Reference / Narrative is required for " . $payment_mode . " payments."));
                 exit;
             }
 
@@ -324,12 +335,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $prev_month = date('Y-m-01', strtotime('first day of last month'));
             $chanda_status = ($chanda_to >= $prev_month) ? 'Paid' : 'Unpaid';
 
-            // MODIFICATION 1: Insert an entirely new historical ledger line entry into chanda_payments
+            // MODIFICATION 1: Insert an entirely new historical ledger line entry into chanda_payments with new fields
             $insert_stmt = $db->prepare("
-                INSERT INTO chanda_payments (member_id, paid_from, paid_to, total_amount, recorded_by, date_recorded) 
-                VALUES (?, ?, ?, ?, ?, NOW())
+                INSERT INTO chanda_payments (member_id, paid_from, paid_to, total_amount, recorded_by, payment_mode, payment_narrative, paid_by_self, date_recorded) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ");
-            $insert_stmt->execute([$id, $chanda_from, $chanda_to, $total_amount, $recorded_by]);
+            $insert_stmt->execute([
+                $id,
+                $chanda_from,
+                $chanda_to,
+                $total_amount,
+                $recorded_by,
+                $payment_mode,
+                $payment_narrative,
+                $paid_by_self
+            ]);
 
             // MODIFICATION 2: Update only the fast chanda_status status flag inside the parent members entity
             $update_stmt = $db->prepare("UPDATE members SET chanda_status = ? WHERE id = ?");
@@ -351,7 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Establish the quick collect target boundary (First day of the previous calendar month)
             $target_to_month = date('Y-m-01', strtotime('first day of last month'));
-            $default_quick_amount = 0.00; // Standard fallback allocation amount
+            $default_quick_amount = 150; // Standard fallback allocation amount
 
             // Look up if this member already has an existing payment history ledger entry
             $history_check = $db->prepare("
