@@ -28,6 +28,9 @@ $active_script = basename($_SERVER['PHP_SELF']);
         rel="stylesheet">
     <!-- Icon sets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- International Phone Code Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
 
     <style>
         /* Globally scale base font size to be larger and more legible */
@@ -87,7 +90,8 @@ $active_script = basename($_SERVER['PHP_SELF']);
                     <div
                         class="hidden sm:flex items-center space-x-2 bg-emerald-950/60 backdrop-blur px-4 py-2 rounded-xl border border-emerald-700/50 shadow-inner">
                         <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                        <span class="text-xs text-emerald-100 font-semibold">Welcome <?= htmlspecialchars($_SESSION['display_name']) ?></span>
+                        <span class="text-xs text-emerald-100 font-semibold">Welcome
+                            <?= htmlspecialchars($_SESSION['display_name']) ?></span>
                     </div>
                     <a href="logout.php"
                         class="bg-rose-700/90 hover:bg-rose-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow flex items-center space-x-1.5">

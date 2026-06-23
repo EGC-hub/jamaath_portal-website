@@ -1,4 +1,12 @@
 <?php
+// FORCE SYSTEM ERROR SPITTING ON BLANK SCREENS
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Echo a heartbeat marker to confirm actions.php is even being reached
+echo "";
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -867,76 +875,401 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Action: Register Nikah Ceremony Registry
         if ($_POST['action'] === 'add_nikah') {
-            $groom_name = trim($_POST['groom_name']);
+            // Groom Demographics & Parental Parameters
+            $groom_first_name = trim($_POST['groom_first_name']);
+            $groom_last_name = trim($_POST['groom_last_name']);
             $groom_father = trim($_POST['groom_father']);
-            $groom_age = (int) $_POST['groom_age'];
+            $groom_father_status = (int) $_POST['groom_father_status'];
+            $groom_mother = trim($_POST['groom_mother']);
+            $groom_mother_status = (int) $_POST['groom_mother_status'];
+            $groom_dob = $_POST['groom_dob'];
             $groom_marriage_status = $_POST['groom_marriage_status'];
-            $groom_jamath = trim($_POST['groom_jamath']) ?: 'NVK Jamath (Vadasery)';
+            $groom_jamath = trim($_POST['groom_jamath']) ?: 'NVK Jamaath (Vadasery)';
+            $groom_id_type = trim($_POST['groom_id_type'] ?? '');
+            $groom_aadhar = trim($_POST['groom_aadhar'] ?? '');
+            $groom_phone1 = trim($_POST['groom_phone1'] ?? '');
+            $groom_phone2 = trim($_POST['groom_phone2'] ?? '');
 
-            $bride_name = trim($_POST['bride_name']);
+            // Bride Demographics & Parental Parameters
+            $bride_first_name = trim($_POST['bride_first_name']);
+            $bride_last_name = trim($_POST['bride_last_name']);
             $bride_father = trim($_POST['bride_father']);
-            $bride_age = (int) $_POST['bride_age'];
+            $bride_father_status = (int) $_POST['bride_father_status'];
+            $bride_mother = trim($_POST['bride_mother']);
+            $bride_mother_status = (int) $_POST['bride_mother_status'];
+            $bride_dob = $_POST['bride_dob'];
             $bride_marriage_status = $_POST['bride_marriage_status'];
-            $bride_jamath = trim($_POST['bride_jamath']) ?: 'NVK Jamath (Vadasery)';
+            $bride_jamath = trim($_POST['bride_jamath']) ?: 'NVK Jamaath (Vadasery)';
+            $bride_id_type = trim($_POST['bride_id_type'] ?? '');
+            $bride_aadhar = trim($_POST['bride_aadhar'] ?? '');
+            $bride_phone1 = trim($_POST['bride_phone1'] ?? '');
+            $bride_phone2 = trim($_POST['bride_phone2'] ?? '');
 
+            // Expanded Witness Parameters & Address Breakdowns
+            $witness_groom_name = trim($_POST['witness_groom_name'] ?? '');
+            $witness_groom_relationship = trim($_POST['witness_groom_relationship'] ?? '');
+            $witness_groom_phone = trim($_POST['witness_groom_phone'] ?? '');
+            $witness_groom_addr_l1 = trim($_POST['witness_groom_addr_l1'] ?? '');
+            $witness_groom_addr_l2 = trim($_POST['witness_groom_addr_l2'] ?? '');
+            $witness_groom_city = trim($_POST['witness_groom_city'] ?? '');
+            $witness_groom_pincode = trim($_POST['witness_groom_pincode'] ?? '');
+            $witness_groom_country = trim($_POST['witness_groom_country'] ?? 'India');
+
+            $witness_bride_name = trim($_POST['witness_bride_name'] ?? '');
+            $witness_bride_relationship = trim($_POST['witness_bride_relationship'] ?? '');
+            $witness_bride_phone = trim($_POST['witness_bride_phone'] ?? '');
+            $witness_bride_addr_l1 = trim($_POST['witness_bride_addr_l1'] ?? '');
+            $witness_bride_addr_l2 = trim($_POST['witness_bride_addr_l2'] ?? '');
+            $witness_bride_city = trim($_POST['witness_bride_city'] ?? '');
+            $witness_bride_pincode = trim($_POST['witness_bride_pincode'] ?? '');
+            $witness_bride_country = trim($_POST['witness_bride_country'] ?? 'India');
+
+            // Ceremony Metadata Fields
             $datetime = $_POST['nikah_datetime'];
             $venue = trim($_POST['venue']);
-            $book_reference = trim($_POST['book_reference']);
+            $book_reference = trim($_POST['book_reference'] ?? '');
             $conducted_by_jamath = isset($_POST['conducted_by_jamath']) ? 1 : 0;
 
-            // Strict Server-Side Legal Age Validation
-            if ($groom_age < 21) {
+            // Server-Side Dynamic Age Calculation & Verification Guardrails
+            $groom_age = calculateAge($groom_dob);
+            $bride_age = calculateAge($bride_dob);
+
+            if ($groom_age === 'N/A' || $groom_age < 21) {
                 die("Validation Failed: The Groom must be at least 21 years of age according to Indian legal marriage boundaries.");
             }
-            if ($bride_age < 18) {
+            if ($bride_age === 'N/A' || $bride_age < 18) {
                 die("Validation Failed: The Bride must be at least 18 years of age according to Indian legal marriage boundaries.");
             }
 
-            $stmt = $db->prepare("INSERT INTO nikah_registry (groom_name, groom_father, groom_age, groom_marriage_status, groom_jamath, bride_name, bride_father, bride_age, bride_marriage_status, bride_jamath, venue, conducted_by_jamath, nikah_datetime, book_reference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$groom_name, $groom_father, $groom_age, $groom_marriage_status, $groom_jamath, $bride_name, $bride_father, $bride_age, $bride_marriage_status, $bride_jamath, $venue, $conducted_by_jamath, $datetime, $book_reference]);
+            // Secure Document/Photo Assets Upload Infrastructure Handler
+            $upload_dir = 'uploads/nikah_docs/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
 
-            header("Location: nikah.php?msg=Marriage certified registry logged with dynamic validations");
+            $file_paths = [
+                'groom_photo' => '',
+                'groom_id_doc' => '',
+                'groom_aadhar_file' => '',
+                'bride_photo' => '',
+                'bride_id_doc' => '',
+                'bride_aadhar_file' => '',
+                'witness_groom_id_doc' => '',
+                'witness_bride_id_doc' => ''
+            ];
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+            foreach ($file_paths as $field_key => &$target_path) {
+                if (isset($_FILES[$field_key]) && $_FILES[$field_key]['name'] !== '') {
+                    $file_error = $_FILES[$field_key]['error'];
+                    if ($file_error !== UPLOAD_ERR_OK) {
+                        die("Upload Error occurred while saving field asset targets.");
+                    }
+                    if ($_FILES[$field_key]['size'] > (2 * 1024 * 1024)) {
+                        die("Validation Failed: Chosen file exceeds our strict 2MB capacity guardrail.");
+                    }
+                    $file_name = $_FILES[$field_key]['name'];
+                    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    if (in_array($file_ext, $allowed_extensions)) {
+                        $unique_name = $field_key . '_' . uniqid() . '.' . $file_ext;
+                        $dest_path = $upload_dir . $unique_name;
+                        if (move_uploaded_file($_FILES[$field_key]['tmp_name'], $dest_path)) {
+                            $target_path = $dest_path;
+                        } else {
+                            die("Storage Error: Unable to transfer file storage allocations.");
+                        }
+                    } else {
+                        die("Validation Failed: Invalid file format used.");
+                    }
+                }
+            }
+            unset($target_path);
+
+            // Prepare statement referencing all the split individual address layout columns
+            $stmt = $db->prepare("INSERT INTO nikah_registry (
+        groom_first_name, groom_last_name, groom_phone1, groom_phone2, groom_father, groom_father_status, groom_mother, groom_mother_status, groom_dob, groom_age, groom_marriage_status, groom_jamath, groom_photo, groom_id_type, groom_id_doc, groom_aadhar, groom_aadhar_file,
+        bride_first_name, bride_last_name, bride_phone1, bride_phone2, bride_father, bride_father_status, bride_mother, bride_mother_status, bride_dob, bride_age, bride_marriage_status, bride_jamath, bride_photo, bride_id_type, bride_id_doc, bride_aadhar, bride_aadhar_file,
+        witness_groom_name, witness_groom_relationship, witness_groom_phone, witness_groom_addr_l1, witness_groom_addr_l2, witness_groom_city, witness_groom_pincode, witness_groom_country, witness_groom_id_doc,
+        witness_bride_name, witness_bride_relationship, witness_bride_phone, witness_bride_addr_l1, witness_bride_addr_l2, witness_bride_city, witness_bride_pincode, witness_bride_country, witness_bride_id_doc,
+        venue, conducted_by_jamath, nikah_datetime, book_reference
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->execute([
+                $groom_first_name,
+                $groom_last_name,
+                $groom_phone1,
+                $groom_phone2,
+                $groom_father,
+                $groom_father_status,
+                $groom_mother,
+                $groom_mother_status,
+                $groom_dob,
+                $groom_age,
+                $groom_marriage_status,
+                $groom_jamath,
+                $file_paths['groom_photo'],
+                $groom_id_type,
+                $file_paths['groom_id_doc'],
+                $groom_aadhar,
+                $file_paths['groom_aadhar_file'],
+                $bride_first_name,
+                $bride_last_name,
+                $bride_phone1,
+                $bride_phone2,
+                $bride_father,
+                $bride_father_status,
+                $bride_mother,
+                $bride_mother_status,
+                $bride_dob,
+                $bride_age,
+                $bride_marriage_status,
+                $bride_jamath,
+                $file_paths['bride_photo'],
+                $bride_id_type,
+                $file_paths['bride_id_doc'],
+                $bride_aadhar,
+                $file_paths['bride_aadhar_file'],
+                $witness_groom_name,
+                $witness_groom_relationship,
+                $witness_groom_phone,
+                $witness_groom_addr_l1,
+                $witness_groom_addr_l2,
+                $witness_groom_city,
+                $witness_groom_pincode,
+                $witness_groom_country,
+                $file_paths['witness_groom_id_doc'],
+                $witness_bride_name,
+                $witness_bride_relationship,
+                $witness_bride_phone,
+                $witness_bride_addr_l1,
+                $witness_bride_addr_l2,
+                $witness_bride_city,
+                $witness_bride_pincode,
+                $witness_bride_country,
+                $file_paths['witness_bride_id_doc'],
+                $venue,
+                $conducted_by_jamath,
+                $datetime,
+                $book_reference
+            ]);
+
+            header("Location: nikah.php?msg=Marriage registry record compiled and securely archived with file references");
             exit;
         }
 
         // Action: Update Existing Nikah Record
         if ($_POST['action'] === 'edit_nikah') {
             $id = (int) $_POST['id'];
-            $groom_name = trim($_POST['groom_name']);
+
+            // Groom Demographics & Parental Parameters
+            $groom_first_name = trim($_POST['groom_first_name']);
+            $groom_last_name = trim($_POST['groom_last_name']);
+            $groom_phone1 = trim($_POST['groom_phone1'] ?? '');
+            $groom_phone2 = trim($_POST['groom_phone2'] ?? '');
             $groom_father = trim($_POST['groom_father']);
-            $groom_age = (int) $_POST['groom_age'];
+            $groom_father_status = (int) $_POST['groom_father_status'];
+            $groom_mother = trim($_POST['groom_mother']);
+            $groom_mother_status = (int) $_POST['groom_mother_status'];
+            $groom_dob = $_POST['groom_dob'];
             $groom_marriage_status = $_POST['groom_marriage_status'];
-            $groom_jamath = trim($_POST['groom_jamath']) ?: 'NVK Jamath (Vadasery)';
+            $groom_jamath = trim($_POST['groom_jamath']) ?: 'NVK Jamaath (Vadasery)';
+            $groom_id_type = trim($_POST['groom_id_type'] ?? '');
+            $groom_aadhar = trim($_POST['groom_aadhar'] ?? '');
 
-            $bride_name = trim($_POST['bride_name']);
+            // Bride Demographics & Parental Parameters
+            $bride_first_name = trim($_POST['bride_first_name']);
+            $bride_last_name = trim($_POST['bride_last_name']);
+            $bride_phone1 = trim($_POST['bride_phone1'] ?? '');
+            $bride_phone2 = trim($_POST['bride_phone2'] ?? '');
             $bride_father = trim($_POST['bride_father']);
-            $bride_age = (int) $_POST['bride_age'];
+            $bride_father_status = (int) $_POST['bride_father_status'];
+            $bride_mother = trim($_POST['bride_mother']);
+            $bride_mother_status = (int) $_POST['bride_mother_status'];
+            $bride_dob = $_POST['bride_dob'];
             $bride_marriage_status = $_POST['bride_marriage_status'];
-            $bride_jamath = trim($_POST['bride_jamath']) ?: 'NVK Jamath (Vadasery)';
+            $bride_jamath = trim($_POST['bride_jamath']) ?: 'NVK Jamaath (Vadasery)';
+            $bride_id_type = trim($_POST['bride_id_type'] ?? '');
+            $bride_aadhar = trim($_POST['bride_aadhar'] ?? '');
 
+            // Expanded Witness Parameters & Address Breakdowns
+            $witness_groom_name = trim($_POST['witness_groom_name'] ?? '');
+            $witness_groom_relationship = trim($_POST['witness_groom_relationship'] ?? '');
+            $witness_groom_phone = trim($_POST['witness_groom_phone'] ?? '');
+            $witness_groom_addr_l1 = trim($_POST['witness_groom_addr_l1'] ?? '');
+            $witness_groom_addr_l2 = trim($_POST['witness_groom_addr_l2'] ?? '');
+            $witness_groom_city = trim($_POST['witness_groom_city'] ?? '');
+            $witness_groom_pincode = trim($_POST['witness_groom_pincode'] ?? '');
+            $witness_groom_country = trim($_POST['witness_groom_country'] ?? 'India');
+
+            $witness_bride_name = trim($_POST['witness_bride_name'] ?? '');
+            $witness_bride_relationship = trim($_POST['witness_bride_relationship'] ?? '');
+            $witness_bride_phone = trim($_POST['witness_bride_phone'] ?? '');
+            $witness_bride_addr_l1 = trim($_POST['witness_bride_addr_l1'] ?? '');
+            $witness_bride_addr_l2 = trim($_POST['witness_bride_addr_l2'] ?? '');
+            $witness_bride_city = trim($_POST['witness_bride_city'] ?? '');
+            $witness_bride_pincode = trim($_POST['witness_bride_pincode'] ?? '');
+            $witness_bride_country = trim($_POST['witness_bride_country'] ?? 'India');
+
+            // Ceremony Metadata
             $datetime = $_POST['nikah_datetime'];
             $venue = trim($_POST['venue']);
-            // Capture checkbox: if checked it sends "1", if unchecked it's empty, so default to "0"
+            $book_reference = trim($_POST['book_reference'] ?? '');
             $conducted_by_jamath = isset($_POST['conducted_by_jamath']) ? 1 : 0;
 
-            if ($groom_age < 21 || $bride_age < 18) {
-                die("Validation Failed: Legal marriage ages (21 for Grooms, 18 for Brides) must be met.");
+            $groom_age = calculateAge($groom_dob);
+            $bride_age = calculateAge($bride_dob);
+
+            if ($groom_age === 'N/A' || $groom_age < 21) {
+                die("Validation Failed: The Groom must be at least 21 years of age.");
+            }
+            if ($bride_age === 'N/A' || $bride_age < 18) {
+                die("Validation Failed: The Bride must be at least 18 years of age.");
             }
 
-            $stmt = $db->prepare("UPDATE nikah_registry SET groom_name = ?, groom_father = ?, groom_age = ?, groom_marriage_status = ?, groom_jamath = ?, bride_name = ?, bride_father = ?, bride_age = ?, bride_marriage_status = ?, bride_jamath = ?, venue = ?, conducted_by_jamath = ?, nikah_datetime = ?, book_reference = ? WHERE id = ?");
-            $stmt->execute([$groom_name, $groom_father, $groom_age, $groom_marriage_status, $groom_jamath, $bride_name, $bride_father, $bride_age, $bride_marriage_status, $bride_jamath, $venue, $conducted_by_jamath, $datetime, $book_reference, $id]);
+            $fetchStmt = $db->prepare("SELECT * FROM nikah_registry WHERE id = ?");
+            $fetchStmt->execute([$id]);
+            $current_record = $fetchStmt->fetch(PDO::FETCH_ASSOC);
 
-            header("Location: nikah.php?msg=Certified marriage record updated successfully");
+            if (!$current_record) {
+                die("System Error: target marriage entry index record was not discovered.");
+            }
+
+            $file_paths = [
+                'groom_photo' => $current_record['groom_photo'],
+                'groom_id_doc' => $current_record['groom_id_doc'],
+                'groom_aadhar_file' => $current_record['groom_aadhar_file'],
+                'bride_photo' => $current_record['bride_photo'],
+                'bride_id_doc' => $current_record['bride_id_doc'],
+                'bride_aadhar_file' => $current_record['bride_aadhar_file'],
+                'witness_groom_id_doc' => $current_record['witness_groom_id_doc'],
+                'witness_bride_id_doc' => $current_record['witness_bride_id_doc']
+            ];
+
+            $upload_dir = 'uploads/nikah_docs/';
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+            foreach ($file_paths as $field_key => &$target_path) {
+                if (isset($_FILES[$field_key]) && $_FILES[$field_key]['error'] === UPLOAD_ERR_OK) {
+                    $file_name = $_FILES[$field_key]['name'];
+                    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    if (in_array($file_ext, $allowed_extensions)) {
+                        $unique_name = $field_key . '_' . uniqid() . '.' . $file_ext;
+                        $dest_path = $upload_dir . $unique_name;
+                        if (move_uploaded_file($_FILES[$field_key]['tmp_name'], $dest_path)) {
+                            if (!empty($target_path) && file_exists($target_path)) {
+                                @unlink($target_path);
+                            }
+                            $target_path = $dest_path;
+                        }
+                    }
+                }
+            }
+            unset($target_path);
+
+            $stmt = $db->prepare("UPDATE nikah_registry SET 
+        groom_first_name = ?, groom_last_name = ?, groom_phone1 = ?, groom_phone2 = ?, groom_father = ?, groom_father_status = ?, groom_mother = ?, groom_mother_status = ?, groom_dob = ?, groom_age = ?, groom_marriage_status = ?, groom_jamath = ?, groom_photo = ?, groom_id_type = ?, groom_id_doc = ?, groom_aadhar = ?, groom_aadhar_file = ?,
+        bride_first_name = ?, bride_last_name = ?, bride_phone1 = ?, bride_phone2 = ?, bride_father = ?, bride_father_status = ?, bride_mother = ?, bride_mother_status = ?, bride_dob = ?, bride_age = ?, bride_marriage_status = ?, bride_jamath = ?, bride_photo = ?, bride_id_type = ?, bride_id_doc = ?, bride_aadhar = ?, bride_aadhar_file = ?,
+        witness_groom_name = ?, witness_groom_relationship = ?, witness_groom_phone = ?, witness_groom_addr_l1 = ?, witness_groom_addr_l2 = ?, witness_groom_city = ?, witness_groom_pincode = ?, witness_groom_country = ?, witness_groom_id_doc = ?,
+        witness_bride_name = ?, witness_bride_relationship = ?, witness_bride_phone = ?, witness_bride_addr_l1 = ?, witness_bride_addr_l2 = ?, witness_bride_city = ?, witness_bride_pincode = ?, witness_bride_country = ?, witness_bride_id_doc = ?,
+        venue = ?, conducted_by_jamath = ?, nikah_datetime = ?, book_reference = ? 
+        WHERE id = ?");
+
+            $stmt->execute([
+                $groom_first_name,
+                $groom_last_name,
+                $groom_phone1, 
+                $groom_phone2,
+                $groom_father,
+                $groom_father_status,
+                $groom_mother,
+                $groom_mother_status,
+                $groom_dob,
+                $groom_age,
+                $groom_marriage_status,
+                $groom_jamath,
+                $file_paths['groom_photo'],
+                $groom_id_type,
+                $file_paths['groom_id_doc'],
+                $groom_aadhar,
+                $file_paths['groom_aadhar_file'],
+                $bride_first_name,
+                $bride_last_name,
+                $bride_phone1, 
+                $bride_phone2,
+                $bride_father,
+                $bride_father_status,
+                $bride_mother,
+                $bride_mother_status,
+                $bride_dob,
+                $bride_age,
+                $bride_marriage_status,
+                $bride_jamath,
+                $file_paths['bride_photo'],
+                $bride_id_type,
+                $file_paths['bride_id_doc'],
+                $bride_aadhar,
+                $file_paths['bride_aadhar_file'],
+                $witness_groom_name,
+                $witness_groom_relationship,
+                $witness_groom_phone,
+                $witness_groom_addr_l1,
+                $witness_groom_addr_l2,
+                $witness_groom_city,
+                $witness_groom_pincode,
+                $witness_groom_country,
+                $file_paths['witness_groom_id_doc'],
+                $witness_bride_name,
+                $witness_bride_relationship,
+                $witness_bride_phone,
+                $witness_bride_addr_l1,
+                $witness_bride_addr_l2,
+                $witness_bride_city,
+                $witness_bride_pincode,
+                $witness_bride_country,
+                $file_paths['witness_bride_id_doc'],
+                $venue,
+                $conducted_by_jamath,
+                $datetime,
+                $book_reference,
+                $id
+            ]);
+
+            header("Location: nikah.php?msg=Certified marriage record updated successfully with tracked folder assets");
             exit;
         }
 
-        // Action: Permanent Delete Nikah Record
+        // Action: Permanent Delete Nikah Record (Wipes All 8 Potential Storage Attachments)
         if ($_POST['action'] === 'delete_nikah') {
             $id = (int) $_POST['id'];
+
+            // Fetch paths before row deletion to clear the upload directories completely
+            $fetchStmt = $db->prepare("SELECT groom_photo, groom_id_doc, groom_aadhar_file, bride_photo, bride_id_doc, bride_aadhar_file, witness_groom_id_doc, witness_bride_id_doc FROM nikah_registry WHERE id = ?");
+            $fetchStmt->execute([$id]);
+            $record = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($record) {
+                $files_to_delete = [
+                    $record['groom_photo'],
+                    $record['groom_id_doc'],
+                    $record['groom_aadhar_file'],
+                    $record['bride_photo'],
+                    $record['bride_id_doc'],
+                    $record['bride_aadhar_file'],
+                    $record['witness_groom_id_doc'],
+                    $record['witness_bride_id_doc']
+                ];
+                foreach ($files_to_delete as $path) {
+                    if (!empty($path) && file_exists($path)) {
+                        @unlink($path);
+                    }
+                }
+            }
+
+            // Delete table row record
             $stmt = $db->prepare("DELETE FROM nikah_registry WHERE id = ?");
             $stmt->execute([$id]);
 
-            header("Location: nikah.php?msg=Certified marriage record permanently deleted");
+            header("Location: nikah.php?msg=Certified marriage record permanently deleted and directory space recycled");
             exit;
         }
 
@@ -1397,5 +1730,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     }
+}
+
+// Fallback catch-all diagnostic layer
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $received_action = $_POST['action'] ?? 'NOT SET';
+    $total_files = count($_FILES);
+    die("Controller Fallthrough: A POST request reached actions.php, but no matching condition block was triggered. Received action: '$received_action'. Total files attached: $total_files.");
+} else {
+    die("Controller Fallthrough: Direct access via GET request verified. The file is accessible, but requires a form POST submission payload to execute tasks.");
 }
 ?>
