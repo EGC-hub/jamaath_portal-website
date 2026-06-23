@@ -1247,7 +1247,7 @@ require_once 'header.php';
         // 7. Wire Up Action Redirect Links
         document.getElementById('pop-edit-btn').setAttribute('onclick', `populateEditNikah(${JSON.stringify(data)})`);
         document.getElementById('pop-cert-btn').className = "bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors";
-        document.getElementById('pop-cert-btn').setAttribute('onclick', `window.open('generate_certificate.php?id=${data.id}', '_blank')`);
+        document.getElementById('pop-cert-btn').setAttribute('onclick', `issueNikahCertificate(${JSON.stringify(data)})`);
 
         // 8. Open Modal
         document.getElementById('nikah-card-modal').classList.remove('hidden');
@@ -1293,6 +1293,43 @@ require_once 'header.php';
     }
 
     // Toggle forms logic depending on origin choices
+    // Dynamic Field Locking & Fallback Constraint State Management Engine
+    function adjustFieldState(fieldId, isWithinJamath) {
+        const el = document.getElementById(fieldId);
+        if (!el) return;
+
+        // Check if the current value of the field is empty
+        const isEmptyValue = !el.value || el.value.trim() === "";
+
+        if (isWithinJamath) {
+            if (isEmptyValue) {
+                // FALLBACK UNLOCK: Empty parameter from DB -> let user input it manually
+                if (el.tagName === "SELECT") el.disabled = false;
+                else el.readOnly = false;
+
+                el.classList.remove('bg-slate-100', 'cursor-not-allowed');
+                el.classList.add('bg-amber-50/40', 'border-amber-200'); // Optional subtle alert styling
+                el.required = true; // Make it required since it's empty and needs manual submission data
+            } else {
+                // STRICT DATA GUARD: Valid info exists -> Lock securely from modifications
+                if (el.tagName === "SELECT") el.disabled = true;
+                else el.readOnly = true;
+
+                el.classList.add('bg-slate-100', 'cursor-not-allowed');
+                el.classList.remove('bg-amber-50/40', 'border-amber-200');
+                el.required = false; // Bypass required rule restriction since it has fixed data
+            }
+        } else {
+            // DEFAULT FREEDOM STATE: Outside Jamaath choice -> fully editable inputs
+            if (el.tagName === "SELECT") el.disabled = false;
+            else el.readOnly = false;
+
+            el.classList.remove('bg-slate-100', 'cursor-not-allowed', 'bg-amber-50/40', 'border-amber-200');
+            el.required = true;
+        }
+    }
+
+    // Toggle forms logic depending on origin choices (Groom)
     function toggleGroomFields() {
         const isWithinJamath = document.getElementById('groom_origin_jamath').checked;
         const selectContainer = document.getElementById('groom_jamath_container');
@@ -1304,7 +1341,7 @@ require_once 'header.php';
             document.getElementById('groom_select').value = "";
         }
 
-        // Updated element matrix to match our new decoupled first/last names and maternal fields
+        // Target fields matrix setup
         const fieldsToToggle = [
             'groom_first_name_field', 'groom_last_name_field',
             'groom_father_field', 'groom_father_status',
@@ -1312,39 +1349,25 @@ require_once 'header.php';
             'groom_dob_field', 'groom_aadhar_field'
         ];
 
+        // Evaluate state individually for every field mapping parameter
         fieldsToToggle.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                if (el.tagName === "SELECT") {
-                    el.disabled = isWithinJamath;
-                } else {
-                    el.readOnly = isWithinJamath;
-                }
-
-                if (isWithinJamath) {
-                    el.classList.add('bg-slate-100', 'cursor-not-allowed');
-                } else {
-                    el.classList.remove('bg-slate-100', 'cursor-not-allowed');
-                }
-            }
+            adjustFieldState(id, isWithinJamath);
         });
 
-        // Add to the bottom of toggleGroomFields() AND toggleBrideFields()
+        // Cross-Field Origin Validation Safeguard Loop
         const groomWithin = document.getElementById('groom_origin_jamath').checked;
         const brideWithin = document.getElementById('bride_origin_jamath').checked;
 
         if (!groomWithin && !brideWithin) {
-            // If they just toggled both to "Outside Jamaath", alert them proactively 
             alert("⚠️ Policy Alert: Both parties cannot be from outside the Jamaath. Please ensure either the groom or the bride belongs to the Jamaath registry.");
 
-            // Automatically revert the one they just clicked back to true to self-heal the form state
-            if (this.id === 'groom_origin_outside' || !groomWithin) {
-                document.getElementById('groom_origin_jamath').checked = true;
-                toggleGroomFields(); // Re-sync fields container status
-            }
+            // Automatically revert back to true to self-heal the form choice status
+            document.getElementById('groom_origin_jamath').checked = true;
+            toggleGroomFields(); // Recursive sync execution thread
         }
     }
 
+    // Toggle forms logic depending on origin choices (Bride)
     function toggleBrideFields() {
         const isWithinJamath = document.getElementById('bride_origin_jamath').checked;
         const selectContainer = document.getElementById('bride_jamath_container');
@@ -1356,7 +1379,7 @@ require_once 'header.php';
             document.getElementById('bride_select').value = "";
         }
 
-        // Updated element matrix for Bride side matching split profiles
+        // Target fields matrix setup
         const fieldsToToggle = [
             'bride_first_name_field', 'bride_last_name_field',
             'bride_father_field', 'bride_father_status',
@@ -1364,35 +1387,21 @@ require_once 'header.php';
             'bride_dob_field', 'bride_aadhar_field'
         ];
 
+        // Evaluate state individually for every field mapping parameter
         fieldsToToggle.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                if (el.tagName === "SELECT") {
-                    el.disabled = isWithinJamath;
-                } else {
-                    el.readOnly = isWithinJamath;
-                }
-
-                if (isWithinJamath) {
-                    el.classList.add('bg-slate-100', 'cursor-not-allowed');
-                } else {
-                    el.classList.remove('bg-slate-100', 'cursor-not-allowed');
-                }
-            }
+            adjustFieldState(id, isWithinJamath);
         });
-        // Add to the bottom of toggleGroomFields() AND toggleBrideFields()
+
+        // Cross-Field Origin Validation Safeguard Loop
         const groomWithin = document.getElementById('groom_origin_jamath').checked;
         const brideWithin = document.getElementById('bride_origin_jamath').checked;
 
         if (!groomWithin && !brideWithin) {
-            // If they just toggled both to "Outside Jamaath", alert them proactively 
             alert("⚠️ Policy Alert: Both parties cannot be from outside the Jamaath. Please ensure either the groom or the bride belongs to the Jamaath registry.");
 
-            // Automatically revert the one they just clicked back to true to self-heal the form state
-            if (this.id === 'groom_origin_outside' || !groomWithin) {
-                document.getElementById('groom_origin_jamath').checked = true;
-                toggleGroomFields(); // Re-sync fields container status
-            }
+            // Automatically revert back to true to self-heal the form choice status
+            document.getElementById('bride_origin_jamath').checked = true;
+            toggleBrideFields(); // Recursive sync execution thread
         }
     }
 
@@ -1442,6 +1451,8 @@ require_once 'header.php';
         if (dob) {
             calculateLiveAge(document.getElementById('groom_dob_field'), 'groom_live_age_preview', 'groom_age_field');
         }
+
+        toggleGroomFields();
     }
 
     function autoPopulateBride() {
@@ -1489,6 +1500,8 @@ require_once 'header.php';
         if (dob) {
             calculateLiveAge(document.getElementById('bride_dob_field'), 'bride_live_age_preview', 'bride_age_field');
         }
+
+        toggleBrideFields();
     }
 
     // NEW HELPER: Client-side Age computation and target hidden value logging
@@ -1770,20 +1783,30 @@ require_once 'header.php';
 
     // High-Fidelity Landscape PDF Wedding Certificate Engine
     function issueNikahCertificate(nikah) {
-        // Build groom full name string cleanly combining first name and optional last name
-        const groomFullName = (nikah.groom_first_name + ' ' + (nikah.groom_last_name || '')).trim();
+        if (!nikah) return;
+
+        // 1. Build groom full name string cleanly using only your new split properties
+        const groomFirst = nikah.groom_first_name || '';
+        const groomLast = nikah.groom_last_name || '';
+        const groomFullName = (groomFirst + ' ' + groomLast).trim();
         const groomText = groomFullName + (nikah.groom_father ? " (S/O: " + nikah.groom_father + ")" : "");
 
-        // Build bride full name string cleanly combining first name and optional last name
-        const brideFullName = (nikah.bride_first_name + ' ' + (nikah.bride_last_name || '')).trim();
+        // 2. Build bride full name string cleanly using only your new split properties
+        const brideFirst = nikah.bride_first_name || '';
+        const brideLast = nikah.bride_last_name || '';
+        const brideFullName = (brideFirst + ' ' + brideLast).trim();
         const brideText = brideFullName + (nikah.bride_father ? " (D/O: " + nikah.bride_father + ")" : "");
-        const formattedDate = formatDateJS(nikah.nikah_datetime);
-        const venueText = nikah.venue;
-        const detailsText = nikah.book_reference || "Legacy Registry Archive";
 
+        // Map remaining form parameters safely
+        const formattedDate = typeof formatDateJS === 'function' ? formatDateJS(nikah.nikah_datetime) : (nikah.nikah_datetime || "");
+        const venueText = nikah.venue || "";
+        const detailsText = nikah.book_reference || "Registry Archive";
+
+        // 3. Fix the filename crash by running the replacement against the newly compiled groomFullName variable
+        const safeFilenameGroom = groomFullName.replace(/\s+/g, '_');
         const opt = {
             margin: 0.3,
-            filename: `Nikah_Certificate_${nikah.groom_name.replace(/\s+/g, '_')}.pdf`,
+            filename: `Nikah_Certificate_${safeFilenameGroom}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
@@ -1798,83 +1821,81 @@ require_once 'header.php';
         certTemplate.style.fontFamily = 'Georgia, serif';
 
         certTemplate.innerHTML = `
-            <div style="border: 15px double #0d9488; padding: 25px; height: 100%; box-sizing: border-box; position: relative; background-image: radial-gradient(circle, #f0fdfa 1px, transparent 1px); background-size: 20px 20px; background-color: #fafcfc;">
-                
-                <!-- Corner Crest Badges -->
-                <div style="position: absolute; top: 12px; left: 12px; color: #0f766e; font-size: 20px;">🕌</div>
-                <div style="position: absolute; top: 12px; right: 12px; color: #0f766e; font-size: 20px;">🕌</div>
-                <div style="position: absolute; bottom: 12px; left: 12px; color: #0f766e; font-size: 20px;">🕌</div>
-                <div style="position: absolute; bottom: 12px; right: 12px; color: #0f766e; font-size: 20px;">🕌</div>
-                
-                <!-- Gold Emblem Ribbons -->
-                <div style="text-align: center; margin-bottom: 15px;">
-                    <h1 style="margin: 0; color: #115e59; font-size: 30px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Muslim Jamaath</h1>
-                    <p style="margin: 5px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 4px; font-weight: bold; color: #0f766e;">Vadasery, Nagercoil, Kanyakumari District, Tamil Nadu</p>
-                    <div style="width: 250px; height: 3px; background: linear-gradient(to right, transparent, #b45309, transparent); margin: 12px auto 4px auto;"></div>
-                    <div style="width: 150px; height: 1px; background: #e2e8f0; margin: 0 auto;"></div>
-                </div>
+        <div style="border: 15px double #0d9488; padding: 25px; height: 100%; box-sizing: border-box; position: relative; background-image: radial-gradient(circle, #f0fdfa 1px, transparent 1px); background-size: 20px 20px; background-color: #fafcfc;">
+            
+            <div style="position: absolute; top: 12px; left: 12px; color: #0f766e; font-size: 20px;">🕌</div>
+            <div style="position: absolute; top: 12px; right: 12px; color: #0f766e; font-size: 20px;">🕌</div>
+            <div style="position: absolute; bottom: 12px; left: 12px; color: #0f766e; font-size: 20px;">🕌</div>
+            <div style="position: absolute; bottom: 12px; right: 12px; color: #0f766e; font-size: 20px;">🕌</div>
+            
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h1 style="margin: 0; color: #115e59; font-size: 30px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">NVK Muslim Jamaath</h1>
+                <p style="margin: 5px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 4px; font-weight: bold; color: #0f766e;">Vadasery, Nagercoil, Kanyakumari District, Tamil Nadu</p>
+                <div style="width: 250px; height: 3px; background: linear-gradient(to right, transparent, #b45309, transparent); margin: 12px auto 4px auto;"></div>
+                <div style="width: 150px; height: 1px; background: #e2e8f0; margin: 0 auto;"></div>
+            </div>
 
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <h2 style="font-family: Georgia, serif; font-style: italic; color: #b45309; font-size: 24px; margin: 5px 0;">Certificate of Marriage (Nikah)</h2>
-                    <p style="font-size: 12px; color: #64748b; margin: 0; font-family: sans-serif;">This is to certify that the marriage contract (Nikah) has been completed and registered under our Jamaath.</p>
-                </div>
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="font-family: Georgia, serif; font-style: italic; color: #b45309; font-size: 24px; margin: 5px 0;">Certificate of Marriage (Nikah)</h2>
+                <p style="font-size: 12px; color: #64748b; margin: 0; font-family: sans-serif;">This is to certify that the marriage contract (Nikah) has been completed and registered under our Jamaath.</p>
+            </div>
 
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; font-size: 15px;">
-                    <tr>
-                        <td style="width: 50%; padding: 12px; vertical-align: top;">
-                            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">The Groom (Bridegroom)</strong>
-                                <span style="font-size: 17px; color: #1e293b; font-weight: bold;">${groomText}</span>
-                            </div>
-                        </td>
-                        <td style="width: 50%; padding: 12px; vertical-align: top;">
-                            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">The Bride</strong>
-                                <span style="font-size: 17px; color: #1e293b; font-weight: bold;">${brideText}</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 12px; vertical-align: top; padding-top: 20px;">
-                            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Date & Time</strong>
-                                <span style="font-size: 15px; color: #1e293b; font-weight: 600;">${formattedDate}</span>
-                            </div>
-                        </td>
-                        <td style="padding: 12px; vertical-align: top; padding-top: 20px;">
-                            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Nikah Venue</strong>
-                                <span style="font-size: 15px; color: #1e293b; font-weight: 600;">${venueText}</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 12px; vertical-align: top; padding-top: 20px;">
-                            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Registry Books & References</strong>
-                                <span style="font-size: 14px; color: #334155; font-style: italic;">${detailsText}</span>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-
-                <div style="margin-top: 45px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 30px;">
-                    <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary</div>
-                    </div>
-                    
-                    <div style="text-align: center; width: 140px;">
-                        <div style="border: 2px solid #047857; border-radius: 50%; width: 75px; height: 75px; padding-top: 22px; box-sizing: border-box; margin: 0 auto; color: #047857; font-size: 9px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif; text-align: center; line-height: 12px;">
-                            Registry<br>Seal
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; font-size: 15px;">
+                <tr>
+                    <td style="width: 50%; padding: 12px; vertical-align: top;">
+                        <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
+                            <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">The Groom (Bridegroom)</strong>
+                            <span style="font-size: 17px; color: #1e293b; font-weight: bold;">${groomText}</span>
                         </div>
+                    </td>
+                    <td style="width: 50%; padding: 12px; vertical-align: top;">
+                        <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
+                            <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">The Bride</strong>
+                            <span style="font-size: 17px; color: #1e293b; font-weight: bold;">${brideText}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; vertical-align: top; padding-top: 20px;">
+                        <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
+                            <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Date & Time</strong>
+                            <span style="font-size: 15px; color: #1e293b; font-weight: 600;">${formattedDate}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 12px; vertical-align: top; padding-top: 20px;">
+                        <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
+                            <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Nikah Venue</strong>
+                            <span style="font-size: 15px; color: #1e293b; font-weight: 600;">${venueText}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding: 12px; vertical-align: top; padding-top: 20px;">
+                        <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
+                            <strong style="color: #0f766e; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 4px; font-family: sans-serif; tracking-wider">Registry Books & References</strong>
+                            <span style="font-size: 14px; color: #334155; font-style: italic;">${detailsText}</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <div style="margin-top: 45px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 30px;">
+                <div style="text-align: center; width: 180px;">
+                    <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Secretary</div>
+                </div>
+                
+                <div style="text-align: center; width: 140px;">
+                    <div style="border: 2px solid #047857; border-radius: 50%; width: 75px; height: 75px; padding-top: 22px; box-sizing: border-box; margin: 0 auto; color: #047857; font-size: 9px; font-weight: bold; text-transform: uppercase; transform: rotate(-8deg); font-family: sans-serif; text-align: center; line-height: 12px;">
+                        Registry<br>Seal
                     </div>
-                    
-                    <div style="text-align: center; width: 180px;">
-                        <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Chief Imam</div>
-                    </div>
+                </div>
+                
+                <div style="text-align: center; width: 180px;">
+                    <div style="border-top: 1px solid #94a3b8; padding-top: 5px; font-size: 12px; color: #475569; font-weight: 600; font-family: sans-serif;">Chief Imam</div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         html2pdf().set(opt).from(certTemplate).save();
     }
