@@ -32,63 +32,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $marital_status = $_POST['marital_status'];
                 $blood = $_POST['blood_group'];
                 $mahallah = $_POST['mahallah'];
-                $phone = trim($_POST['phone']);
+
+                // Dynamic intl-tel-input full hidden payload fallback mapping
+                $phone = !empty($_POST['phone_full']) ? trim($_POST['phone_full']) : trim($_POST['phone']);
+
                 $occupation = trim($_POST['occupation']);
                 $designation = $_POST['designation'];
 
-                // Address Split Handling
+                // Address Split Parameters + Country Columns
                 $res_address_line1 = trim($_POST['res_address_line1']);
                 $res_address_line2 = trim($_POST['res_address_line2']);
                 $res_city = trim($_POST['res_city']);
                 $res_pincode = trim($_POST['res_pincode']);
+                $res_country = !empty($_POST['res_country']) ? trim($_POST['res_country']) : 'India';
 
                 $comm_address_line1 = trim($_POST['comm_address_line1']);
                 $comm_address_line2 = trim($_POST['comm_address_line2']);
                 $comm_city = trim($_POST['comm_city']);
                 $comm_pincode = trim($_POST['comm_pincode']);
+                $comm_country = !empty($_POST['comm_country']) ? trim($_POST['comm_country']) : 'India';
 
+                $aadhar_number = !empty($_POST['aadhar_number']) ? trim($_POST['aadhar_number']) : null;
                 $status = $_POST['status'];
                 $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-                // Configure modern file storage pathway directory
                 $upload_dir = 'uploads/members/';
                 if (!is_dir($upload_dir)) {
                     mkdir($upload_dir, 0755, true);
                 }
 
-                // Default placeholder avatar if no file is selected
                 $photo_data = "https://placehold.co/150x150/0f766e/ffffff?text=" . urlencode($first_name . '+' . $last_name);
 
+                // Core Profile Avatar Image Processor
                 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-                    $file_tmp = $_FILES['photo']['tmp_name'];
-                    $file_name = $_FILES['photo']['name'];
-                    $file_size = $_FILES['photo']['size'];
-
-                    // Enforce 5MB limit check per photo to ensure smooth server storage operation
-                    if ($file_size <= 5 * 1024 * 1024) {
-                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    if ($_FILES['photo']['size'] <= 5 * 1024 * 1024) {
+                        $file_ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
                         $safe_file_name = 'member_' . time() . '_' . uniqid() . '.' . $file_ext;
                         $target_destination = $upload_dir . $safe_file_name;
-
-                        if (move_uploaded_file($file_tmp, $target_destination)) {
+                        if (move_uploaded_file($_FILES['photo']['tmp_name'], $target_destination)) {
                             $photo_data = $target_destination;
                         }
                     }
                 }
 
-                $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, marital_status, mahallah, phone, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, comm_address_line1, comm_address_line2, comm_city, comm_pincode, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, ?)");
-                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $photo_data, $dependents_count]);
+                // Verification Document Upload Processor with Strict 2MB Limit
+                $aadhar_doc_path = null;
+                if (isset($_FILES['aadhar_doc']) && $_FILES['aadhar_doc']['error'] === UPLOAD_ERR_OK) {
+                    if ($_FILES['aadhar_doc']['size'] > 2 * 1024 * 1024) {
+                        throw new Exception("Uploaded file size exceeds the strict 2MB limit.");
+                    }
+                    $file_ext = strtolower(pathinfo($_FILES['aadhar_doc']['name'], PATHINFO_EXTENSION));
+                    $safe_doc_name = 'aadhar_' . time() . '_' . uniqid() . '.' . $file_ext;
+                    $target_doc_destination = $upload_dir . $safe_doc_name;
+                    if (move_uploaded_file($_FILES['aadhar_doc']['tmp_name'], $target_doc_destination)) {
+                        $aadhar_doc_path = $target_doc_destination;
+                    }
+                }
+
+                $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, marital_status, mahallah, phone, aadhar_number, aadhar_doc, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, res_country, comm_address_line1, comm_address_line2, comm_city, comm_pincode, comm_country, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, ?)");
+                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $aadhar_number, $aadhar_doc_path, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $res_country, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $comm_country, $status, $dec_date, $photo_data, $dependents_count]);
 
                 $member_id = $db->lastInsertId();
 
-                // Loop and save dependents list (with updated life status mappings)
+                // Dynamically log dependents
                 if ($dependents_count > 0 && isset($_POST['dep_name'])) {
                     $dep_stmt = $db->prepare("INSERT INTO member_dependents (member_id, name, relationship, dob, gender, status) VALUES (?, ?, ?, ?, ?, ?)");
                     for ($i = 0; $i < $dependents_count; $i++) {
                         if (!empty($_POST['dep_name'][$i])) {
                             $dep_status = isset($_POST['dep_status'][$i]) ? $_POST['dep_status'][$i] : 'Alive';
                             $dep_stmt->execute([
-                                $member_id, // For edit_member, replace this with $id
+                                $member_id,
                                 trim($_POST['dep_name'][$i]),
                                 trim($_POST['dep_relationship'][$i]),
                                 $_POST['dep_dob'][$i],
@@ -125,7 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $marital_status = $_POST['marital_status'];
                 $blood = $_POST['blood_group'];
                 $mahallah = $_POST['mahallah'];
-                $phone = trim($_POST['phone']);
+
+                // Dynamic intl-tel-input hidden field parsing fallback mapping
+                $phone = !empty($_POST['phone_full']) ? trim($_POST['phone_full']) : trim($_POST['phone']);
+
                 $occupation = trim($_POST['occupation']);
                 $designation = $_POST['designation'];
 
@@ -133,53 +149,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $res_address_line2 = trim($_POST['res_address_line2']);
                 $res_city = trim($_POST['res_city']);
                 $res_pincode = trim($_POST['res_pincode']);
+                $res_country = !empty($_POST['res_country']) ? trim($_POST['res_country']) : 'India';
 
                 $comm_address_line1 = trim($_POST['comm_address_line1']);
                 $comm_address_line2 = trim($_POST['comm_address_line2']);
                 $comm_city = trim($_POST['comm_city']);
                 $comm_pincode = trim($_POST['comm_pincode']);
+                $comm_country = !empty($_POST['comm_country']) ? trim($_POST['comm_country']) : 'India';
 
+                $aadhar_number = !empty($_POST['aadhar_number']) ? trim($_POST['aadhar_number']) : null;
                 $status = $_POST['status'];
                 $dec_date = ($status === 'Deceased') ? $_POST['deceased_date'] : null;
 
-                // Photo update handling via file manager system pathways
-                if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-                    $file_tmp = $_FILES['photo']['tmp_name'];
-                    $file_name = $_FILES['photo']['name'];
-                    $file_size = $_FILES['photo']['size'];
+                $upload_dir = 'uploads/members/';
 
-                    if ($file_size <= 5 * 1024 * 1024) {
-                        $upload_dir = 'uploads/members/';
+                // Update Member Photo
+                if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                    if ($_FILES['photo']['size'] <= 5 * 1024 * 1024) {
                         if (!is_dir($upload_dir)) {
                             mkdir($upload_dir, 0755, true);
                         }
-
-                        // Track down previous file location string to clean up server space
                         $old_photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
                         $old_photo_stmt->execute([$id]);
                         $old_photo_path = $old_photo_stmt->fetchColumn();
 
-                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $file_ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
                         $safe_file_name = 'member_' . time() . '_' . uniqid() . '.' . $file_ext;
                         $target_destination = $upload_dir . $safe_file_name;
 
-                        if (move_uploaded_file($file_tmp, $target_destination)) {
-                            // Drop old image from local server disk if it isn't an external API link
+                        if (move_uploaded_file($_FILES['photo']['tmp_name'], $target_destination)) {
                             if (!empty($old_photo_path) && file_exists($old_photo_path) && strpos($old_photo_path, 'http') === false) {
                                 @unlink($old_photo_path);
                             }
-
                             $stmt = $db->prepare("UPDATE members SET photo = ? WHERE id = ?");
                             $stmt->execute([$target_destination, $id]);
                         }
                     }
                 }
 
-                // Update core record parameters
-                $stmt = $db->prepare("UPDATE members SET card_no = ?, first_name = ?, last_name = ?, family_name = ?, father_husband_name = ?, dob = ?, gender = ?, marital_status = ?, mahallah = ?, phone = ?, blood_group = ?, occupation = ?, designation = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, comm_address_line1 = ?, comm_address_line2 = ?, comm_city = ?, comm_pincode = ?, status = ?, deceased_date = ?, dependents_count = ? WHERE id = ?");
-                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $status, $dec_date, $dependents_count, $id]);
+                // Update Identity File with Strict 2MB Check
+                if (isset($_FILES['aadhar_doc']) && $_FILES['aadhar_doc']['error'] === UPLOAD_ERR_OK) {
+                    if ($_FILES['aadhar_doc']['size'] > 2 * 1024 * 1024) {
+                        throw new Exception("Uploaded file size exceeds the strict 2MB limit.");
+                    }
+                    if (!is_dir($upload_dir)) {
+                        mkdir($upload_dir, 0755, true);
+                    }
+                    $old_doc_stmt = $db->prepare("SELECT aadhar_doc FROM members WHERE id = ?");
+                    $old_doc_stmt->execute([$id]);
+                    $old_doc_path = $old_doc_stmt->fetchColumn();
 
-                // Sync Dependents table properties accurately
+                    $file_ext = strtolower(pathinfo($_FILES['aadhar_doc']['name'], PATHINFO_EXTENSION));
+                    $safe_doc_name = 'aadhar_' . time() . '_' . uniqid() . '.' . $file_ext;
+                    $target_doc_destination = $upload_dir . $safe_doc_name;
+
+                    if (move_uploaded_file($_FILES['aadhar_doc']['tmp_name'], $target_doc_destination)) {
+                        if (!empty($old_doc_path) && file_exists($old_doc_path)) {
+                            @unlink($old_doc_path);
+                        }
+                        $stmt = $db->prepare("UPDATE members SET aadhar_doc = ? WHERE id = ?");
+                        $stmt->execute([$target_doc_destination, $id]);
+                    }
+                }
+
+                // Primary Record Update Statement mapping
+                $stmt = $db->prepare("UPDATE members SET card_no = ?, first_name = ?, last_name = ?, family_name = ?, father_husband_name = ?, dob = ?, gender = ?, marital_status = ?, mahallah = ?, phone = ?, aadhar_number = ?, occupation = ?, designation = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, res_country = ?, comm_address_line1 = ?, comm_address_line2 = ?, comm_city = ?, comm_pincode = ?, comm_country = ?, blood_group = ?, status = ?, deceased_date = ?, dependents_count = ? WHERE id = ?");
+                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $aadhar_number, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $res_country, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $comm_country, $blood, $status, $dec_date, $dependents_count, $id]);
+
+                // Dependents cleanup & sync update loops mapping
                 $del_stmt = $db->prepare("DELETE FROM member_dependents WHERE member_id = ?");
                 $del_stmt->execute([$id]);
 
@@ -214,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_POST['action'] === 'delete_member') {
             $id = (int) $_POST['id'];
 
-            // 1. Check Bait-ul-Mal Aid Applications Registry
+            // Cross-module relation safety check blocks logic
             $check_mal = $db->prepare("SELECT COUNT(*) FROM baitulmal_applications WHERE member_id = ?");
             $check_mal->execute([$id]);
             if ($check_mal->fetchColumn() > 0) {
@@ -222,15 +259,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            // 2. Check Burial Registry (Both Deceased and Reporter links)
             $check_burial = $db->prepare("SELECT COUNT(*) FROM burial_registry WHERE deceased_member_id = ? OR reporter_member_id = ?");
             $check_burial->execute([$id, $id]);
             if ($check_burial->fetchColumn() > 0) {
-                header("Location: members.php?error=" . urlencode("Cannot delete member. Attached record files discovered inside the Burial Ground registry."));
+                header("Location: members.php?error=" . urlencode("Cannot delete member. Attached records discovered inside the Burial Ground registry."));
                 exit;
             }
 
-            // 3. Check Family Dependents Registry
             $check_dependents = $db->prepare("SELECT COUNT(*) FROM member_dependents WHERE member_id = ?");
             $check_dependents->execute([$id]);
             if ($check_dependents->fetchColumn() > 0) {
@@ -238,24 +273,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            // ==================== ALL INTEGRITY CHECKS PASSED: PROCEED TO DELETE ====================
+            try {
+                // Fetch paths to drop existing disk uploads before profile row deletion
+                $files_stmt = $db->prepare("SELECT photo, aadhar_doc FROM members WHERE id = ?");
+                $files_stmt->execute([$id]);
+                $files = $files_stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Track photo path reference before deleting database records
-            $photo_stmt = $db->prepare("SELECT photo FROM members WHERE id = ?");
-            $photo_stmt->execute([$id]);
-            $member_photo_path = $photo_stmt->fetchColumn();
+                if ($files) {
+                    if (!empty($files['photo']) && file_exists($files['photo']) && strpos($files['photo'], 'http') === false) {
+                        @unlink($files['photo']);
+                    }
+                    if (!empty($files['aadhar_doc']) && file_exists($files['aadhar_doc'])) {
+                        @unlink($files['aadhar_doc']);
+                    }
+                }
 
-            // Clear database row properties
-            $stmt = $db->prepare("DELETE FROM members WHERE id = ?");
-            $stmt->execute([$id]);
+                $del_member = $db->prepare("DELETE FROM members WHERE id = ?");
+                $del_member->execute([$id]);
 
-            // Clean up disk footprint
-            if (!empty($member_photo_path) && file_exists($member_photo_path) && strpos($member_photo_path, 'http') === false) {
-                @unlink($member_photo_path);
+                header("Location: members.php?msg=Member record dropped successfully from system storage.");
+                exit;
+            } catch (Exception $e) {
+                header("Location: members.php?error=" . urlencode("Delete operation runtime tracking error: " . $e->getMessage()));
+                exit;
             }
-
-            header("Location: members.php?msg=" . urlencode("Member record deleted permanently from portal database registry."));
-            exit;
         }
 
         // Action: Collect Chanda dynamically for a specified period (From Month/Year to To Month/Year)
@@ -1177,7 +1218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([
                 $groom_first_name,
                 $groom_last_name,
-                $groom_phone1, 
+                $groom_phone1,
                 $groom_phone2,
                 $groom_father,
                 $groom_father_status,
@@ -1194,7 +1235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $file_paths['groom_aadhar_file'],
                 $bride_first_name,
                 $bride_last_name,
-                $bride_phone1, 
+                $bride_phone1,
                 $bride_phone2,
                 $bride_father,
                 $bride_father_status,

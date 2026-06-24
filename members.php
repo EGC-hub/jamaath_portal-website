@@ -362,8 +362,84 @@ require_once 'header.php';
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Phone Number *</label>
-                            <input type="tel" name="phone" id="field_phone" required placeholder="Phone"
+                            <input type="tel" id="field_phone" required placeholder="Phone"
                                 class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <input type="hidden" name="phone" id="field_phone_full">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-100/60 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                        <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-id-card text-emerald-700 text-sm"></i> Identity Verification
+                        </h5>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+
+                            <div class="space-y-1">
+                                <label class="block text-xs font-bold text-slate-600 tracking-wide">Aadhaar Card Number
+                                    *</label>
+                                <input type="text" name="aadhar_number" id="field_aadhar_number" required
+                                    placeholder="12-Digit Aadhaar Number" max-length="12"
+                                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm h-[40px] focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-all">
+                                <p id="aadhar-error-msg" class="text-[11px] text-red-500 mt-1 hidden font-medium"></p>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-xs font-bold text-slate-600 tracking-wide">Upload Aadhaar Copy
+                                    *</label>
+                                <div class="flex flex-col gap-1.5">
+                                    <label
+                                        class="w-full text-center bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs px-4 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all shadow-sm h-[40px]">
+                                        <i class="fa-solid fa-file-arrow-up text-slate-400 text-sm"></i> Choose Document
+                                        <input type="file" name="aadhar_doc" id="field_aadhar_doc"
+                                            accept="image/*,application/pdf" class="hidden"
+                                            onchange="previewAadharDocument(this)">
+                                    </label>
+                                    <div class="flex flex-col text-center px-1">
+                                        <span id="aadhar-file-label"
+                                            class="text-[11px] text-slate-500 font-medium truncate max-w-xs block">No
+                                            file selected</span>
+                                        <span class="text-[9px] text-slate-400 font-semibold tracking-wide">Max size
+                                            limit: 2MB (PDF or Image)</span>
+                                    </div>
+                                </div>
+                                <p id="aadhar-file-error-msg" class="text-[11px] text-red-500 mt-1 hidden font-medium">
+                                </p>
+                            </div>
+
+                            <div class="space-y-1">
+                                <span class="block text-[11px] font-bold text-slate-500 tracking-wide">Document
+                                    Preview</span>
+                                <div class="flex flex-col items-center">
+                                    <div id="aadhar-preview-box"
+                                        class="w-full h-[65px] rounded-xl border border-slate-200 bg-white shadow-inner flex flex-col items-center justify-center text-center p-1.5 overflow-hidden relative">
+                                        <div id="aadhar-preview-placeholder"
+                                            class="text-slate-300 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-file-invoice text-lg"></i>
+                                            <span
+                                                class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">No
+                                                Document</span>
+                                        </div>
+                                        <img id="aadhar-img-preview" src=""
+                                            class="hidden w-full h-full object-cover rounded-lg">
+                                        <div id="aadhar-pdf-preview"
+                                            class="hidden text-red-600 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-file-pdf text-xl"></i>
+                                            <span
+                                                class="text-[10px] font-extrabold uppercase text-slate-600 tracking-wide">PDF
+                                                Loaded</span>
+                                        </div>
+                                    </div>
+                                    <div id="existing-aadhar-container" class="hidden mt-1.5 w-full text-center">
+                                        <a id="existing-aadhar-link" href="#" target="_blank"
+                                            class="text-[11px] text-emerald-700 font-bold hover:underline inline-flex items-center gap-1 transition-all">
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Open
+                                            Saved File
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
@@ -422,10 +498,10 @@ require_once 'header.php';
                         </div>
                     </div>
 
-                    <!-- Split Residential Address Fields -->
                     <div class="bg-slate-100/50 p-4 rounded-xl border border-slate-200 space-y-3">
-                        <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5"><i
-                                class="fa-solid fa-house text-emerald-700"></i> Residential Address</h5>
+                        <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-house text-emerald-700"></i> Residential Address
+                        </h5>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label
@@ -444,7 +520,7 @@ require_once 'header.php';
                                     class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label
                                     class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">City
@@ -460,14 +536,22 @@ require_once 'header.php';
                                     placeholder="e.g. 629002"
                                     class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                             </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Country
+                                    *</label>
+                                <input type="text" id="res_country" name="res_country" required placeholder="e.g. India"
+                                    value="India"
+                                    class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Split Communication Address Fields -->
                     <div class="bg-slate-100/50 p-4 rounded-xl border border-slate-200 space-y-3">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5"><i
-                                    class="fa-solid fa-envelope-open-text text-teal-700"></i> Communication Address</h5>
+                            <h5 class="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                                <i class="fa-solid fa-envelope-open-text text-teal-700"></i> Communication Address
+                            </h5>
                             <label
                                 class="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 cursor-pointer select-none">
                                 <input type="checkbox" id="same-address-check" onchange="syncAddresses()"
@@ -494,7 +578,7 @@ require_once 'header.php';
                                     class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label
                                     class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">City
@@ -508,6 +592,14 @@ require_once 'header.php';
                                     *</label>
                                 <input type="text" id="comm_pincode" name="comm_pincode" required
                                     placeholder="e.g. 629002"
+                                    class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Country
+                                    *</label>
+                                <input type="text" id="comm_country" name="comm_country" required
+                                    placeholder="e.g. India" value="India"
                                     class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                             </div>
                         </div>
@@ -700,7 +792,6 @@ require_once 'header.php';
     <div
         class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
 
-        <!-- Premium Modal Header Banner -->
         <div class="bg-gradient-to-r from-emerald-800 to-teal-950 p-6 text-white relative">
             <button onclick="closeProfileCard()"
                 class="absolute top-4 right-4 text-white/70 hover:text-white transition-colors text-lg">
@@ -726,7 +817,6 @@ require_once 'header.php';
             </div>
         </div>
 
-        <!-- Detailed Grid Data Body -->
         <div class="p-6 space-y-5 overflow-y-auto text-xs text-slate-700">
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -748,7 +838,7 @@ require_once 'header.php';
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="p-3 border border-slate-150 rounded-xl">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-phone text-emerald-700"></i> Contact Phone
@@ -766,6 +856,16 @@ require_once 'header.php';
                         <i class="fa-solid fa-briefcase text-slate-600"></i> Occupation
                     </p>
                     <p id="card-occupation" class="font-bold text-slate-800 mt-1">---</p>
+                </div>
+                <div class="p-3 border border-slate-150 rounded-xl bg-slate-50/50 border-dashed">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-id-card text-emerald-800"></i> Aadhaar Identity
+                    </p>
+                    <div class="mt-1 flex flex-col gap-1">
+                        <p id="card-aadhar-num" class="font-mono font-bold text-slate-800">---</p>
+                        <div id="card-aadhar-doc-container">
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -908,18 +1008,14 @@ require_once 'header.php';
                 </div>
             </div>
 
-            <!-- Dynamic Dependents List Section -->
             <div id="card-dependents-container" class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 hidden">
                 <p
                     class="text-[10px] font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                     <i class="fa-solid fa-people-roof text-indigo-700"></i> Family Dependents Detailed List
                 </p>
-                <div id="card-dependents-list" class="divide-y divide-indigo-100 text-xs">
-                    <!-- Injected dynamically via JS -->
-                </div>
+                <div id="card-dependents-list" class="divide-y divide-indigo-100 text-xs"></div>
             </div>
 
-            <!-- Double Columns: Residential Address vs. Communication Address -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-200">
                     <p
@@ -939,7 +1035,6 @@ require_once 'header.php';
 
         </div>
 
-        <!-- Pop-up footer control panel -->
         <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between">
             <button id="card-edit-btn"
                 class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition-colors flex items-center gap-1.5">
@@ -955,25 +1050,146 @@ require_once 'header.php';
 </div>
 
 <script>
-    function toggleAddMemberForm() {
+    let iti; // Global reference for international telephone module
+
+    // --- 1. GLOBAL WINDOW FUNCTIONS (Accessible by inline HTML triggers) ---
+
+    window.toggleAddMemberForm = function () {
         const formSec = document.getElementById('add-member-form-section');
         const btnText = document.getElementById('toggle-form-btn-text');
-        if (formSec.classList.contains('hidden')) {
-            formSec.classList.remove('hidden');
-            btnText.textContent = "Close Panel Form";
-        } else {
-            formSec.classList.add('hidden');
-            btnText.textContent = "Register New Member";
-            resetFormToCreateState();
+        if (formSec) {
+            if (formSec.classList.contains('hidden')) {
+                formSec.classList.remove('hidden');
+                if (btnText) btnText.textContent = "Close Panel Form";
+            } else {
+                formSec.classList.add('hidden');
+                if (btnText) btnText.textContent = "Register New Member";
+                resetFormToCreateState();
+            }
         }
-    }
+    };
 
-    // Generate nested dependent inputs dynamically based on Dependents Count
+    window.previewAadharDocument = function (input) {
+        const label = document.getElementById("aadhar-file-label");
+        const fileError = document.getElementById("aadhar-file-error-msg");
+        const placeholder = document.getElementById("aadhar-preview-placeholder");
+        const imgPreview = document.getElementById("aadhar-img-preview");
+        const pdfPreview = document.getElementById("aadhar-pdf-preview");
+
+        // Clear dynamic operational previews back to clean structural defaults
+        if (imgPreview) { imgPreview.classList.add("hidden"); imgPreview.src = ""; }
+        if (pdfPreview) pdfPreview.classList.add("hidden");
+        if (placeholder) placeholder.classList.remove("hidden");
+        if (fileError) fileError.classList.add("hidden");
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            // STRICTOR 2MB FILE SIZE GUARD (2 * 1024 * 1024 = 2,097,152 Bytes)
+            const maxLimitBytes = 2 * 1024 * 1024;
+            if (file.size > maxLimitBytes) {
+                if (fileError) {
+                    fileError.textContent = "Error: File size is too large. Maximum size allowed is 2MB.";
+                    fileError.classList.remove("hidden");
+                }
+                if (label) label.textContent = "Selection rejected (Oversized)";
+                input.value = ""; // Clear file stream element reference
+                return;
+            }
+
+            if (label) label.textContent = file.name;
+            if (placeholder) placeholder.classList.add("hidden");
+
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (imgPreview) {
+                        imgPreview.src = e.target.result;
+                        imgPreview.classList.remove("hidden");
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+                if (pdfPreview) pdfPreview.classList.remove("hidden");
+            } else {
+                if (placeholder) placeholder.classList.remove("hidden");
+            }
+        } else {
+            if (label) label.textContent = "No file selected";
+        }
+    };
+
+    window.resetFormToCreateState = function () {
+        const formElement = document.getElementById('member-master-form');
+        if (formElement) formElement.reset();
+
+        // Clear and toggle preview elements back to placeholder states safely
+        const preview = document.getElementById('photo-preview');
+        const placeholder = document.getElementById('photo-placeholder');
+        if (preview && placeholder) {
+            preview.src = "";
+            preview.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }
+
+        const reqNote = document.getElementById('photo_requirement_note');
+        if (reqNote) reqNote.textContent = "Max size: 5MB.";
+
+        document.getElementById('form-action-field').value = 'add_member';
+        document.getElementById('form-member-id-field').value = '';
+        document.getElementById('form-console-title').textContent = "Register New Jamaath Member Console";
+        document.getElementById('form-submit-btn').textContent = "Register Member";
+
+        const resetBtn = document.getElementById('form-reset-btn');
+        if (resetBtn) resetBtn.classList.add('hidden');
+
+        if (iti) {
+            iti.setCountry("in");
+        }
+        const fullPhoneHidden = document.getElementById('field_phone_full');
+        if (fullPhoneHidden) {
+            fullPhoneHidden.value = '';
+        }
+
+        const aadharError = document.getElementById('aadhar-error-msg');
+        const aadharFileError = document.getElementById('aadhar-file-error-msg');
+        const aadharInput = document.getElementById('field_aadhar_number');
+
+        if (aadharError) aadharError.classList.add('hidden');
+        if (aadharFileError) aadharFileError.classList.add('hidden');
+        if (aadharInput) aadharInput.classList.remove('border-red-500');
+
+        const fileLabel = document.getElementById('aadhar-file-label');
+        if (fileLabel) fileLabel.textContent = "No file selected";
+
+        const freshPlaceholder = document.getElementById("aadhar-preview-placeholder");
+        const freshImg = document.getElementById("aadhar-img-preview");
+        const freshPdf = document.getElementById("aadhar-pdf-preview");
+
+        if (freshPlaceholder) freshPlaceholder.classList.remove("hidden");
+        if (freshImg) { freshImg.classList.add("hidden"); freshImg.src = ""; }
+        if (freshPdf) freshPdf.classList.add("hidden");
+
+        const existingAadharContainer = document.getElementById('existing-aadhar-container');
+        if (existingAadharContainer) {
+            existingAadharContainer.classList.add('hidden');
+            const linkElement = document.getElementById('existing-aadhar-link');
+            if (linkElement) linkElement.href = '#';
+        }
+
+        if (typeof generateDependentFields === "function") generateDependentFields(0);
+        if (typeof syncAddresses === "function") syncAddresses();
+        if (typeof toggleFormDeceasedDate === "function") toggleFormDeceasedDate('Alive');
+    };
+
+    // --- 2. REGULAR MODULE CORE LOGIC FUNCTIONS ---
+
     function generateDependentFields(count, initialData = []) {
         const dependentsCount = parseInt(count) || 0;
         const container = document.getElementById('dependents-dynamic-container');
         const grid = document.getElementById('dependents-grid-fields');
 
+        if (!grid || !container) return;
         grid.innerHTML = '';
 
         if (dependentsCount > 0) {
@@ -983,45 +1199,44 @@ require_once 'header.php';
                 const data = initialData[i] || { name: '', relationship: 'Son', dob: '', gender: 'Male', status: 'Alive' };
 
                 const card = document.createElement('div');
-                // Upgraded grid layout column configuration to sm:grid-cols-5
                 card.className = "grid grid-cols-1 sm:grid-cols-5 gap-2 bg-white p-3 rounded-xl border border-slate-200 items-end";
 
                 card.innerHTML = `
-    <div>
-        <label class="block text-xs font-bold text-slate-400 mb-1">Dependent #${i + 1} Name *</label>
-        <input type="text" name="dep_name[]" value="${data.name}" required placeholder="Name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-    </div>
-    <div>
-        <label class="block text-xs font-bold text-slate-400 mb-1">Relationship *</label>
-        <select name="dep_relationship[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-            <option value="Son" ${data.relationship === 'Son' ? 'selected' : ''}>Son</option>
-            <option value="Daughter" ${data.relationship === 'Daughter' ? 'selected' : ''}>Daughter</option>
-            <option value="Spouse" ${data.relationship === 'Spouse' ? 'selected' : ''}>Spouse</option>
-            <option value="Mother" ${data.relationship === 'Mother' ? 'selected' : ''}>Mother</option>
-            <option value="Father" ${data.relationship === 'Father' ? 'selected' : ''}>Father</option>
-            <option value="Sibling" ${data.relationship === 'Sibling' ? 'selected' : ''}>Sibling</option>
-            <option value="Other" ${data.relationship === 'Other' ? 'selected' : ''}>Other</option>
-        </select>
-    </div>
-    <div>
-        <label class="block text-xs font-bold text-slate-400 mb-1">Date of Birth *</label>
-        <input type="date" name="dep_dob[]" value="${data.dob}" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-    </div>
-    <div>
-        <label class="block text-xs font-bold text-slate-400 mb-1">Gender *</label>
-        <select name="dep_gender[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-            <option value="Male" ${data.gender === 'Male' ? 'selected' : ''}>Male</option>
-            <option value="Female" ${data.gender === 'Female' ? 'selected' : ''}>Female</option>
-        </select>
-    </div>
-    <div>
-        <label class="block text-xs font-bold text-slate-400 mb-1">Life Status *</label>
-        <select name="dep_status[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-            <option value="Alive" ${data.status === 'Alive' ? 'selected' : ''}>Alive</option>
-            <option value="Deceased" ${data.status === 'Deceased' ? 'selected' : ''}>Deceased</option>
-        </select>
-    </div>
-`;
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Dependent #${i + 1} Name *</label>
+                        <input type="text" name="dep_name[]" value="${data.name}" required placeholder="Name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Relationship *</label>
+                        <select name="dep_relationship[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Son" ${data.relationship === 'Son' ? 'selected' : ''}>Son</option>
+                            <option value="Daughter" ${data.relationship === 'Daughter' ? 'selected' : ''}>Daughter</option>
+                            <option value="Spouse" ${data.relationship === 'Spouse' ? 'selected' : ''}>Spouse</option>
+                            <option value="Mother" ${data.relationship === 'Mother' ? 'selected' : ''}>Mother</option>
+                            <option value="Father" ${data.relationship === 'Father' ? 'selected' : ''}>Father</option>
+                            <option value="Sibling" ${data.relationship === 'Sibling' ? 'selected' : ''}>Sibling</option>
+                            <option value="Other" ${data.relationship === 'Other' ? 'selected' : ''}>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Date of Birth *</label>
+                        <input type="date" name="dep_dob[]" value="${data.dob}" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Gender *</label>
+                        <select name="dep_gender[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Male" ${data.gender === 'Male' ? 'selected' : ''}>Male</option>
+                            <option value="Female" ${data.gender === 'Female' ? 'selected' : ''}>Female</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Life Status *</label>
+                        <select name="dep_status[]" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Alive" ${data.status === 'Alive' ? 'selected' : ''}>Alive</option>
+                            <option value="Deceased" ${data.status === 'Deceased' ? 'selected' : ''}>Deceased</option>
+                        </select>
+                    </div>
+                `;
                 grid.appendChild(card);
             }
         } else {
@@ -1029,36 +1244,30 @@ require_once 'header.php';
         }
     }
 
-    // Address synchronization
     function syncAddresses() {
-        const isChecked = document.getElementById('same-address-check').checked;
-        const fields = ['address_line1', 'address_line2', 'city', 'pincode'];
+        const checkElem = document.getElementById('same-address-check');
+        if (!checkElem) return;
+
+        const isChecked = checkElem.checked;
+        const fields = ['address_line1', 'address_line2', 'city', 'pincode', 'country']; // Added 'country'
 
         fields.forEach(field => {
             const resInput = document.getElementById('res_' + field);
             const commInput = document.getElementById('comm_' + field);
 
-            if (isChecked) {
-                commInput.value = resInput.value;
-                commInput.readOnly = true;
-                commInput.classList.add('bg-slate-100', 'cursor-not-allowed');
-            } else {
-                commInput.readOnly = false;
-                commInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            if (resInput && commInput) {
+                if (isChecked) {
+                    commInput.value = resInput.value;
+                    commInput.readOnly = true;
+                    commInput.classList.add('bg-slate-100', 'cursor-not-allowed');
+                } else {
+                    commInput.readOnly = false;
+                    commInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+                }
             }
         });
     }
 
-    // Real-time synchronization listeners
-    ['address_line1', 'address_line2', 'city', 'pincode'].forEach(field => {
-        document.getElementById('res_' + field).addEventListener('input', () => {
-            if (document.getElementById('same-address-check').checked) {
-                syncAddresses();
-            }
-        });
-    });
-
-    // Populate registration form for updates
     function populateEditForm(member) {
         const formSec = document.getElementById('add-member-form-section');
         formSec.classList.remove('hidden');
@@ -1075,7 +1284,6 @@ require_once 'header.php';
         document.getElementById('field_family_name').value = member.family_name || '';
         document.getElementById('field_card_no').value = member.card_no;
 
-        // Dependents count and dynamic generation
         document.getElementById('dependents_count').value = member.dependents_count;
         generateDependentFields(member.dependents_count, member.dependents || []);
 
@@ -1084,7 +1292,52 @@ require_once 'header.php';
         document.getElementById('field_marital_status').value = member.marital_status || 'Single';
         document.getElementById('field_father_name').value = member.father_husband_name;
         document.getElementById('field_mahallah').value = member.mahallah;
-        document.getElementById('field_phone').value = member.phone;
+
+        if (member.phone && iti) {
+            iti.setNumber(member.phone);
+        } else {
+            document.getElementById('field_phone').value = member.phone || '';
+        }
+
+        document.getElementById('field_aadhar_number').value = member.aadhar_number || '';
+
+        const aadharError = document.getElementById('aadhar-error-msg');
+        const aadharFileError = document.getElementById('aadhar-file-error-msg');
+        if (aadharError) aadharError.classList.add('hidden');
+        if (aadharFileError) aadharFileError.classList.add('hidden');
+
+        document.getElementById('field_aadhar_doc').value = "";
+        document.getElementById('aadhar-file-label').textContent = "No file selected";
+
+        const placeholder = document.getElementById("aadhar-preview-placeholder");
+        const imgPreview = document.getElementById("aadhar-img-preview");
+        const pdfPreview = document.getElementById("aadhar-pdf-preview");
+        const aadharLinkWrap = document.getElementById('existing-aadhar-container');
+
+        if (placeholder) placeholder.classList.add("hidden");
+        if (imgPreview) { imgPreview.classList.add("hidden"); imgPreview.src = ""; }
+        if (pdfPreview) pdfPreview.classList.add("hidden");
+
+        if (member.aadhar_doc) {
+            if (document.getElementById('existing-aadhar-link')) {
+                document.getElementById('existing-aadhar-link').href = member.aadhar_doc;
+            }
+            if (aadharLinkWrap) aadharLinkWrap.classList.remove('hidden');
+
+            const lowerPath = member.aadhar_doc.toLowerCase();
+            if (lowerPath.endsWith('.pdf')) {
+                if (pdfPreview) pdfPreview.classList.remove("hidden");
+            } else {
+                if (imgPreview) {
+                    imgPreview.src = member.aadhar_doc;
+                    imgPreview.classList.remove("hidden");
+                }
+            }
+        } else {
+            if (aadharLinkWrap) aadharLinkWrap.classList.add('hidden');
+            if (placeholder) placeholder.classList.remove("hidden");
+        }
+
         document.getElementById('field_blood_group').value = member.blood_group || '';
         document.getElementById('field_occupation').value = member.occupation || '';
 
@@ -1092,7 +1345,6 @@ require_once 'header.php';
             document.getElementById('photo-preview').src = member.photo;
         }
 
-        // Occupied designation options handling
         const selectDesignation = document.getElementById('field_designation');
         Array.from(selectDesignation.options).forEach(opt => {
             if (opt.getAttribute('data-occupied') === "true") {
@@ -1108,26 +1360,28 @@ require_once 'header.php';
         }
         selectDesignation.value = member.designation || 'Ordinary Member';
 
-        // Addresses mapping
         document.getElementById('res_address_line1').value = member.res_address_line1 || '';
         document.getElementById('res_address_line2').value = member.res_address_line2 || '';
         document.getElementById('res_city').value = member.res_city || '';
         document.getElementById('res_pincode').value = member.res_pincode || '';
+        document.getElementById('res_country').value = member.res_country || 'India';
 
         document.getElementById('comm_address_line1').value = member.comm_address_line1 || '';
         document.getElementById('comm_address_line2').value = member.comm_address_line2 || '';
         document.getElementById('comm_city').value = member.comm_city || '';
         document.getElementById('comm_pincode').value = member.comm_pincode || '';
+        document.getElementById('comm_country').value = member.comm_country || 'India';
 
         const isSame = (member.res_address_line1 === member.comm_address_line1) &&
             (member.res_city === member.comm_city) &&
-            (member.res_pincode === member.comm_pincode);
+            (member.res_pincode === member.comm_pincode) &&
+            (member.res_country === member.comm_country);
 
         document.getElementById('same-address-check').checked = isSame;
         syncAddresses();
 
         document.getElementById('field_status').value = member.status;
-        toggleFormDeceasedDate(member.status);
+        if (typeof toggleFormDeceasedDate === "function") toggleFormDeceasedDate(member.status);
         if (member.status === 'Deceased') {
             document.getElementById('form-deceased-date-field').value = member.deceased_date || '';
         }
@@ -1135,48 +1389,22 @@ require_once 'header.php';
         formSec.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Reset Console
-    function resetFormToCreateState() {
-        document.getElementById('member-master-form').reset();
-
-        // Clear and toggle preview elements back to placeholder states safely
-        const preview = document.getElementById('photo-preview');
-        const placeholder = document.getElementById('photo-placeholder');
-        if (preview && placeholder) {
-            preview.src = "";
-            preview.classList.add('hidden');
-            placeholder.classList.remove('hidden');
-        }
-        document.getElementById('photo_requirement_note').textContent = "Max size: 5MB.";
-
-        document.getElementById('form-action-field').value = 'add_member';
-        document.getElementById('form-member-id-field').value = '';
-        document.getElementById('form-console-title').textContent = "Register New Jamaath Member Console";
-        document.getElementById('form-submit-btn').textContent = "Register Member";
-        document.getElementById('form-reset-btn').classList.add('hidden');
-
-        generateDependentFields(0);
-        syncAddresses();
-        toggleFormDeceasedDate('Alive');
-    }
-
     function previewMemberImageOnSelect(event) {
         const input = event.target;
         const preview = document.getElementById('photo-preview');
         const placeholder = document.getElementById('photo-placeholder');
 
-        if (input.files && input.files[0]) {
+        if (input.files && input.files[0] && preview && placeholder) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 preview.src = e.target.result;
-                preview.classList.remove('hidden'); // Show image
-                placeholder.classList.add('hidden'); // Hide "No Image Uploaded" text
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
             }
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    // Open Interactive Profile Card Pop-up with dependents listing and Period Chanda tracking
     function openProfileCard(member) {
         document.getElementById('card-photo').src = (member.photo && member.photo.startsWith('uploads/')) ? member.photo : 'https://placehold.co/150x150/0f766e/ffffff?text=' + encodeURIComponent(member.first_name);
         document.getElementById('card-fullname').textContent = member.first_name + ' ' + member.last_name;
@@ -1194,249 +1422,240 @@ require_once 'header.php';
         document.getElementById('card-occupation').textContent = member.occupation || 'N/A';
         document.getElementById('card-blood').textContent = member.blood_group || 'N/A';
 
-        // Set Chanda Input Values
+        // Populate New Identity Column Modifications safely
+        document.getElementById('card-aadhar-num').textContent = member.aadhar_number ? member.aadhar_number : 'Not Provided';
+        const aadharDocWrap = document.getElementById('card-aadhar-doc-container');
+        if (aadharDocWrap) {
+            if (member.aadhar_doc) {
+                aadharDocWrap.innerHTML = `
+                <a href="${member.aadhar_doc}" target="_blank" class="mt-1 text-[10px] text-emerald-700 font-bold hover:underline inline-flex items-center gap-1">
+                    <i class="fa-solid fa-file-pdf"></i> View Attachment
+                </a>`;
+            } else {
+                aadharDocWrap.innerHTML = `<span class="text-[10px] text-slate-400 italic font-medium">No attached file</span>`;
+            }
+        }
+
         document.getElementById('chanda-member-id-field').value = member.id;
 
-        // Grab current date to calculate dynamic boundaries
         const today = new Date();
         const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
 
-        // MODIFICATION: Separate max conditions for 'From' and 'To' fields
-        const maxMonthStrFrom = formatMonthInputJS(today); // Paid From max = Current Month (e.g. "2026-06")
-
+        const maxMonthStrFrom = formatMonthInputJS(today);
         const endOfYear = new Date(today.getFullYear(), 11, 1);
-        const maxMonthStrTo = formatMonthInputJS(endOfYear); // Paid To max = December of current year (e.g. "2026-12")
-
-        // Two years limit boundary calculation
+        const maxMonthStrTo = formatMonthInputJS(endOfYear);
         const minDate = new Date(today.getFullYear() - 2, today.getMonth(), 1);
-        const minMonthStr = formatMonthInputJS(minDate); // e.g. "2024-06"
+        const minMonthStr = formatMonthInputJS(minDate);
 
-        // Set input constraint attributes dynamically on the modal inputs
         const fromInput = document.getElementById('chanda_paid_from_input');
         const toInput = document.getElementById('chanda_paid_to_input');
 
-        // Apply distinct constraints
-        fromInput.min = minMonthStr;
-        fromInput.max = maxMonthStrFrom; // Capped at current month
-        toInput.min = minMonthStr;
-        toInput.max = maxMonthStrTo;   // Extended to end of year
+        if (fromInput && toInput) {
+            fromInput.min = minMonthStr;
+            fromInput.max = maxMonthStrFrom;
+            toInput.min = minMonthStr;
+            toInput.max = maxMonthStrTo;
 
-        // Render detailed Chanda payment status on the popup
-        const cardChandaPaid = document.getElementById('card-chanda-paid-period');
-        const cardChandaPending = document.getElementById('card-chanda-pending-period');
-        const overallChandaBadge = document.getElementById('card-chanda-badge');
-
-        let chandaPaidToDate = null;
-        if (member.chanda_paid_to) {
-            chandaPaidToDate = new Date(member.chanda_paid_to);
-            // Format input month fields
-            fromInput.value = member.chanda_paid_from.substring(0, 7);
-            toInput.value = member.chanda_paid_to.substring(0, 7);
-        } else {
-            // Default initial selections inside month fields if empty (default to current active month)
-            fromInput.value = maxMonthStrFrom;
-            toInput.value = maxMonthStrFrom;
-        }
-
-        // Determine if paid up to previous month
-        const isPaidUpToDate = chandaPaidToDate && (chandaPaidToDate >= prevMonth);
-
-        if (isPaidUpToDate) {
-            overallChandaBadge.className = "bg-sky-100 text-sky-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
-            overallChandaBadge.textContent = "Paid (Up to Date)";
-
-            cardChandaPaid.innerHTML = `Paid from <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_from)}</span> to <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_to)}</span>`;
-            cardChandaPending.className = "font-bold text-xs text-emerald-700 mt-0.5";
-            cardChandaPending.textContent = "No Outstanding Balances";
-        } else {
-            overallChandaBadge.className = "bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
-            overallChandaBadge.textContent = "Unpaid / Pending";
-
-            if (member.chanda_paid_from && member.chanda_paid_to) {
-                cardChandaPaid.innerHTML = `Paid from <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_from)}</span> to <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_to)}</span>`;
-
-                // Calculate pending starting month (next month after paid_to)
-                const pendingStart = new Date(chandaPaidToDate.getFullYear(), chandaPaidToDate.getMonth() + 1, 1);
-                cardChandaPending.className = "font-bold text-xs text-rose-700 mt-0.5";
-
-                if (pendingStart <= prevMonth) {
-                    cardChandaPending.innerHTML = `Pending from <span class="underline">${formatDateMonthYearJS(pendingStart)}</span> to <span class="underline">${formatDateMonthYearJS(prevMonth)}</span>`;
-                } else {
-                    cardChandaPending.textContent = "No Outstanding Balances";
-                }
+            let chandaPaidToDate = null;
+            if (member.chanda_paid_to) {
+                chandaPaidToDate = new Date(member.chanda_paid_to);
+                fromInput.value = member.chanda_paid_from.substring(0, 7);
+                toInput.value = member.chanda_paid_to.substring(0, 7);
             } else {
-                cardChandaPaid.textContent = "No payments recorded yet.";
-                cardChandaPending.className = "font-bold text-xs text-rose-700 mt-0.5";
+                fromInput.value = maxMonthStrFrom;
+                toInput.value = maxMonthStrFrom;
+            }
 
-                // If never paid, use creation date as start of outstanding or default to 6 months ago (capped within 2 years boundary)
-                const creationDate = member.date_added ? new Date(member.date_added) : new Date(today.getFullYear(), today.getMonth() - 6, 1);
-                const effectiveStartDate = (creationDate < minDate) ? minDate : creationDate;
+            const cardChandaPaid = document.getElementById('card-chanda-paid-period');
+            const cardChandaPending = document.getElementById('card-chanda-pending-period');
+            const overallChandaBadge = document.getElementById('card-chanda-badge');
+            const isPaidUpToDate = chandaPaidToDate && (chandaPaidToDate >= prevMonth);
 
-                cardChandaPending.innerHTML = `Outstanding from <span class="underline">${formatDateMonthYearJS(effectiveStartDate)}</span> to <span class="underline">${formatDateMonthYearJS(prevMonth)}</span>`;
+            if (isPaidUpToDate) {
+                overallChandaBadge.className = "bg-sky-100 text-sky-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                overallChandaBadge.textContent = "Paid (Up to Date)";
+                cardChandaPaid.innerHTML = `Paid from <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_from)}</span> to <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_to)}</span>`;
+                cardChandaPending.className = "font-bold text-xs text-emerald-700 mt-0.5";
+                cardChandaPending.textContent = "No Outstanding Balances";
+            } else {
+                overallChandaBadge.className = "bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                overallChandaBadge.textContent = "Unpaid / Pending";
+
+                if (member.chanda_paid_from && member.chanda_paid_to) {
+                    cardChandaPaid.innerHTML = `Paid from <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_from)}</span> to <span class="font-bold underline">${formatDateMonthYearJS(member.chanda_paid_to)}</span>`;
+                    const pendingStart = new Date(chandaPaidToDate.getFullYear(), chandaPaidToDate.getMonth() + 1, 1);
+                    cardChandaPending.className = "font-bold text-xs text-rose-700 mt-0.5";
+
+                    if (pendingStart <= prevMonth) {
+                        cardChandaPending.innerHTML = `Pending from <span class="underline">${formatDateMonthYearJS(pendingStart)}</span> to <span class="underline">${formatDateMonthYearJS(prevMonth)}</span>`;
+                    } else {
+                        cardChandaPending.textContent = "No Outstanding Balances";
+                    }
+                } else {
+                    cardChandaPaid.textContent = "No payments recorded yet.";
+                    cardChandaPending.className = "font-bold text-xs text-rose-700 mt-0.5";
+                    const creationDate = member.date_added ? new Date(member.date_added) : new Date(today.getFullYear(), today.getMonth() - 6, 1);
+                    const effectiveStartDate = (creationDate < minDate) ? minDate : creationDate;
+                    cardChandaPending.innerHTML = `Outstanding from <span class="underline">${formatDateMonthYearJS(effectiveStartDate)}</span> to <span class="underline">${formatDateMonthYearJS(prevMonth)}</span>`;
+                }
             }
         }
 
-        // Clean event listener attachments on form to prevent memory leaks and validate locally
         const chandaForm = document.getElementById('card-chanda-form');
-        chandaForm.onsubmit = function (e) {
-            const valFrom = fromInput.value;
-            const valTo = toInput.value;
-            const totalAmount = parseFloat(document.getElementById('chanda_total_amount_input').value) || 0;
+        if (chandaForm) {
+            chandaForm.onsubmit = function (e) {
+                const valFrom = fromInput.value;
+                const valTo = toInput.value;
+                const totalAmount = parseFloat(document.getElementById('chanda_total_amount_input').value) || 0;
 
-            // NEW MODIFICATION 1: Enforce minimum ledger payment rules
-            if (totalAmount < 150) {
-                alert("Error: The minimum accepted subscription payment amount is ₹150.");
-                e.preventDefault();
-                return false;
-            }
+                if (totalAmount < 150) {
+                    alert("Error: The minimum accepted subscription payment amount is ₹150.");
+                    e.preventDefault();
+                    return false;
+                }
+                if (valFrom < minMonthStr || valFrom > maxMonthStrFrom) {
+                    alert(`Error: 'Paid From' must be within the past 2 years and cannot exceed the current month.`);
+                    e.preventDefault();
+                    return false;
+                }
+                if (valTo < minMonthStr || valTo > maxMonthStrTo) {
+                    alert(`Error: 'Paid To' must be within the past 2 years and cannot exceed December of ${today.getFullYear()}.`);
+                    e.preventDefault();
+                    return false;
+                }
+                if (valTo < valFrom) {
+                    alert("Error: The 'Paid To' month cannot be earlier than the 'Paid From' month.");
+                    e.preventDefault();
+                    return false;
+                }
+            };
+        }
 
-            // MODIFICATION: Separate evaluation matching distinct field requirements
-            if (valFrom < minMonthStr || valFrom > maxMonthStrFrom) {
-                alert(`Error: 'Paid From' must be within the past 2 years and cannot exceed the current month.`);
-                e.preventDefault();
-                return false;
-            }
-
-            if (valTo < minMonthStr || valTo > maxMonthStrTo) {
-                alert(`Error: 'Paid To' must be within the past 2 years and cannot exceed December of ${today.getFullYear()}.`);
-                e.preventDefault();
-                return false;
-            }
-
-            if (valTo < valFrom) {
-                alert("Error: The 'Paid To' month cannot be earlier than the 'Paid From' month.");
-                e.preventDefault();
-                return false;
-            }
-        };
-
-        // Render relational dependents inside Profile Card
         const depContainer = document.getElementById('card-dependents-container');
         const depList = document.getElementById('card-dependents-list');
-        depList.innerHTML = '';
+        if (depList && depContainer) {
+            depList.innerHTML = '';
+            if (member.dependents && member.dependents.length > 0) {
+                depContainer.classList.remove('hidden');
+                member.dependents.forEach((dep, idx) => {
+                    const depRow = document.createElement('div');
+                    depRow.className = "flex items-center justify-between py-2.5 text-sm text-slate-700 " + (idx > 0 ? "border-t border-indigo-100/55" : "");
 
-        if (member.dependents && member.dependents.length > 0) {
-            depContainer.classList.remove('hidden');
-            member.dependents.forEach((dep, idx) => {
-                const depRow = document.createElement('div');
-                depRow.className = "flex items-center justify-between py-2.5 text-sm text-slate-700 " + (idx > 0 ? "border-t border-indigo-100/55" : "");
+                    const isDeceased = dep.status === 'Deceased';
+                    const statusBadge = isDeceased
+                        ? `<span class="bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">🕊️ Deceased (Marhoom)</span>`
+                        : `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Alive</span>`;
 
-                const isDeceased = dep.status === 'Deceased';
-                const statusBadge = isDeceased
-                    ? `<span class="bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">🕊️ Deceased (Marhoom)</span>`
-                    : `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Alive</span>`;
-
-                depRow.innerHTML = `
-        <div>
-            <p class="font-bold ${isDeceased ? 'text-slate-400 line-through' : 'text-slate-800'}">👤 ${escapeHtml(dep.name)}</p>
-            <p class="text-[11px] text-slate-400 font-mono">DOB: ${formatDateJS(dep.dob)} | Gender: ${dep.gender}</p>
-        </div>
-        <div class="flex items-center gap-1.5">
-            <span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
-                ${escapeHtml(dep.relationship)}
-            </span>
-            ${statusBadge}
-        </div>
-    `;
-                depList.appendChild(depRow);
-            });
-        } else {
-            depContainer.classList.add('hidden');
+                    depRow.innerHTML = `
+                    <div>
+                        <p class="font-bold ${isDeceased ? 'text-slate-400 line-through' : 'text-slate-800'}">👤 ${escapeHtml(dep.name)}</p>
+                        <p class="text-[11px] text-slate-400 font-mono">DOB: ${formatDateJS(dep.dob)} | Gender: ${dep.gender}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                            ${escapeHtml(dep.relationship)}
+                        </span>
+                        ${statusBadge}
+                    </div>
+                `;
+                    depList.appendChild(depRow);
+                });
+            } else {
+                depContainer.classList.add('hidden');
+            }
         }
 
         const desigBadge = document.getElementById('card-designation-badge');
-        if (member.designation && member.designation !== 'Ordinary Member') {
-            desigBadge.textContent = member.designation;
-            desigBadge.className = "inline-block bg-emerald-500/25 text-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider";
-            desigBadge.style.display = "inline-block";
-        } else {
-            desigBadge.style.display = "none";
+        if (desigBadge) {
+            if (member.designation && member.designation !== 'Ordinary Member') {
+                desigBadge.textContent = member.designation;
+                desigBadge.className = "inline-block bg-emerald-500/25 text-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider";
+                desigBadge.style.display = "inline-block";
+            } else {
+                desigBadge.style.display = "none";
+            }
         }
 
         const statusBadge = document.getElementById('card-status-badge');
-        if (member.status === 'Alive') {
-            statusBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
-            statusBadge.textContent = "Alive";
-        } else {
-            statusBadge.className = "bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
-            statusBadge.textContent = "Deceased";
+        if (statusBadge) {
+            if (member.status === 'Alive') {
+                statusBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                statusBadge.textContent = "Alive";
+            } else {
+                statusBadge.className = "bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                statusBadge.textContent = "Deceased";
+            }
         }
 
+        // Appended country location labels directly here
         document.getElementById('card-res-address').innerHTML = `
-            ${member.res_address_line1 || ''}<br>
-            ${member.res_address_line2 || ''}<br>
-            ${member.res_city || ''} - ${member.res_pincode || ''}
-        `;
+        ${member.res_address_line1 || ''}<br>
+        ${member.res_address_line2 || ''}<br>
+        ${member.res_city || ''} - ${member.res_pincode || ''}<br>
+        <span class="text-[11px] text-slate-400 uppercase font-bold tracking-wider">${member.res_country || 'India'}</span>
+    `;
         document.getElementById('card-comm-address').innerHTML = `
-            ${member.comm_address_line1 || ''}<br>
-            ${member.comm_address_line2 || ''}<br>
-            ${member.comm_city || ''} - ${member.comm_pincode || ''}
-        `;
+        ${member.comm_address_line1 || ''}<br>
+        ${member.comm_address_line2 || ''}<br>
+        ${member.comm_city || ''} - ${member.comm_pincode || ''}<br>
+        <span class="text-[11px] text-slate-400 uppercase font-bold tracking-wider">${member.comm_country || 'India'}</span>
+    `;
 
         document.getElementById('card-edit-btn').onclick = function () {
             closeProfileCard();
             populateEditForm(member);
         };
 
-        // MODIFICATION: Render Ledger Audit Table Rows Dynamically (Option A Compact Badges)
         const historyRowsContainer = document.getElementById('card-chanda-history-rows');
-        historyRowsContainer.innerHTML = ''; // Reset container rows safely
+        if (historyRowsContainer) {
+            historyRowsContainer.innerHTML = '';
+            if (member.chanda_history_raw && member.chanda_history_raw.trim() !== '') {
+                const records = member.chanda_history_raw.split('||');
+                records.forEach(recordStr => {
+                    const parts = recordStr.split('|');
+                    if (parts.length >= 6) {
+                        const recId = parts[0];
+                        const pFrom = parts[1];
+                        const pTo = parts[2];
+                        const pAmount = parseFloat(parts[3]).toFixed(2);
+                        const pUser = parts[4];
+                        const pDateRaw = parts[5];
 
-        if (member.chanda_history_raw && member.chanda_history_raw.trim() !== '') {
-            const records = member.chanda_history_raw.split('||');
+                        const pMode = (parts.length >= 7 && parts[6]) ? parts[6] : 'Cash';
+                        const pNarrative = (parts.length >= 8 && parts[7]) ? parts[7] : '';
+                        const pIsSelf = (parts.length >= 9 && parts[8] !== undefined) ? (parseInt(parts[8]) === 1) : true;
 
-            records.forEach(recordStr => {
-                const parts = recordStr.split('|');
-
-                // CHANGED: Change the check to >= 6 so older ledger items load properly
-                if (parts.length >= 6) {
-                    const recId = parts[0];
-                    const pFrom = parts[1];
-                    const pTo = parts[2];
-                    const pAmount = parseFloat(parts[3]).toFixed(2);
-                    const pUser = parts[4];
-                    const pDateRaw = parts[5];
-
-                    // NEW FALLBACK HANDLING: Fallback values if it's an old legacy payment record
-                    const pMode = (parts.length >= 7 && parts[6]) ? parts[6] : 'Cash';
-                    const pNarrative = (parts.length >= 8 && parts[7]) ? parts[7] : '';
-                    const pIsSelf = (parts.length >= 9 && parts[8] !== undefined) ? (parseInt(parts[8]) === 1) : true;
-
-                    // Format raw database string safely into localized text
-                    let formattedDateTime = pDateRaw;
-                    if (pDateRaw) {
-                        const dateObj = new Date(pDateRaw.replace(/-/g, "/"));
-                        if (!isNaN(dateObj.getTime())) {
-                            formattedDateTime = dateObj.toLocaleDateString('en-IN', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                            }) + ' ' + dateObj.toLocaleTimeString('en-IN', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true
-                            });
+                        let formattedDateTime = pDateRaw;
+                        if (pDateRaw) {
+                            const dateObj = new Date(pDateRaw.replace(/-/g, "/"));
+                            if (!isNaN(dateObj.getTime())) {
+                                formattedDateTime = dateObj.toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                }) + ' ' + dateObj.toLocaleTimeString('en-IN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true
+                                });
+                            }
                         }
-                    }
 
-                    // Build payment mode badge utility styles dynamically
-                    let modeBadgeClass = "bg-slate-100 text-slate-700 border border-slate-200/60";
-                    if (pMode === 'UPI') modeBadgeClass = "bg-indigo-50 text-indigo-700 border border-indigo-100";
-                    if (pMode === 'Cheque') modeBadgeClass = "bg-amber-50 text-amber-700 border border-amber-100";
+                        let modeBadgeClass = "bg-slate-100 text-slate-700 border border-slate-200/60";
+                        if (pMode === 'UPI') modeBadgeClass = "bg-indigo-50 text-indigo-700 border border-indigo-100";
+                        if (pMode === 'Cheque') modeBadgeClass = "bg-amber-50 text-amber-700 border border-amber-100";
 
-                    // Build dynamic reference details subtitle label text
-                    let subtitleMetaHtml = "";
-                    if ((pMode === 'UPI' || pMode === 'Cheque') && pNarrative) {
-                        subtitleMetaHtml = `<span class="block text-[10px] text-slate-400 mt-0.5 italic truncate font-mono">Ref: ${escapeHtml(pNarrative)}</span>`;
-                    }
+                        let subtitleMetaHtml = "";
+                        if ((pMode === 'UPI' || pMode === 'Cheque') && pNarrative) {
+                            subtitleMetaHtml = `<span class="block text-[10px] text-slate-400 mt-0.5 italic truncate font-mono">Ref: ${escapeHtml(pNarrative)}</span>`;
+                        }
 
-                    // Append Payer Identity indicator subtitle meta description
-                    const payerLabel = pIsSelf ? "Member Self" : "Third Party / Rep";
-                    const periodMetaSubtitle = `<span class="block text-[10px] text-slate-400 mt-0.5 tracking-wide">By: ${payerLabel}</span>`;
+                        const payerLabel = pIsSelf ? "Member Self" : "Third Party / Rep";
+                        const periodMetaSubtitle = `<span class="block text-[10px] text-slate-400 mt-0.5 tracking-wide">By: ${payerLabel}</span>`;
 
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50/75 transition-colors border-b border-slate-100";
-                    tr.innerHTML = `
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50/75 transition-colors border-b border-slate-100";
+                        tr.innerHTML = `
                         <td class="p-2 py-2.5 text-slate-900 align-top">
                             <div class="font-medium">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</div>
                             ${periodMetaSubtitle}
@@ -1451,13 +1670,14 @@ require_once 'header.php';
                         <td class="p-2 py-2.5 font-mono text-slate-500 align-top">${escapeHtml(pUser)}</td>
                         <td class="p-2 py-2.5 text-slate-400 font-mono text-[11px] align-top whitespace-nowrap">${formattedDateTime}</td>
                     `;
-                    historyRowsContainer.appendChild(tr);
-                }
-            });
-        } else {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="4" class="p-4 text-center text-slate-400 italic">No historical subscription payments logged yet.</td>`;
-            historyRowsContainer.appendChild(tr);
+                        historyRowsContainer.appendChild(tr);
+                    }
+                });
+            } else {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="4" class="p-4 text-center text-slate-400 italic">No historical subscription payments logged yet.</td>`;
+                historyRowsContainer.appendChild(tr);
+            }
         }
 
         document.getElementById('profile-card-modal').classList.remove('hidden');
@@ -1482,21 +1702,26 @@ require_once 'header.php';
     function formatDateJS(dateString) {
         if (!dateString) return '---';
         const dateObj = new Date(dateString);
-        const options = { day: '2-digit', month: 'short', year: 'numeric' };
-        return dateObj.toLocaleDateString('en-US', options);
+        return dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
     function formatDateMonthYearJS(dateString) {
         if (!dateString) return '---';
         const dateObj = new Date(dateString);
-        const options = { month: 'short', year: 'numeric' };
-        return dateObj.toLocaleDateString('en-US', options);
+        return dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     }
 
     function formatMonthInputJS(dateObj) {
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         return `${year}-${month}`;
+    }
+
+    // This matches the update label feature if your layout specifically binds it
+    function updateAadharFileLabel(input) {
+        if (typeof window.previewAadharDocument === "function") {
+            window.previewAadharDocument(input);
+        }
     }
 
     function escapeHtml(text) {
@@ -1508,75 +1733,6 @@ require_once 'header.php';
             .replace(/'/g, "&#039;");
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const dobInput = document.getElementById("field_dob");
-        const submitBtn = document.getElementById("form-submit-btn");
-        const errorMsg = document.getElementById("dob-error-msg");
-
-        if (dobInput && submitBtn && errorMsg) {
-
-            // Real-time validation listener
-            dobInput.addEventListener("change", function () {
-                const selectedDateValue = this.value;
-                if (!selectedDateValue) {
-                    clearDobError();
-                    return;
-                }
-
-                const dob = new Date(selectedDateValue);
-                const today = new Date();
-
-                // Set tracking times to midnight for date comparison consistency
-                today.setHours(0, 0, 0, 0);
-
-                // 1. Future Date / Present Day Validation
-                if (dob >= today) {
-                    showDobError("Date of Birth cannot be today or in the future.");
-                    return;
-                }
-
-                // Calculate exact structural age thresholds
-                let age = today.getFullYear() - dob.getFullYear();
-                const monthDiff = today.getMonth() - dob.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-                    age--;
-                }
-
-                // 2. Minimum Age & Maximum Realistic Age Threshold Checks
-                if (age < 18) {
-                    showDobError(`Member must be at least 18 years old. (Current selection: ${age} years old).`);
-                    return;
-                }
-
-                if (age > 120) {
-                    showDobError("Please enter a realistic Date of Birth (maximum age exceeded).");
-                    return;
-                }
-
-                // If it passes all validation rules
-                clearDobError();
-            });
-
-            function showDobError(message) {
-                errorMsg.textContent = message;
-                errorMsg.classList.remove("hidden");
-                dobInput.classList.add("border-red-500", "focus:ring-red-500");
-                dobInput.classList.remove("border-slate-200", "focus:ring-emerald-500");
-                submitBtn.disabled = true;
-                submitBtn.classList.add("opacity-50", "cursor-not-allowed");
-            }
-
-            function clearDobError() {
-                errorMsg.textContent = "";
-                errorMsg.classList.add("hidden");
-                dobInput.classList.remove("border-red-500", "focus:ring-red-500");
-                dobInput.classList.add("border-slate-200", "focus:ring-emerald-500");
-                submitBtn.disabled = false;
-                submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
-            }
-        }
-    });
-
     function toggleChandaNarrativeField() {
         const mode = document.getElementById('chanda_payment_mode').value;
         const wrapper = document.getElementById('chanda_narrative_wrapper');
@@ -1585,26 +1741,128 @@ require_once 'header.php';
         if (mode === 'UPI' || mode === 'Cheque') {
             wrapper.classList.remove('hidden');
             input.required = true;
-
-            if (mode === 'UPI') {
-                input.placeholder = "Enter UPI Reference ID (UTR Number)";
-            } else {
-                input.placeholder = "Enter 6-Digit Cheque Number & Bank Name";
-            }
+            input.placeholder = mode === 'UPI' ? "Enter UPI Reference ID (UTR Number)" : "Enter 6-Digit Cheque Number & Bank Name";
         } else {
             wrapper.classList.add('hidden');
             input.required = false;
-            input.value = ''; // Clean field if changed back to Cash
+            input.value = '';
         }
     }
 
     function togglePaidByNarrativeHint(isSelf) {
-        const input = document.getElementById('chanda_payment_narrative');
-        // Optional feature: Appends a note if premium mode field is open or values require names
         if (!isSelf) {
             console.log("Third party payer flagged.");
         }
     }
+
+    // --- 3. DOM CONTENT INITIALIZATIONS AND SUBMIT INTERCEPTORS ---
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const phoneInput = document.getElementById("field_phone");
+        const fullPhoneHidden = document.getElementById("field_phone_full");
+
+        if (phoneInput) {
+            iti = window.intlTelInput(phoneInput, {
+                initialCountry: "in",
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+            });
+        }
+
+        // Real-time Sync listeners block
+        ['address_line1', 'address_line2', 'city', 'pincode', 'country'].forEach(field => { // Added 'country'
+            const el = document.getElementById('res_' + field);
+            if (el) {
+                el.addEventListener('input', () => {
+                    if (document.getElementById('same-address-check').checked) {
+                        syncAddresses();
+                    }
+                });
+            }
+        });
+
+        // Real-time Aadhaar Formatting
+        const aadharInput = document.getElementById("field_aadhar_number");
+        const aadharError = document.getElementById("aadhar-error-msg");
+        if (aadharInput) {
+            aadharInput.addEventListener("input", function () {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 12) this.value = this.value.slice(0, 12);
+
+                if (this.value.length > 0 && this.value.length !== 12) {
+                    if (aadharError) {
+                        aadharError.textContent = "Aadhaar must be an exact 12-digit number.";
+                        aadharError.classList.remove("hidden");
+                    }
+                    this.classList.add("border-red-500");
+                } else {
+                    if (aadharError) aadharError.classList.add("hidden");
+                    this.classList.remove("border-red-500");
+                }
+            });
+        }
+
+        // Form Submission interceptor
+        const masterForm = document.getElementById("member-master-form");
+        if (masterForm) {
+            masterForm.addEventListener("submit", function (e) {
+                let formIsValid = true;
+
+                // 1. Phone Number Library Validation
+                if (phoneInput && iti) {
+                    if (phoneInput.value.trim() === "" || !iti.isValidNumber()) {
+                        alert("Please enter a valid Phone Number configuration.");
+                        phoneInput.classList.add("border-red-500");
+                        formIsValid = false;
+                    } else {
+                        phoneInput.classList.remove("border-red-500");
+                        fullPhoneHidden.value = iti.getNumber();
+                    }
+                }
+
+                // 2. Identity Number Validation
+                if (aadharInput && aadharInput.value.length !== 12) {
+                    if (aadharError) {
+                        aadharError.textContent = "ID number must be an exact 12-digit number.";
+                        aadharError.classList.remove("hidden");
+                    }
+                    aadharInput.classList.add("border-red-500");
+                    formIsValid = false;
+                }
+
+                // 3. Document Requirements & Strict 2MB Size Validation
+                const actionType = document.getElementById('form-action-field').value;
+                const docInput = document.getElementById("field_aadhar_doc");
+                const fileError = document.getElementById("aadhar-file-error-msg");
+
+                if (docInput) {
+                    if (actionType === 'add_member' && docInput.files.length === 0) {
+                        // File is completely missing during initial registration
+                        if (fileError) {
+                            fileError.textContent = "Please upload an image or PDF copy of the document.";
+                            fileError.classList.remove("hidden");
+                        }
+                        formIsValid = false;
+                    } else if (docInput.files.length > 0) {
+                        // File is present, verify it does not exceed the 2MB threshold
+                        const maxLimitBytes = 2 * 1024 * 1024; // 2,097,152 Bytes
+                        if (docInput.files[0].size > maxLimitBytes) {
+                            if (fileError) {
+                                fileError.textContent = "Error: File size exceeds the 2MB limit. Please choose a smaller file.";
+                                fileError.classList.remove("hidden");
+                            }
+                            formIsValid = false;
+                        }
+                    }
+                }
+
+                // Block transmission if any layer flag drops to false
+                if (!formIsValid) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
 </script>
 
 <?php require_once 'footer.php'; ?>
