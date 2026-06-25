@@ -162,8 +162,21 @@ require_once 'header.php';
     </div>
 <?php endif; ?>
 
+<div class="flex items-center justify-between border-b border-slate-200 mb-6 pb-1">
+    <div class="flex gap-2 text-xs font-bold uppercase tracking-wider">
+        <button onclick="switchMembersTab('directory')" id="tab-btn-directory"
+            class="px-4 py-2.5 rounded-t-xl transition-all border-b-2 border-emerald-700 text-emerald-800 bg-emerald-50/50 flex items-center gap-2">
+            <i class="fa-solid fa-address-book"></i> Member Directory
+        </button>
+        <button onclick="switchMembersTab('reports')" id="tab-btn-reports"
+            class="px-4 py-2.5 rounded-t-xl transition-all border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie"></i> Report Generation
+        </button>
+    </div>
+</div>
+
 <!-- Directory container -->
-<div class="space-y-6">
+<div id="members-tab-directory" class="space-y-6">
     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
             <div>
@@ -783,6 +796,112 @@ require_once 'header.php';
                 </div>
             </div>
         <?php endif; ?>
+    </div>
+</div>
+
+<div id="members-tab-reports" class="hidden space-y-6">
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-slate-800">Registry Report Generator</h3>
+                <p class="text-xs text-slate-500">Generate, review, and print customized analytical documentation
+                    datasets across your registry criteria parameters.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="triggerIframePrint()"
+                    class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-print"></i> Print Report Layout
+                </button>
+
+                <button onclick="triggerIframeExcelExport()"
+                    class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-file-excel"></i> Export Excel Sheet
+                </button>
+            </div>
+        </div>
+
+        <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Search
+                    Keyword</label>
+                <input type="text" id="rep-filter-search" oninput="reloadReportEngine()"
+                    placeholder="Name, Card No, House Name..."
+                    class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Mahallah</label>
+                <select id="rep-filter-mahallah" onchange="reloadReportEngine()"
+                    class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="All">All Mahallahs</option>
+                    <?php foreach ($wards_list as $w_opt): ?>
+                        <option value="<?php echo htmlspecialchars($w_opt); ?>"><?php echo htmlspecialchars($w_opt); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Membership
+                    Status</label>
+                <select id="rep-filter-status" onchange="reloadReportEngine()"
+                    class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="All">All Statuses</option>
+                    <option value="Alive">Alive</option>
+                    <option value="Deceased">Deceased</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Chanda
+                    Status</label>
+                <select id="rep-filter-chanda" onchange="reloadReportEngine()"
+                    class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="All">All Records</option>
+                    <option value="Paid">Paid Only (Up to Date)</option>
+                    <option value="Unpaid">Unpaid / Delinquent</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Designation
+                    Role</label>
+                <select id="rep-filter-designation" onchange="reloadReportEngine()"
+                    class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="All">All Designations</option>
+                    <option value="Ordinary Member">Ordinary Member</option>
+                    <?php
+                    if (isset($designation_colors)) {
+                        foreach (array_keys($designation_colors) as $designation) {
+                            if ($designation !== 'Ordinary Member') {
+                                echo '<option value="' . htmlspecialchars($designation) . '">' . htmlspecialchars($designation) . '</option>';
+                            }
+                        }
+                    }
+                    ?>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Occupation
+                    Filter</label>
+                <select id="rep-filter-occupation" onchange="reloadReportEngine()"
+                    class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="All">All Occupations</option>
+                    <option value="Business / Merchant">Business / Merchant</option>
+                    <option value="Private Sector Employee">Private Sector Employee</option>
+                    <option value="Government Employee">Government Employee</option>
+                    <option value="Daily Wage / Laborer">Daily Wage / Laborer</option>
+                    <option value="Professional (Doctor/Engineer/Lawyer)">Professional (Doctor/Engineer/Lawyer)</option>
+                    <option value="Driver / Transport Worker">Driver / Transport Worker</option>
+                    <option value="Retired / Pensioner">Retired / Pensioner</option>
+                    <option value="Student">Student</option>
+                    <option value="Unemployed">Unemployed</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="w-full border border-slate-200 rounded-xl overflow-hidden bg-slate-100 shadow-inner"
+            style="height: 680px;">
+            <iframe id="member-report-frame" src="about:blank" class="w-full h-full bg-white border-none"></iframe>
+        </div>
     </div>
 </div>
 
@@ -1754,6 +1873,78 @@ require_once 'header.php';
             console.log("Third party payer flagged.");
         }
     }
+
+    /**
+     * Handles tab view swapping for the Members module
+     */
+    window.switchMembersTab = function (targetTab) {
+        const tabBtnDirectory = document.getElementById('tab-btn-directory');
+        const tabBtnReports = document.getElementById('tab-btn-reports');
+        const panelDirectory = document.getElementById('members-tab-directory');
+        const panelReports = document.getElementById('members-tab-reports');
+
+        if (!tabBtnDirectory || !tabBtnReports || !panelDirectory || !panelReports) {
+            return;
+        }
+
+        if (targetTab === 'reports') {
+            panelDirectory.classList.add('hidden');
+            panelReports.classList.remove('hidden');
+
+            tabBtnReports.className = "px-4 py-2.5 rounded-t-xl transition-all border-b-2 border-emerald-700 text-emerald-800 bg-emerald-50/50 flex items-center gap-2 cursor-pointer";
+            tabBtnDirectory.className = "px-4 py-2.5 rounded-t-xl transition-all border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 cursor-pointer";
+
+            if (document.getElementById('member-report-frame').src === 'about:blank' || document.getElementById('member-report-frame').src === '') {
+                window.reloadReportEngine();
+            }
+        } else {
+            panelReports.classList.add('hidden');
+            panelDirectory.classList.remove('hidden');
+
+            tabBtnDirectory.className = "px-4 py-2.5 rounded-t-xl transition-all border-b-2 border-emerald-700 text-emerald-800 bg-emerald-50/50 flex items-center gap-2 cursor-pointer";
+            tabBtnReports.className = "px-4 py-2.5 rounded-t-xl transition-all border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 cursor-pointer";
+        }
+    };
+
+    /**
+     * Re-reads active selector states and compiles parameters to safely feed the iframe layout view
+     */
+    window.reloadReportEngine = function () {
+        const search = encodeURIComponent(document.getElementById('rep-filter-search')?.value || '');
+        const mahallah = encodeURIComponent(document.getElementById('rep-filter-mahallah')?.value || 'All');
+        const status = encodeURIComponent(document.getElementById('rep-filter-status')?.value || 'All');
+        const chanda = encodeURIComponent(document.getElementById('rep-filter-chanda')?.value || 'All');
+        const designation = encodeURIComponent(document.getElementById('rep-filter-designation')?.value || 'All');
+        const occupation = encodeURIComponent(document.getElementById('rep-filter-occupation')?.value || 'All');
+
+        const frame = document.getElementById('member-report-frame');
+        if (frame) {
+            frame.src = `member_report_engine.php?search=${search}&mahallah=${mahallah}&status=${status}&chanda=${chanda}&designation=${designation}&occupation=${occupation}`;
+        }
+    };
+
+    /**
+     * Calls target print handler directly through the embedded iframe window contextual print routine
+     */
+    window.triggerIframePrint = function () {
+        const frame = document.getElementById('member-report-frame');
+        if (frame && frame.contentWindow) {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        }
+    };
+
+    window.triggerIframeExcelExport = function () {
+        const search = encodeURIComponent(document.getElementById('rep-filter-search')?.value || '');
+        const mahallah = encodeURIComponent(document.getElementById('rep-filter-mahallah')?.value || 'All');
+        const status = encodeURIComponent(document.getElementById('rep-filter-status')?.value || 'All');
+        const chanda = encodeURIComponent(document.getElementById('rep-filter-chanda')?.value || 'All');
+        const designation = encodeURIComponent(document.getElementById('rep-filter-designation')?.value || 'All');
+        const occupation = encodeURIComponent(document.getElementById('rep-filter-occupation')?.value || 'All');
+
+        // Forces the browser to trigger the file stream download from the engine directly
+        window.location.href = `member_report_engine.php?search=${search}&mahallah=${mahallah}&status=${status}&chanda=${chanda}&designation=${designation}&occupation=${occupation}&format=excel`;
+    };
 
     // --- 3. DOM CONTENT INITIALIZATIONS AND SUBMIT INTERCEPTORS ---
 
