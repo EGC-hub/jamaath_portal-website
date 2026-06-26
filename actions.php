@@ -299,47 +299,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Action: Collect Chanda dynamically for a specified period (From Month/Year to To Month/Year)
+        // Action: Collect Chanda dynamically for a specified period
         if ($_POST['action'] === 'update_chanda_period') {
             $id = (int) $_POST['id'];
-            $chanda_from = $_POST['chanda_paid_from'] . '-01'; // Append first day to match SQL DATE format
+            $chanda_from = $_POST['chanda_paid_from'] . '-01';
             $chanda_to = $_POST['chanda_paid_to'] . '-01';
 
             $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'members.php';
-            // Clean trailing query parameters from referrer to prevent duplication loops
             $base_referrer = strtok($referrer, '?');
 
-            // MODIFICATION: Capture the new amount from form input casting it safely to float
             $total_amount = isset($_POST['total_amount']) ? (float) $_POST['total_amount'] : 0.00;
-
-            // NEW FIELDS CAPTURED FROM FRONTEND MAPS
             $payment_mode = isset($_POST['payment_mode']) ? trim($_POST['payment_mode']) : 'Cash';
             $payment_narrative = isset($_POST['payment_narrative']) ? trim($_POST['payment_narrative']) : '';
             $paid_by_self = isset($_POST['paid_by_self']) ? (int) $_POST['paid_by_self'] : 1;
 
-            // 1. Enforce minimum subscription amount server-side validation rules inside UI
+            // READ THE NEW PARAMS
+            $third_party_name = ($paid_by_self === 0 && isset($_POST['third_party_name'])) ? trim($_POST['third_party_name']) : null;
+            $third_party_phone = ($paid_by_self === 0 && isset($_POST['third_party_phone'])) ? trim($_POST['third_party_phone']) : null;
+
             if ($total_amount < 150.00) {
                 header("Location: " . $base_referrer . "?error=" . urlencode("The minimum subscription value required is ₹150."));
                 exit;
             }
 
-            // NEW CONDITIONAL VALIDATION: Narrative check for UPI/Cheque modes
             if (($payment_mode === 'UPI' || $payment_mode === 'Cheque') && empty($payment_narrative)) {
                 header("Location: " . $base_referrer . "?error=" . urlencode("Transaction Reference / Narrative is required for " . $payment_mode . " payments."));
                 exit;
             }
 
-            // MODIFICATION: Dynamically capture the authenticated user from active session
+            // SERVER-SIDE VALIDATION FOR THIRD-PARTY ENTITY
+            if ($paid_by_self === 0 && (empty($third_party_name) || empty($third_party_phone))) {
+                header("Location: " . $base_referrer . "?error=" . urlencode("Payer Name and valid Phone details are required when choosing 'Someone Else'."));
+                exit;
+            }
+
             $recorded_by = isset($_SESSION['display_name']) ? $_SESSION['display_name'] : 'Admin';
 
             // Server-Side Asymmetric Strict Date Boundaries Validation
             $min_allowed_boundary = date('Y-m-01', strtotime('-2 years')); // Past 2 years boundary
-            $max_from_boundary = date('Y-m-01'); // Paid From max = Current Active Month
-            $max_to_boundary = date('Y-12-01');  // Paid To max = December of Current Year
+
+            // MODIFIED: Changed Paid From max constraint from current active month to December of the current year
+            $max_from_boundary = date('Y-12-01'); // Paid From max = December of Current Year
+            $max_to_boundary = date('Y-12-01');   // Paid To max = December of Current Year
 
             // Validate Paid From separately
             if ($chanda_from < $min_allowed_boundary || $chanda_from > $max_from_boundary) {
-                header("Location: " . $base_referrer . "?error=" . urlencode("'Paid From' must be within the past 2 years and cannot exceed the current month."));
+                header("Location: " . $base_referrer . "?error=" . urlencode("'Paid From' must be within the past 2 years and cannot exceed December of " . date('Y') . "."));
                 exit;
             }
 
@@ -349,46 +354,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            if ($chanda_to < $chanda_from) {
-                header("Location: " . $base_referrer . "?error=" . urlencode("The 'Paid To' month cannot be earlier than the 'Paid From' month."));
-                exit;
-            }
-
-            // 2. Strict Overlapping Subscription Period Duplicate Validation Engine redirected cleanly to UI
+            // Overlap checks logic block (Runs unchanged)
             $check_stmt = $db->prepare("
-                SELECT COUNT(*) 
-                FROM chanda_payments 
-                WHERE member_id = ? 
-                  AND (
-                       (paid_from <= ? AND paid_to >= ?) OR  -- Check if new 'From' date falls inside an existing entry
-                       (paid_from <= ? AND paid_to >= ?) OR  -- Check if new 'To' date falls inside an existing entry
-                       (? <= paid_from AND ? >= paid_to)     -- Check if new entry fully covers/swallows an old entry
-                  )
-            ");
-            $check_stmt->execute([
-                $id,
-                $chanda_from,
-                $chanda_from,
-                $chanda_to,
-                $chanda_to,
-                $chanda_from,
-                $chanda_to
-            ]);
+        SELECT COUNT(*) FROM chanda_payments 
+        WHERE member_id = ? AND (
+            (paid_from <= ? AND paid_to >= ?) OR 
+            (paid_from <= ? AND paid_to >= ?) OR 
+            (? <= paid_from AND ? >= paid_to)
+        )
+    ");
+            $check_stmt->execute([$id, $chanda_from, $chanda_from, $chanda_to, $chanda_to, $chanda_from, $chanda_to]);
 
             if ((int) $check_stmt->fetchColumn() > 0) {
                 header("Location: " . $base_referrer . "?error=" . urlencode("Subscription overlap: The selected timeline range conflicts with an existing entry."));
                 exit;
             }
 
-            // Calculate if the payment period covers up to the previous month dynamically
             $prev_month = date('Y-m-01', strtotime('first day of last month'));
             $chanda_status = ($chanda_to >= $prev_month) ? 'Paid' : 'Unpaid';
 
-            // MODIFICATION 1: Insert an entirely new historical ledger line entry into chanda_payments with new fields
+            // UPDATED LEDGER INSERTION STATEMENTS INCLUDING NEW TRACKING FIELDS
             $insert_stmt = $db->prepare("
-                INSERT INTO chanda_payments (member_id, paid_from, paid_to, total_amount, recorded_by, payment_mode, payment_narrative, paid_by_self, date_recorded) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            ");
+        INSERT INTO chanda_payments (member_id, paid_from, paid_to, total_amount, recorded_by, payment_mode, payment_narrative, paid_by_self, third_party_name, third_party_phone, date_recorded) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    ");
             $insert_stmt->execute([
                 $id,
                 $chanda_from,
@@ -397,10 +386,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $recorded_by,
                 $payment_mode,
                 $payment_narrative,
-                $paid_by_self
+                $paid_by_self,
+                $third_party_name,
+                $third_party_phone
             ]);
 
-            // MODIFICATION 2: Update only the fast chanda_status status flag inside the parent members entity
             $update_stmt = $db->prepare("UPDATE members SET chanda_status = ? WHERE id = ?");
             $update_stmt->execute([$chanda_status, $id]);
 

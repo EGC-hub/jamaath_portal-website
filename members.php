@@ -86,7 +86,19 @@ $fetch_stmt = $db->prepare("
     SELECT m.*, 
            (SELECT cp.paid_from FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_from,
            (SELECT cp.paid_to FROM chanda_payments cp WHERE cp.member_id = m.id ORDER BY cp.paid_to DESC LIMIT 1) AS chanda_paid_to,
-           (SELECT GROUP_CONCAT(CONCAT(cp.id, '|', cp.paid_from, '|', cp.paid_to, '|', cp.total_amount, '|', cp.recorded_by, '|', DATE_FORMAT(cp.date_recorded, '%Y-%m-%d %H:%i:%s'), '|', cp.payment_mode, '|', IFNULL(cp.payment_narrative, ''), '|', cp.paid_by_self) ORDER BY cp.paid_to DESC SEPARATOR '||') 
+           (SELECT GROUP_CONCAT(CONCAT(
+                cp.id, '|', 
+                cp.paid_from, '|', 
+                cp.paid_to, '|', 
+                cp.total_amount, '|', 
+                cp.recorded_by, '|', 
+                DATE_FORMAT(cp.date_recorded, '%Y-%m-%d %H:%i:%s'), '|', 
+                cp.payment_mode, '|', 
+                IFNULL(cp.payment_narrative, ''), '|', 
+                cp.paid_by_self, '|',
+                IFNULL(cp.third_party_name, ''), '|',
+                IFNULL(cp.third_party_phone, '')
+            ) ORDER BY cp.paid_to DESC SEPARATOR '||') 
             FROM chanda_payments cp 
             WHERE cp.member_id = m.id) AS chanda_history_raw
     FROM members m 
@@ -1079,16 +1091,33 @@ require_once 'header.php';
                                 <label
                                     class="inline-flex items-center gap-1.5 text-[10px] font-bold cursor-pointer select-none">
                                     <input type="radio" name="paid_by_self" value="1" checked
-                                        onclick="togglePaidByNarrativeHint(true);" class="accent-amber-500 scale-90">
+                                        onclick="toggleChandaPayerFields(true);" class="accent-amber-500 scale-90">
                                     Member Self
                                 </label>
                                 <label
                                     class="inline-flex items-center gap-1.5 text-[10px] font-bold cursor-pointer select-none">
                                     <input type="radio" name="paid_by_self" value="0"
-                                        onclick="togglePaidByNarrativeHint(false);" class="accent-amber-500 scale-90">
+                                        onclick="toggleChandaPayerFields(false);" class="accent-amber-500 scale-90">
                                     Someone Else
                                 </label>
                             </div>
+                        </div>
+                    </div>
+
+                    <div id="chanda_third_party_wrapper"
+                        class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-800 pt-1 transition-all duration-200">
+                        <div>
+                            <label class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Payer
+                                Full Name *</label>
+                            <input type="text" name="third_party_name" id="chanda_third_party_name"
+                                placeholder="Enter payer's name"
+                                class="w-full bg-white text-slate-800 rounded p-1.5 text-[11px] focus:outline-none placeholder:text-slate-400">
+                        </div>
+                        <div>
+                            <label class="block text-[8px] font-bold text-teal-100 uppercase tracking-wider mb-1">Payer
+                                Contact Number *</label>
+                            <input type="tel" id="chanda_third_party_phone" name="third_party_phone"
+                                class="w-full bg-white text-slate-800 rounded p-1.5 text-[11px] focus:outline-none">
                         </div>
                     </div>
 
@@ -1571,7 +1600,7 @@ require_once 'header.php';
 
         if (fromInput && toInput) {
             fromInput.min = minMonthStr;
-            fromInput.max = maxMonthStrFrom;
+            fromInput.max = maxMonthStrTo;
             toInput.min = minMonthStr;
             toInput.max = maxMonthStrTo;
 
@@ -1626,22 +1655,37 @@ require_once 'header.php';
                 const valFrom = fromInput.value;
                 const valTo = toInput.value;
                 const totalAmount = parseFloat(document.getElementById('chanda_total_amount_input').value) || 0;
+                const isSelf = document.querySelector('input[name="paid_by_self"]:checked').value === "1";
 
                 if (totalAmount < 150) {
                     alert("Error: The minimum accepted subscription payment amount is ₹150.");
                     e.preventDefault();
                     return false;
                 }
-                if (valFrom < minMonthStr || valFrom > maxMonthStrFrom) {
-                    alert(`Error: 'Paid From' must be within the past 2 years and cannot exceed the current month.`);
+
+                if (!isSelf) {
+                    const phoneInput = document.getElementById('chanda_third_party_phone');
+                    if (phoneInput.value.trim() !== "" && !chandaPayerIti.isValidNumber()) {
+                        alert("Error: Please enter a valid phone number for the third-party payer.");
+                        e.preventDefault();
+                        return false;
+                    }
+                    phoneInput.value = chandaPayerIti.getNumber();
+                }
+
+                // MODIFIED: 'Paid From' now checks against the end of the current year (maxMonthStrTo) instead of maxMonthStrFrom
+                if (valFrom < minMonthStr || valFrom > maxMonthStrTo) {
+                    alert(`Error: 'Paid From' must be within the past 2 years and cannot exceed December of ${today.getFullYear()}.`);
                     e.preventDefault();
                     return false;
                 }
+
                 if (valTo < minMonthStr || valTo > maxMonthStrTo) {
                     alert(`Error: 'Paid To' must be within the past 2 years and cannot exceed December of ${today.getFullYear()}.`);
                     e.preventDefault();
                     return false;
                 }
+
                 if (valTo < valFrom) {
                     alert("Error: The 'Paid To' month cannot be earlier than the 'Paid From' month.");
                     e.preventDefault();
@@ -1744,6 +1788,10 @@ require_once 'header.php';
                         const pNarrative = (parts.length >= 8 && parts[7]) ? parts[7] : '';
                         const pIsSelf = (parts.length >= 9 && parts[8] !== undefined) ? (parseInt(parts[8]) === 1) : true;
 
+                        // NEW: Dynamic retrieval of third-party parameters from row collection
+                        const tpName = (parts.length >= 10 && parts[9]) ? parts[9].trim() : '';
+                        const tpPhone = (parts.length >= 11 && parts[10]) ? parts[10].trim() : '';
+
                         let formattedDateTime = pDateRaw;
                         if (pDateRaw) {
                             const dateObj = new Date(pDateRaw.replace(/-/g, "/"));
@@ -1769,26 +1817,33 @@ require_once 'header.php';
                             subtitleMetaHtml = `<span class="block text-[10px] text-slate-400 mt-0.5 italic truncate font-mono">Ref: ${escapeHtml(pNarrative)}</span>`;
                         }
 
-                        const payerLabel = pIsSelf ? "Member Self" : "Third Party / Rep";
+                        // MODIFIED: If not paid by self, display Name and Phone dynamically
+                        let payerLabel = "Member Self";
+                        if (!pIsSelf) {
+                            payerLabel = "Third Party";
+                            if (tpName !== '') {
+                                payerLabel = escapeHtml(tpName) + (tpPhone !== '' ? ` (${escapeHtml(tpPhone)})` : '');
+                            }
+                        }
                         const periodMetaSubtitle = `<span class="block text-[10px] text-slate-400 mt-0.5 tracking-wide">By: ${payerLabel}</span>`;
 
                         const tr = document.createElement('tr');
                         tr.className = "hover:bg-slate-50/75 transition-colors border-b border-slate-100";
                         tr.innerHTML = `
-                        <td class="p-2 py-2.5 text-slate-900 align-top">
-                            <div class="font-medium">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</div>
-                            ${periodMetaSubtitle}
-                        </td>
-                        <td class="p-2 py-2.5 align-top">
-                            <div class="font-bold text-emerald-700">₹${pAmount}</div>
-                            <span class="inline-block px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase mt-1 ${modeBadgeClass}">
-                                ${pMode}
-                            </span>
-                            ${subtitleMetaHtml}
-                        </td>
-                        <td class="p-2 py-2.5 font-mono text-slate-500 align-top">${escapeHtml(pUser)}</td>
-                        <td class="p-2 py-2.5 text-slate-400 font-mono text-[11px] align-top whitespace-nowrap">${formattedDateTime}</td>
-                    `;
+                    <td class="p-2 py-2.5 text-slate-900 align-top">
+                        <div class="font-medium">${formatDateMonthYearJS(pFrom)} - ${formatDateMonthYearJS(pTo)}</div>
+                        ${periodMetaSubtitle}
+                    </td>
+                    <td class="p-2 py-2.5 align-top">
+                        <div class="font-bold text-emerald-700">₹${pAmount}</div>
+                        <span class="inline-block px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase mt-1 ${modeBadgeClass}">
+                            ${pMode}
+                        </span>
+                        ${subtitleMetaHtml}
+                    </td>
+                    <td class="p-2 py-2.5 font-mono text-slate-500 align-top">${escapeHtml(pUser)}</td>
+                    <td class="p-2 py-2.5 text-slate-400 font-mono text-[11px] align-top whitespace-nowrap">${formattedDateTime}</td>
+                `;
                         historyRowsContainer.appendChild(tr);
                     }
                 });
@@ -1945,6 +2000,43 @@ require_once 'header.php';
         // Forces the browser to trigger the file stream download from the engine directly
         window.location.href = `member_report_engine.php?search=${search}&mahallah=${mahallah}&status=${status}&chanda=${chanda}&designation=${designation}&occupation=${occupation}&format=excel`;
     };
+
+    // Initialize the intl-tel-input library on the new field
+    let chandaPayerIti;
+    document.addEventListener("DOMContentLoaded", function () {
+        const phoneInput = document.getElementById("chanda_third_party_phone");
+        if (phoneInput) {
+            chandaPayerIti = window.intlTelInput(phoneInput, {
+                initialCountry: "in",
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js" // Adjust paths as used in your app
+            });
+        }
+    });
+
+    // Dynamic Field Toggle Handler
+    function toggleChandaPayerFields(isSelf) {
+        const wrapper = document.getElementById('chanda_third_party_wrapper');
+        const nameInput = document.getElementById('chanda_third_party_name');
+        const phoneInput = document.getElementById('chanda_third_party_phone');
+
+        if (isSelf) {
+            wrapper.classList.add('hidden');
+            nameInput.required = false;
+            phoneInput.required = false;
+            nameInput.value = '';
+            phoneInput.value = '';
+        } else {
+            wrapper.classList.remove('hidden');
+            nameInput.required = true;
+            phoneInput.required = true;
+        }
+
+        // Call legacy helper function hook if needed elsewhere
+        if (typeof togglePaidByNarrativeHint === "function") {
+            togglePaidByNarrativeHint(isSelf);
+        }
+    }
 
     // --- 3. DOM CONTENT INITIALIZATIONS AND SUBMIT INTERCEPTORS ---
 
