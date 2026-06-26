@@ -72,8 +72,9 @@ $active_script = basename($_SERVER['PHP_SELF']);
             <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                 <div class="flex items-center space-x-4">
                     <div
-                        class="bg-gradient-to-br from-emerald-400 to-teal-600 text-teal-950 p-3 rounded-2xl shadow-xl font-bold text-2xl flex items-center justify-center animate-pulse">
-                        🕌
+                        class="bg-white rounded-2xl shadow-lg flex items-center justify-center w-24 h-24 overflow-hidden border border-emerald-400/30 shrink-0">
+                        <img src="assets/images/logo.png" alt="NVK Muslim Jamaath Logo"
+                            class="w-full h-full object-cover">
                     </div>
                     <div>
                         <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight serif-title">NVK Muslim Jamaath
@@ -85,7 +86,6 @@ $active_script = basename($_SERVER['PHP_SELF']);
                         </p>
                     </div>
                 </div>
-                <!-- Logout Action -->
                 <div class="flex items-center space-x-3">
                     <div
                         class="hidden sm:flex items-center space-x-2 bg-emerald-950/60 backdrop-blur px-4 py-2 rounded-xl border border-emerald-700/50 shadow-inner">
