@@ -51,8 +51,14 @@ $fetch_stmt = $db->prepare("
 $fetch_stmt->execute($params);
 $burial_list = $fetch_stmt->fetchAll();
 
-// Fetch active members who are alive (to populate selectors for deceased selection & informant selection)
-$alive_members = $db->query("SELECT id, first_name, last_name, card_no, father_husband_name, dob, gender FROM members WHERE status = 'Alive' ORDER BY first_name ASC")->fetchAll();
+// Fetch active members with their profile aadhar data using the correct Alive status string
+$alive_members_stmt = $db->query("
+    SELECT id, first_name, last_name, dob, card_no, aadhar_number, aadhar_doc 
+    FROM members 
+    WHERE status = 'Alive' 
+    ORDER BY first_name ASC
+");
+$alive_members = $alive_members_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch active dependents of alive members (for deceased selection)
 $alive_dependents = $db->query("
@@ -276,8 +282,20 @@ require_once 'header.php';
                         </div>
                     </div>
                     <div>
-                        <p class="text-[10px] text-slate-400 font-semibold uppercase">Jamaath Origin Affiliation</p>
+                        <p class="text-[10px] text-slate-400 font-semibold uppercase">Jamaath</p>
                         <p id="pop-dec-jamath" class="font-semibold text-slate-700">---</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 items-center">
+                        <div>
+                            <p class="text-[10px] text-slate-400 font-semibold uppercase">Aadhar Number</p>
+                            <p id="pop-dec-aadhar-num" class="font-mono text-slate-800 font-bold tracking-wider">---</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 font-semibold uppercase">Uploaded Aadhar</p>
+                            <div id="pop-dec-aadhar-doc-container" class="mt-0.5">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -366,7 +384,8 @@ require_once 'header.php';
         <p class="text-xs text-slate-500 mb-4 font-medium">Configure resting locations, timelines, and NOC authorization
             records for deceased individuals.</p>
 
-        <form id="burial-form" method="POST" action="actions.php" class="space-y-4 text-xs">
+        <form id="burial-form" method="POST" action="actions.php" class="space-y-4 text-xs"
+            enctype="multipart/form-data">
             <input type="hidden" name="action" id="burial-form-action" value="add_burial">
             <input type="hidden" name="id" id="burial-form-id" value="">
 
@@ -406,7 +425,9 @@ require_once 'header.php';
                         <option value="">-- Choose Member --</option>
                         <?php foreach ($alive_members as $m):
                             $age = calculateAge($m['dob']); ?>
-                            <option value="<?php echo $m['id']; ?>">
+                            <option value="<?php echo $m['id']; ?>"
+                                data-aadhar="<?php echo htmlspecialchars($m['aadhar_number'] ?? ''); ?>"
+                                data-doc="<?php echo htmlspecialchars($m['aadhar_doc'] ? $m['aadhar_doc'] : ''); ?>">
                                 <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (Age: ' . $age . ')'); ?>
                             </option>
                         <?php endforeach; ?>
@@ -477,6 +498,34 @@ require_once 'header.php';
                                 class="h-4 w-4 text-rose-600 focus:ring-rose-500 rounded border-slate-300"> No Objection
                             Certificate (NOC) fully provided & verified
                         </label>
+                    </div>
+                </div>
+
+                <div id="burial_id_verification_container" class="pt-2 border-t border-slate-200/60 space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase">Aadhar Identification
+                        Verification *</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <input type="text" id="deceased_id_no" name="aadhar_number"
+                                placeholder="Enter 12-Digit Aadhar Number"
+                                class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs focus:ring-1 focus:ring-rose-500 focus:outline-none">
+                            <p id="aadhar_status_badge" class="text-[10px] mt-1 font-bold hidden"></p>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="deceased_id_doc" name="aadhar_doc"
+                                    accept="image/*,application/pdf"
+                                    class="w-full text-[11px] file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer">
+
+                                <button type="button" id="view_burial_aadhar_btn" style="display: none;"
+                                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg border border-slate-200 transition-colors flex items-center justify-center shrink-0"
+                                    title="View Document Proof">
+                                    <i class="fa-solid fa-eye text-sm"></i>
+                                </button>
+                            </div>
+                            <span id="existing-doc-status"
+                                class="block text-[10px] text-slate-500 font-medium mt-1"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -624,6 +673,42 @@ require_once 'header.php';
                 }
             });
         }
+
+        // 3. Live local file preview handler with size checks matching members module
+        const aadharDocInput = document.getElementById('deceased_id_doc');
+        if (aadharDocInput) {
+            aadharDocInput.addEventListener('change', function () {
+                const file = this.files[0];
+                const previewBtn = document.getElementById('view_burial_aadhar_btn');
+                const docStatus = document.getElementById('existing-doc-status');
+
+                if (file) {
+                    // Prevent oversized proofs (> 2MB)
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert("⚠️ Upload Limit: Document proofs must be strictly under 2MB.");
+                        this.value = "";
+                        if (previewBtn) previewBtn.style.display = 'none';
+                        if (docStatus) docStatus.textContent = "";
+                        return;
+                    }
+
+                    if (previewBtn) {
+                        previewBtn.style.display = 'flex';
+                        // Generates temporary browser object preview link seamlessly
+                        previewBtn.onclick = function () {
+                            const blobUrl = URL.createObjectURL(file);
+                            window.open(blobUrl, '_blank');
+                        };
+                    }
+                    if (docStatus) {
+                        docStatus.className = "block text-[10px] text-blue-600 font-bold mt-1";
+                        docStatus.textContent = `📄 Selected New Local File: ${file.name}`;
+                    }
+                }
+            });
+        }
+
+
     });
 
     // Open Pop-up details card modal
@@ -636,6 +721,21 @@ require_once 'header.php';
         document.getElementById('pop-dec-age').textContent = burial.deceased_age ? burial.deceased_age + " Years" : "Unknown Age";
         document.getElementById('pop-dec-gender').textContent = burial.deceased_gender || "---";
         document.getElementById('pop-dec-jamath').textContent = (burial.is_jamaath_member == 1) ? "NVK Jamath (Vadasery)" : burial.deceased_jamath;
+
+        // Map Identity Proof data variables
+        document.getElementById('pop-dec-aadhar-num').textContent = burial.aadhar_number ? burial.aadhar_number : "Not Provided";
+
+        const docContainer = document.getElementById('pop-dec-aadhar-doc-container');
+        if (burial.aadhar_doc) {
+            // Correct path detection depending on whether it belongs to a member's primary file or a customized burial upload
+            let fileUrl = burial.aadhar_doc.startsWith('uploads/') ? burial.aadhar_doc : 'uploads/burial_docs/' + burial.aadhar_doc;
+            docContainer.innerHTML = `
+            <a href="${fileUrl}" target="_blank" class="text-rose-700 hover:text-rose-900 font-bold flex items-center gap-1 transition-colors">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Document
+            </a>`;
+        } else {
+            docContainer.innerHTML = `<span class="text-slate-400 font-medium italic">No File Linked</span>`;
+        }
 
         // Informant details Populating
         if (burial.reported_by_member == 1) {
@@ -704,11 +804,17 @@ require_once 'header.php';
         const dependentContainer = document.getElementById('deceased_dependent_select_container');
         const manualContainer = document.getElementById('deceased_manual_fields_container');
 
+        const memberSelect = document.getElementById('deceased_member_select');
+        const idNoField = document.getElementById('deceased_id_no');
+        const previewBtn = document.getElementById('view_burial_aadhar_btn');
+        const docStatus = document.getElementById('existing-doc-status');
+
+        // Configure display states & form rules
         if (isJamathSelection == "1") {
             memberContainer.classList.remove('hidden');
             dependentContainer.classList.add('hidden');
             manualContainer.classList.add('hidden');
-            document.getElementById('deceased_member_select').required = true;
+            memberSelect.required = true;
             document.getElementById('deceased_dependent_select').required = false;
             document.getElementById('manual_deceased_name').required = false;
             document.getElementById('manual_deceased_father').required = false;
@@ -716,19 +822,61 @@ require_once 'header.php';
             memberContainer.classList.add('hidden');
             dependentContainer.classList.remove('hidden');
             manualContainer.classList.add('hidden');
-            document.getElementById('deceased_member_select').required = false;
+            memberSelect.required = false;
             document.getElementById('deceased_dependent_select').required = true;
             document.getElementById('manual_deceased_name').required = false;
             document.getElementById('manual_deceased_father').required = false;
+
+            // Clean values safely for dependent mode
+            idNoField.value = "";
+            idNoField.readOnly = false;
+            if (previewBtn) previewBtn.style.display = 'none';
+            if (docStatus) docStatus.textContent = "";
         } else {
             memberContainer.classList.add('hidden');
             dependentContainer.classList.add('hidden');
             manualContainer.classList.remove('hidden');
-            document.getElementById('deceased_member_select').required = false;
+            memberSelect.required = false;
             document.getElementById('deceased_dependent_select').required = false;
             document.getElementById('manual_deceased_name').required = true;
             document.getElementById('manual_deceased_father').required = true;
+
+            // Ensure manual fields don't lock down inputs
+            idNoField.readOnly = false;
         }
+
+        // Bind selection dynamic profile autofill logic cleanly without blanking out custom inputs
+        memberSelect.onchange = function () {
+            if (isJamathSelection == "1") {
+                const selectedOption = memberSelect.options[memberSelect.selectedIndex];
+
+                // Default clean sweep state upon changing member selection
+                idNoField.value = "";
+                idNoField.readOnly = false;
+                if (previewBtn) previewBtn.style.display = 'none';
+                if (docStatus) docStatus.textContent = "";
+
+                if (selectedOption && selectedOption.value) {
+                    const existingAadhar = selectedOption.getAttribute('data-aadhar');
+                    const existingDoc = selectedOption.getAttribute('data-doc');
+
+                    if (existingAadhar) {
+                        idNoField.value = existingAadhar;
+                        idNoField.readOnly = true;
+                    }
+                    if (existingDoc) {
+                        if (previewBtn) {
+                            previewBtn.style.display = 'flex';
+                            previewBtn.onclick = function () { window.open(existingDoc, '_blank'); };
+                        }
+                        if (docStatus) {
+                            docStatus.className = "block text-[10px] text-emerald-600 font-bold mt-1";
+                            docStatus.textContent = "✓ Linked profile identification document attached";
+                        }
+                    }
+                }
+            }
+        };
     }
 
     // Toggle Informant fields
@@ -737,22 +885,35 @@ require_once 'header.php';
         const memberReporterBox = document.getElementById('reporter_member_container');
         const customReporterBox = document.getElementById('reporter_custom_container');
 
+        const memberRelationshipInput = document.getElementById('member_reporter_relationship');
+        const customRelationshipInput = document.getElementById('reporter_relationship');
+
         if (reportedByMember == "1") {
             memberReporterBox.classList.remove('hidden');
             customReporterBox.classList.add('hidden');
+
+            // Enable Jamaath input name and disable custom input to prevent overrides
+            memberRelationshipInput.name = "reporter_relationship";
+            customRelationshipInput.removeAttribute('name');
+
             document.getElementById('reporter_member_select').required = true;
-            document.getElementById('member_reporter_relationship').required = true;
+            memberRelationshipInput.required = true;
             document.getElementById('reporter_name').required = false;
             document.getElementById('reporter_phone').required = false;
-            document.getElementById('reporter_relationship').required = false;
+            customRelationshipInput.required = false;
         } else {
             memberReporterBox.classList.add('hidden');
             customReporterBox.classList.remove('hidden');
+
+            // Switch names: Disable Jamaath input and enable custom input
+            memberRelationshipInput.removeAttribute('name');
+            customRelationshipInput.name = "reporter_relationship";
+
             document.getElementById('reporter_member_select').required = false;
-            document.getElementById('member_reporter_relationship').required = false;
+            memberRelationshipInput.required = false;
             document.getElementById('reporter_name').required = true;
             document.getElementById('reporter_phone').required = true;
-            document.getElementById('reporter_relationship').required = true;
+            customRelationshipInput.required = true;
         }
     }
 
@@ -770,6 +931,15 @@ require_once 'header.php';
         document.getElementById('burial-datetime-field').value = `${year}-${month}-${day}T${hours}:${minutes}`;
 
         document.getElementById('burial-modal').classList.remove('hidden');
+
+        const idNoField = document.getElementById('deceased_id_no');
+        if (idNoField) idNoField.readOnly = false;
+
+        const previewBtn = document.getElementById('view_burial_aadhar_btn');
+        if (previewBtn) previewBtn.style.display = 'none';
+
+        const docStatus = document.getElementById('existing-doc-status');
+        if (docStatus) docStatus.textContent = "";
     }
 
     function populateEditBurial(burial) {
@@ -838,19 +1008,44 @@ require_once 'header.php';
         if (burial.reported_by_member == 1) {
             document.getElementById('rep_origin_member').checked = true;
             document.getElementById('reporter_member_select').value = burial.reporter_member_id;
+
+            // Fix: Run the toggle first so the name attribute is bound to this input box
+            toggleReporterFields();
+
             document.getElementById('member_reporter_relationship').value = burial.reporter_relationship || '';
         } else {
             document.getElementById('rep_origin_external').checked = true;
+
+            // Fix: Run the toggle first so the name attribute is bound to this input box
+            toggleReporterFields();
+
             document.getElementById('reporter_name').value = burial.reporter_name || '';
             document.getElementById('reporter_phone').value = burial.reporter_phone || '';
             document.getElementById('reporter_relationship').value = burial.reporter_relationship || '';
         }
-        toggleReporterFields();
 
         // Datetimes & Plot details
         document.getElementById('death-datetime-field').value = burial.death_datetime ? burial.death_datetime.replace(" ", "T").substring(0, 16) : '';
         document.getElementById('burial-datetime-field').value = burial.burial_datetime.replace(" ", "T").substring(0, 16);
         document.getElementById('plot-details-field').value = burial.plot_details;
+
+        // Pre-populate historical Aadhar documentation metrics during updates
+        if (burial.aadhar_number) {
+            document.getElementById('deceased_id_no').value = burial.aadhar_number;
+        }
+        if (burial.aadhar_doc) {
+            const editPreviewBtn = document.getElementById('view_burial_aadhar_btn');
+            const editDocStatus = document.getElementById('existing-doc-status');
+
+            if (editPreviewBtn) {
+                editPreviewBtn.style.display = 'flex';
+                editPreviewBtn.onclick = function () { window.open('uploads/burial_docs/' + burial.aadhar_doc, '_blank'); };
+            }
+            if (editDocStatus) {
+                editDocStatus.className = "block text-[10px] text-teal-600 font-bold mt-1";
+                editDocStatus.textContent = "📄 Saved Registry Document: " + burial.aadhar_doc;
+            }
+        }
     }
 
     function resetBurialForm() {

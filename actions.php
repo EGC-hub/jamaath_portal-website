@@ -1327,13 +1327,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $deceased_gender = '';
                 $deceased_jamath = 'NVK Jamath (Vadasery)';
                 $noc_provided = 0;
-                $actual_is_jamaath = 0; // Stored as 1 in DB for all Jamath residents (both members & dependents)
+                $actual_is_jamaath = 0;
+
+                // Capture Aadhar parameters from request inputs
+                $aadhar_number = !empty($_POST['aadhar_number']) ? trim($_POST['aadhar_number']) : null;
+                $aadhar_doc = null;
 
                 if ($is_jamaath_member_input === 1) {
-                    // Primary Member
                     $actual_is_jamaath = 1;
                     $deceased_member_id = (int) $_POST['deceased_member_id'];
-                    $m_stmt = $db->prepare("SELECT first_name, last_name, father_husband_name, gender, dob FROM members WHERE id = ?");
+                    $m_stmt = $db->prepare("SELECT first_name, last_name, father_husband_name, gender, dob, aadhar_doc FROM members WHERE id = ?");
                     $m_stmt->execute([$deceased_member_id]);
                     $member = $m_stmt->fetch();
                     if ($member) {
@@ -1343,12 +1346,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (!empty($member['dob'])) {
                             $deceased_age = calculateAge($member['dob']);
                         }
-                        // AUTOMATIC: Set life status of primary member to Deceased
+                        // Default fallback: Inherit member profile document if no new file is submitted
+                        if (!empty($member['aadhar_doc'])) {
+                            $aadhar_doc = $member['aadhar_doc'];
+                        }
                         $up_stmt = $db->prepare("UPDATE members SET status = 'Deceased', deceased_date = ? WHERE id = ?");
                         $up_stmt->execute([substr($_POST['burial_datetime'], 0, 10), $deceased_member_id]);
                     }
                 } elseif ($is_jamaath_member_input === 2) {
-                    // Dependent
                     $actual_is_jamaath = 1;
                     $deceased_dependent_id = (int) $_POST['deceased_dependent_id'];
                     $d_stmt = $db->prepare("
@@ -1366,12 +1371,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (!empty($dep['dob'])) {
                             $deceased_age = calculateAge($dep['dob']);
                         }
-                        // AUTOMATIC: Set life status of dependent to Deceased
                         $up_stmt = $db->prepare("UPDATE member_dependents SET status = 'Deceased' WHERE id = ?");
                         $up_stmt->execute([$deceased_dependent_id]);
                     }
                 } else {
-                    // Non-Jamaath Profile
                     $actual_is_jamaath = 0;
                     $deceased_name = trim($_POST['manual_deceased_name']);
                     $deceased_father_husband = trim($_POST['manual_deceased_father']);
@@ -1381,21 +1384,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $noc_provided = isset($_POST['noc_provided']) ? 1 : 0;
                 }
 
+                // File Upload handler for new/custom physical document proofs
+                if (isset($_FILES['aadhar_doc']) && $_FILES['aadhar_doc']['error'] === UPLOAD_ERR_OK) {
+                    if ($_FILES['aadhar_doc']['size'] > 2 * 1024 * 1024) {
+                        throw new Exception("Document verification proofs must be strictly under 2MB.");
+                    }
+                    $ext = strtolower(pathinfo($_FILES['aadhar_doc']['name'], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['pdf', 'png', 'jpg', 'jpeg'])) {
+                        throw new Exception("Invalid format. Please supply a valid PDF, PNG, or JPG file.");
+                    }
+                    $safe_filename = 'burial_aadhar_' . time() . '_' . uniqid() . '.' . $ext;
+                    $target_directory = 'uploads/burial_docs/';
+                    if (!is_dir($target_directory)) {
+                        mkdir($target_directory, 0755, true);
+                    }
+                    if (move_uploaded_file($_FILES['aadhar_doc']['tmp_name'], $target_directory . $safe_filename)) {
+                        $aadhar_doc = $safe_filename;
+                    }
+                }
+
                 $death_datetime = !empty($_POST['death_datetime']) ? $_POST['death_datetime'] : null;
                 $burial_datetime = $_POST['burial_datetime'];
                 $plot = trim($_POST['plot_details']);
 
-                // Informant/Reporter details
-                $reported_by_member = isset($_POST['reported_by_member']) ? 1 : 0;
-                $reporter_member_id = ($reported_by_member && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
-                $reporter_name = (!$reported_by_member && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
-                $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+                // Clear up radio value extraction
+                $reported_by_member = isset($_POST['reported_by_member']) ? (int) $_POST['reported_by_member'] : 1;
+
+                $reporter_member_id = ($reported_by_member === 1 && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
+                $reporter_name = ($reported_by_member === 0 && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
+                $reporter_phone = ($reported_by_member === 0 && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+
+                // Allow relationship to record cleanly regardless of classification selection
                 $reporter_relationship = !empty($_POST['reporter_relationship']) ? trim($_POST['reporter_relationship']) : null;
 
-                // MODIFICATION: Server-side validation safeguard checking time boundaries
                 $death_timestamp = strtotime($_POST['death_datetime']);
                 $burial_timestamp = strtotime($_POST['burial_datetime']);
-
                 if ($death_timestamp !== false && $burial_timestamp <= $death_timestamp) {
                     $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'burial.php';
                     header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "error=Burial time must be after demise time");
@@ -1407,8 +1430,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         is_jamaath_member, deceased_member_id, deceased_dependent_id, deceased_name, 
                         deceased_father_husband, deceased_age, deceased_gender, deceased_jamath,
                         death_datetime, burial_datetime, plot_details, noc_provided, 
-                        reported_by_member, reporter_member_id, reporter_name, reporter_phone, reporter_relationship
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        reported_by_member, reporter_member_id, reporter_name, reporter_phone, reporter_relationship,
+                        aadhar_number, aadhar_doc
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $ins_stmt->execute([
                     $actual_is_jamaath,
@@ -1427,7 +1451,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $reporter_member_id,
                     $reporter_name,
                     $reporter_phone,
-                    $reporter_relationship
+                    $reporter_relationship,
+                    $aadhar_number,
+                    $aadhar_doc
                 ]);
 
                 $db->commit();
@@ -1439,29 +1465,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-
         // Action: Edit/Update Certified Burial Log Record
         if ($_POST['action'] === 'edit_burial') {
             $db->beginTransaction();
             try {
                 $id = (int) $_POST['id'];
 
-                // Fetch original record to manage status rollback safely
                 $orig_stmt = $db->prepare("SELECT * FROM burial_registry WHERE id = ?");
                 $orig_stmt->execute([$id]);
                 $orig = $orig_stmt->fetch();
-
                 if (!$orig) {
                     throw new Exception("Burial registry record not found.");
                 }
 
-                // If previous was primary member, temporarily revert them to Alive status
                 if (!empty($orig['deceased_member_id'])) {
                     $rev_stmt = $db->prepare("UPDATE members SET status = 'Alive', deceased_date = NULL WHERE id = ?");
                     $rev_stmt->execute([$orig['deceased_member_id']]);
                 }
-
-                // If previous was dependent, temporarily revert them to Alive status
                 if (!empty($orig['deceased_dependent_id'])) {
                     $rev_stmt = $db->prepare("UPDATE member_dependents SET status = 'Alive' WHERE id = ?");
                     $rev_stmt->execute([$orig['deceased_dependent_id']]);
@@ -1478,6 +1498,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $noc_provided = 0;
                 $actual_is_jamaath = 0;
 
+                $aadhar_number = !empty($_POST['aadhar_number']) ? trim($_POST['aadhar_number']) : null;
+                $aadhar_doc = $orig['aadhar_doc']; // Retain old file reference by default
+
                 if ($is_jamaath_member_input === 1) {
                     $actual_is_jamaath = 1;
                     $deceased_member_id = (int) $_POST['deceased_member_id'];
@@ -1485,14 +1508,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $m_stmt->execute([$deceased_member_id]);
                     $member = $m_stmt->fetch();
                     if ($member) {
-                        // MODIFICATION: Appended ' (Marhoom)' to keep naming matches unified for print certificates
                         $deceased_name = $member['first_name'] . ' ' . $member['last_name'] . ' (Marhoom)';
                         $deceased_father_husband = $member['father_husband_name'];
                         $deceased_gender = $member['gender'];
                         if (!empty($member['dob'])) {
                             $deceased_age = calculateAge($member['dob']);
                         }
-                        // Set primary member status to Deceased
                         $up_stmt = $db->prepare("UPDATE members SET status = 'Deceased', deceased_date = ?, chanda_status = 'Paid' WHERE id = ?");
                         $up_stmt->execute([substr($_POST['burial_datetime'], 0, 10), $deceased_member_id]);
                     }
@@ -1500,22 +1521,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $actual_is_jamaath = 1;
                     $deceased_dependent_id = (int) $_POST['deceased_dependent_id'];
                     $d_stmt = $db->prepare("
-                SELECT d.*, m.first_name AS prim_first, m.last_name AS prim_last, m.father_husband_name AS prim_father
-                FROM member_dependents d
-                JOIN members m ON d.member_id = m.id
-                WHERE d.id = ?
-            ");
+                        SELECT d.*, m.first_name AS prim_first, m.last_name AS prim_last, m.father_husband_name AS prim_father
+                        FROM member_dependents d
+                        JOIN members m ON d.member_id = m.id
+                        WHERE d.id = ?
+                    ");
                     $d_stmt->execute([$deceased_dependent_id]);
                     $dep = $d_stmt->fetch();
                     if ($dep) {
-                        // MODIFICATION: Appended ' (Marhoom)' to dependents as well for name registry standard mapping
                         $deceased_name = $dep['name'] . ' (Marhoom)';
                         $deceased_father_husband = ($dep['relationship'] === 'Son' || $dep['relationship'] === 'Daughter') ? ($dep['prim_first'] . ' ' . $dep['prim_last']) : $dep['prim_father'];
                         $deceased_gender = $dep['gender'];
                         if (!empty($dep['dob'])) {
                             $deceased_age = calculateAge($dep['dob']);
                         }
-                        // Set dependent's status to Deceased
                         $up_stmt = $db->prepare("UPDATE member_dependents SET status = 'Deceased' WHERE id = ?");
                         $up_stmt->execute([$deceased_dependent_id]);
                     }
@@ -1529,21 +1548,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $noc_provided = isset($_POST['noc_provided']) ? 1 : 0;
                 }
 
+                // If a new document proof is uploaded during modifications
+                if (isset($_FILES['aadhar_doc']) && $_FILES['aadhar_doc']['error'] === UPLOAD_ERR_OK) {
+                    if ($_FILES['aadhar_doc']['size'] > 2 * 1024 * 1024) {
+                        throw new Exception("Document verification proofs must be strictly under 2MB.");
+                    }
+                    $ext = strtolower(pathinfo($_FILES['aadhar_doc']['name'], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['pdf', 'png', 'jpg', 'jpeg'])) {
+                        throw new Exception("Invalid format. Please supply a valid PDF, PNG, or JPG file.");
+                    }
+                    $safe_filename = 'burial_aadhar_' . time() . '_' . uniqid() . '.' . $ext;
+                    $target_directory = 'uploads/burial_docs/';
+
+                    // Safety verification check: Check and create target directories if missing
+                    if (!is_dir($target_directory)) {
+                        mkdir($target_directory, 0755, true);
+                    }
+
+                    if (move_uploaded_file($_FILES['aadhar_doc']['tmp_name'], $target_directory . $safe_filename)) {
+                        // Unlink old customized files safely if overwriting
+                        if (!empty($orig['aadhar_doc']) && file_exists($target_directory . $orig['aadhar_doc'])) {
+                            @unlink($target_directory . $orig['aadhar_doc']);
+                        }
+                        $aadhar_doc = $safe_filename;
+                    }
+                }
+
                 $death_datetime = !empty($_POST['death_datetime']) ? $_POST['death_datetime'] : null;
                 $burial_datetime = $_POST['burial_datetime'];
                 $plot = trim($_POST['plot_details']);
 
-                // Informant/Reporter details
-                $reported_by_member = isset($_POST['reported_by_member']) ? 1 : 0;
-                $reporter_member_id = ($reported_by_member && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
-                $reporter_name = (!$reported_by_member && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
-                $reporter_phone = (!$reported_by_member && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+                // Clear up radio value extraction
+                $reported_by_member = isset($_POST['reported_by_member']) ? (int) $_POST['reported_by_member'] : 1;
+
+                $reporter_member_id = ($reported_by_member === 1 && !empty($_POST['reporter_member_id'])) ? (int) $_POST['reporter_member_id'] : null;
+                $reporter_name = ($reported_by_member === 0 && !empty($_POST['reporter_name'])) ? trim($_POST['reporter_name']) : null;
+                $reporter_phone = ($reported_by_member === 0 && !empty($_POST['reporter_phone'])) ? trim($_POST['reporter_phone']) : null;
+
+                // Allow relationship to record cleanly regardless of classification selection
                 $reporter_relationship = !empty($_POST['reporter_relationship']) ? trim($_POST['reporter_relationship']) : null;
 
-                // MODIFICATION: Server-side validation safeguard checking time boundaries
                 $death_timestamp = strtotime($_POST['death_datetime']);
                 $burial_timestamp = strtotime($_POST['burial_datetime']);
-
                 if ($death_timestamp !== false && $burial_timestamp <= $death_timestamp) {
                     $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'burial.php';
                     header("Location: " . $referrer . (strpos($referrer, '?') !== false ? '&' : '?') . "error=Burial time must be after demise time");
@@ -1551,15 +1597,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $upd_stmt = $db->prepare("
-            UPDATE burial_registry SET 
-                is_jamaath_member = ?, deceased_member_id = ?, deceased_dependent_id = ?, 
-                deceased_name = ?, deceased_father_husband = ?, deceased_age = ?, 
-                deceased_gender = ?, deceased_jamath = ?, death_datetime = ?, 
-                burial_datetime = ?, plot_details = ?, noc_provided = ?, 
-                reported_by_member = ?, reporter_member_id = ?, reporter_name = ?, 
-                reporter_phone = ?, reporter_relationship = ?
-            WHERE id = ?
-        ");
+                    UPDATE burial_registry SET 
+                        is_jamaath_member = ?, deceased_member_id = ?, deceased_dependent_id = ?, 
+                        deceased_name = ?, deceased_father_husband = ?, deceased_age = ?, 
+                        deceased_gender = ?, deceased_jamath = ?, death_datetime = ?, 
+                        burial_datetime = ?, plot_details = ?, noc_provided = ?, 
+                        reported_by_member = ?, reporter_member_id = ?, reporter_name = ?, 
+                        reporter_phone = ?, reporter_relationship = ?,
+                        aadhar_number = ?, aadhar_doc = ?
+                    WHERE id = ?
+                ");
                 $upd_stmt->execute([
                     $actual_is_jamaath,
                     $deceased_member_id,
@@ -1578,6 +1625,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $reporter_name,
                     $reporter_phone,
                     $reporter_relationship,
+                    $aadhar_number,
+                    $aadhar_doc,
                     $id
                 ]);
 
@@ -1596,22 +1645,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $id = (int) $_POST['id'];
 
-                // Fetch details to check if status rollback is needed
-                $stmt = $db->prepare("SELECT deceased_member_id, deceased_dependent_id FROM burial_registry WHERE id = ?");
+                // Fetch details to check if status rollback AND file unlinking is needed
+                $stmt = $db->prepare("SELECT deceased_member_id, deceased_dependent_id, aadhar_doc FROM burial_registry WHERE id = ?");
                 $stmt->execute([$id]);
                 $rec = $stmt->fetch();
 
                 if ($rec) {
+                    // 1. Rollback Primary Member status cleanly if applicable
                     if (!empty($rec['deceased_member_id'])) {
                         $rev_stmt = $db->prepare("UPDATE members SET status = 'Alive', deceased_date = NULL WHERE id = ?");
                         $rev_stmt->execute([$rec['deceased_member_id']]);
                     }
+
+                    // 2. Rollback Dependent status cleanly if applicable
                     if (!empty($rec['deceased_dependent_id'])) {
                         $rev_stmt = $db->prepare("UPDATE member_dependents SET status = 'Alive' WHERE id = ?");
                         $rev_stmt->execute([$rec['deceased_dependent_id']]);
                     }
+
+                    // 3. SECURE FILE CLEANUP: Delete the custom uploaded document proof from server directory
+                    if (!empty($rec['aadhar_doc'])) {
+                        $target_file_path = 'uploads/burial_docs/' . $rec['aadhar_doc'];
+                        if (file_exists($target_file_path)) {
+                            @unlink($target_file_path);
+                        }
+                    }
                 }
 
+                // Delete associated database burial row entry 
                 $del_stmt = $db->prepare("DELETE FROM burial_registry WHERE id = ?");
                 $del_stmt->execute([$id]);
 

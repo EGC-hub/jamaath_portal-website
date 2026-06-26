@@ -55,6 +55,7 @@ $max_demographics_count = max(array_values($ward_demographics)) ?: 1;
 $deceased_recent = $db->query("SELECT b.*, m.card_no AS deceased_member_card_no, m.mahallah AS deceased_mahallah
 FROM burial_registry b
 LEFT JOIN members m ON b.deceased_member_id = m.id
+WHERE b.is_jamaath_member = 1
 ORDER BY b.death_datetime DESC 
 LIMIT 4;")->fetchAll();
 
