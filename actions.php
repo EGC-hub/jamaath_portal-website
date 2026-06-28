@@ -1016,6 +1016,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             unset($target_path);
 
+            // Server-Side Date & Time Validation Guardrails
+            if (empty($datetime)) {
+                die("Validation Failed: Date & Time of Nikah field parameter is mandatory.");
+            }
+
+            $nikah_timestamp = strtotime($datetime);
+            if (!$nikah_timestamp) {
+                die("Validation Failed: Provided Nikah Date & Time format could not be verified by the system ledger.");
+            }
+
+            $current_timestamp = time();
+
+            // Generate comparison parameters dynamically
+            $min_allowed_timestamp = strtotime("-20 years");
+            $max_allowed_timestamp = strtotime("+6 months");
+
+            if ($nikah_timestamp < $min_allowed_timestamp) {
+                die("Validation Failed: The scheduled Nikah entry cannot extend further than 20 years into the archived past.");
+            }
+            if ($nikah_timestamp > $max_allowed_timestamp) {
+                die("Validation Failed: System safety constraints restrict scheduling Nikah items more than 6 months into the future.");
+            }
+
             // Prepare statement referencing all the split individual address layout columns
             $stmt = $db->prepare("INSERT INTO nikah_registry (
         groom_first_name, groom_last_name, groom_phone1, groom_phone2, groom_father, groom_father_status, groom_mother, groom_mother_status, groom_dob, groom_age, groom_marriage_status, groom_jamath, groom_photo, groom_id_type, groom_id_doc, groom_aadhar, groom_aadhar_file,
@@ -1196,6 +1219,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             unset($target_path);
+
+            // Server-Side Date & Time Validation Guardrails
+            if (empty($datetime)) {
+                die("Validation Failed: Date & Time of Nikah field parameter is mandatory.");
+            }
+
+            $nikah_timestamp = strtotime($datetime);
+            if (!$nikah_timestamp) {
+                die("Validation Failed: Provided Nikah Date & Time format could not be verified by the system ledger.");
+            }
+
+            $current_timestamp = time();
+
+            // Generate comparison parameters dynamically
+            $min_allowed_timestamp = strtotime("-20 years");
+            $max_allowed_timestamp = strtotime("+6 months");
+
+            if ($nikah_timestamp < $min_allowed_timestamp) {
+                die("Validation Failed: The scheduled Nikah entry cannot extend further than 20 years into the archived past.");
+            }
+            if ($nikah_timestamp > $max_allowed_timestamp) {
+                die("Validation Failed: System safety constraints restrict scheduling Nikah items more than 6 months into the future.");
+            }
 
             $stmt = $db->prepare("UPDATE nikah_registry SET 
         groom_first_name = ?, groom_last_name = ?, groom_phone1 = ?, groom_phone2 = ?, groom_father = ?, groom_father_status = ?, groom_mother = ?, groom_mother_status = ?, groom_dob = ?, groom_age = ?, groom_marriage_status = ?, groom_jamath = ?, groom_photo = ?, groom_id_type = ?, groom_id_doc = ?, groom_aadhar = ?, groom_aadhar_file = ?,

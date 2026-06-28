@@ -1246,8 +1246,36 @@ require_once 'header.php';
 
         // 7. Wire Up Action Redirect Links
         document.getElementById('pop-edit-btn').setAttribute('onclick', `populateEditNikah(${JSON.stringify(data)})`);
-        document.getElementById('pop-cert-btn').className = "bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors";
-        document.getElementById('pop-cert-btn').setAttribute('onclick', `issueNikahCertificate(${JSON.stringify(data)})`);
+        const certBtn = document.getElementById('pop-cert-btn');
+        if (certBtn) {
+            if (data.nikah_datetime) {
+                const nikahDate = new Date(data.nikah_datetime.replace(/-/g, "/"));
+                const rightNow = new Date();
+
+                // Past 6 months boundary limit check calculation
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(rightNow.getMonth() - 6);
+
+                if (nikahDate > rightNow) {
+                    // Rule: Future Nikah records must not be able to issue certificates until date has passed
+                    certBtn.className = "bg-slate-300 text-slate-500 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-not-allowed";
+                    certBtn.setAttribute('onclick', '');
+                    certBtn.title = "Certificate generation is locked until the scheduled Nikah date & time has passed.";
+                } else if (nikahDate < sixMonthsAgo) {
+                    // Rule: Records older than 6 months past cannot access certificates from this view
+                    certBtn.className = "bg-rose-100 text-rose-700 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-not-allowed border border-rose-200";
+                    certBtn.setAttribute('onclick', '');
+                    certBtn.title = "Certificate generation expired. Records older than 6 months cannot print certificates.";
+                } else {
+                    // Valid time window: Passed successfully, and within past 6 months threshold 
+                    certBtn.className = "bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer";
+                    certBtn.setAttribute('onclick', `issueNikahCertificate(${JSON.stringify(data)})`);
+                    certBtn.removeAttribute('title');
+                }
+            } else {
+                certBtn.className = "hidden";
+            }
+        }
 
         // 8. Open Modal
         document.getElementById('nikah-card-modal').classList.remove('hidden');
@@ -1994,9 +2022,69 @@ require_once 'header.php';
         const form = document.getElementById("nikah-form");
         if (!form) return;
 
-        form.addEventListener("submit", function (e) {
-            // Intercept standard dispatch temporarily to apply numbers formatting
+        // ==========================================
+        // EXTRA CODE EXTRACTION: DATE CONTROLS INITIALIZATION
+        // ==========================================
+        const dateTimeField = document.getElementById('nikah-datetime-field');
+        if (dateTimeField) {
+            const now = new Date();
 
+            // 1. Calculate past 20 years and future 6 months limits
+            const minDate = new Date();
+            minDate.setFullYear(now.getFullYear() - 20);
+
+            const maxDate = new Date();
+            maxDate.setMonth(now.getMonth() + 6);
+
+            // Utility: Convert to standard YYYY-MM-DDTHH:MM format template
+            const formatForInput = (d) => {
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+
+            // Assign browser constraints to the native datetime picker properties on page load
+            dateTimeField.min = formatForInput(minDate);
+            dateTimeField.max = formatForInput(maxDate);
+
+            // Define the Validation Logic Routine at the DOM context level
+            window.validateNikahDateTime = function () {
+                if (!dateTimeField.value) return true; // Let required attribute handle empty states
+
+                const selectedTime = new Date(dateTimeField.value);
+                const checkNow = new Date();
+
+                const pastLimit = new Date();
+                pastLimit.setFullYear(checkNow.getFullYear() - 20);
+
+                const futureLimit = new Date();
+                futureLimit.setMonth(checkNow.getMonth() + 6);
+
+                if (selectedTime < pastLimit || selectedTime > futureLimit) {
+                    alert("Validation Error: The Date & Time of Nikah must be within the past 20 years and up to 6 months in the future.");
+                    dateTimeField.value = ""; // Clear out the invalid data instantly
+                    return false;
+                }
+                return true;
+            };
+
+            // Catch constraint violations directly when the user changes the calendar UI
+            dateTimeField.addEventListener('change', window.validateNikahDateTime);
+            dateTimeField.addEventListener('blur', window.validateNikahDateTime);
+        }
+
+        // ==========================================
+        // FORM SUBMISSION LISTENER BLOCK
+        // ==========================================
+        form.addEventListener("submit", function (e) {
+            // 1. Execute Date/Time Validation Guardrail Check first
+            if (typeof window.validateNikahDateTime === "function") {
+                if (!window.validateNikahDateTime()) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+
+            // 2. Format Phone Number values across active entries
             // Groom Primary Contact
             if (typeof itiGroom1 !== "undefined" && document.getElementById("groom_phone1_field").value.trim() !== "") {
                 document.getElementById("groom_phone1_field").value = itiGroom1.getNumber();
@@ -2021,8 +2109,6 @@ require_once 'header.php';
             if (typeof itiWitnessBride !== "undefined" && document.getElementById("witness_bride_phone").value.trim() !== "") {
                 document.getElementById("witness_bride_phone").value = itiWitnessBride.getNumber();
             }
-
-            // Let the form proceed cleanly with updated values over the POST payload!
         });
     });
 </script>
