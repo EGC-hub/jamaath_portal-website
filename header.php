@@ -10,6 +10,27 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    // Catch any deletion or structural alteration actions
+    if (strpos($action, 'delete_') === 0 || strpos($action, 'update_') === 0 || strpos($action, 'edit_') === 0) {
+        if (!isSystemAdmin()) {
+            // If it's an AJAX/Fetch request, return a JSON response
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'error', 'message' => 'Unauthorized action context.']);
+                exit;
+            }
+
+            // Otherwise, redirect backward with an alert prompt parameter
+            $referrer = isset($_SERVER['HTTP_REFERER']) ? strtok($_SERVER['HTTP_REFERER'], '?') : 'members.php';
+            header("Location: " . $referrer . "?msg=" . urlencode("You are not authorized for this action please contact the administrator"));
+            exit;
+        }
+    }
+}
+
 // Find current active script name to highlight navigation dynamically
 $active_script = basename($_SERVER['PHP_SELF']);
 ?>

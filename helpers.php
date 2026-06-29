@@ -71,4 +71,13 @@ function get_global_flash_message()
 
     return $flash;
 }
+
+function isSystemAdmin()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $current_user = $_SESSION['username'] ?? '';
+    return ($current_user === 'admin');
+}
 ?>

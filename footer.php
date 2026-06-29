@@ -316,17 +316,77 @@
     function closeBurialModal() {
         document.getElementById('burial-modal').classList.add('hidden');
     }
-</script>
 
+    // Global Authorization Flag from PHP Session
+    const IS_SYSTEM_ADMIN = <?php echo isSystemAdmin() ? 'true' : 'false'; ?>;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // If the user is NOT an admin, activate global blockades
+        if (!IS_SYSTEM_ADMIN) {
+
+            // 1. Intercept ALL Clicks at the highest level (Capture Phase)
+            document.body.addEventListener('click', function (e) {
+                // Find the closest button element, even if they clicked the <i> tag icon inside it
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const onclickText = btn.getAttribute('onclick') || '';
+                const titleText = btn.getAttribute('title') || '';
+                const btnClass = btn.className || '';
+
+                // Comprehensive check for Edit / Update button variations
+                const isEdit = onclickText.includes('populateEdit') ||
+                    onclickText.includes('populateEditNikah') ||
+                    titleText.toLowerCase().includes('edit') ||
+                    titleText.toLowerCase().includes('update') ||
+                    btnClass.includes('text-teal');
+
+                // Comprehensive check for Delete button variations
+                const isDelete = titleText.toLowerCase().includes('delete') ||
+                    titleText.toLowerCase().includes('wipe') ||
+                    btnClass.includes('text-rose') ||
+                    btnClass.includes('hover:text-rose');
+
+                // If it matches either operational signature, freeze execution instantly!
+                if (isEdit || isDelete) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
+                    alert("You are not authorized for this action. Please contact the administrator.");
+                    return false;
+                }
+            }, true); // 'true' triggers the capture phase, running BEFORE inline onclick attributes execute
+
+            // 2. Intercept Form Submissions directly as an absolute safety net
+            document.body.addEventListener('submit', function (e) {
+                const form = e.target;
+                const actionInput = form.querySelector('input[name="action"]');
+
+                if (actionInput) {
+                    const val = actionInput.value.toLowerCase();
+                    if (val.includes('delete') || val.includes('update') || val.includes('edit')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+
+                        alert("You are not authorized for this action. Please contact the administrator.");
+                        return false;
+                    }
+                }
+            }, true);
+        }
+    });
+</script>
 <!-- Trigger system messages if redirects pass status text -->
 <?php if (isset($_GET['msg'])): ?>
-    <script>
+    < script>
         window.addEventListener('DOMContentLoaded', () => {
             showToast(<?php echo json_encode($_GET['msg']); ?>, "✅");
         });
     </script>
-<?php endif; ?>
+    <?php endif; ?>
 
-</body>
+    </body>
 
-</html>
+    </html>
