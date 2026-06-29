@@ -77,9 +77,10 @@ foreach ($members as $m) {
             'source' => 'Member (Card: ' . $m['card_no'] . ')'
         ];
 
-        if ($m['gender'] === 'Male' && $age >= 21) {
+        // MODIFIED: Restrict grooms to 21-70 years and brides to 18-70 years bracket bounds
+        if ($m['gender'] === 'Male' && $age >= 21 && $age <= 70) {
             $eligible_grooms[] = $item;
-        } elseif ($m['gender'] === 'Female' && $age >= 18) {
+        } elseif ($m['gender'] === 'Female' && $age >= 18 && $age <= 70) {
             $eligible_brides[] = $item;
         }
     }
@@ -112,9 +113,10 @@ foreach ($dependents as $d) {
             'source' => $d['relationship'] . ' of ' . $d['primary_first'] . ' ' . $d['primary_last']
         ];
 
-        if ($d['gender'] === 'Male' && $age >= 21) {
+        // MODIFIED: Restrict grooms to 21-70 years and brides to 18-70 years bracket bounds
+        if ($d['gender'] === 'Male' && $age >= 21 && $age <= 70) {
             $eligible_grooms[] = $item;
-        } elseif ($d['gender'] === 'Female' && $age >= 18) {
+        } elseif ($d['gender'] === 'Female' && $age >= 18 && $age <= 70) {
             $eligible_brides[] = $item;
         }
     }
