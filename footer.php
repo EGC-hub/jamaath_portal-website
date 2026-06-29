@@ -380,7 +380,7 @@
 </script>
 <!-- Trigger system messages if redirects pass status text -->
 <?php if (isset($_GET['msg'])): ?>
-    < script>
+    <script>
         window.addEventListener('DOMContentLoaded', () => {
             showToast(<?php echo json_encode($_GET['msg']); ?>, "✅");
         });

@@ -516,20 +516,47 @@ require_once 'header.php';
             </div>
         </div>
 
-        <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-                <button id="pop-edit-btn"
-                    class="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors">
-                    <i class="fa-solid fa-user-gear"></i> Update Record
-                </button>
-                <button id="pop-cert-btn"
-                    class="font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors">
-                    <i class="fa-solid fa-file-pdf"></i> Issue Certificate
+        <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex flex-col gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 w-full">
+                <div class="flex items-center gap-2">
+                    <button id="pop-edit-btn"
+                        class="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors">
+                        <i class="fa-solid fa-user-gear"></i> Update Record
+                    </button>
+                    <button id="pop-cert-btn"
+                        class="font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors">
+                        <i class="fa-solid fa-file-pdf"></i> Issue Certificate
+                    </button>
+                </div>
+                <button onclick="closeNikahCard()"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-5 py-2 rounded-xl">
+                    Close Card
                 </button>
             </div>
-            <button onclick="closeNikahCard()"
-                class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-5 py-2 rounded-xl">Close
-                Card</button>
+
+            <div class="pt-2 border-t border-slate-200/60 flex flex-col gap-1.5">
+                <p class="text-[11px] text-slate-500 flex items-start gap-1.5 font-medium leading-relaxed">
+                    <svg class="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                        stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span><strong>Future Bookings:</strong> If the Nikah date is scheduled in the future, the
+                        certificate generation button remains locked until the scheduled date and time has
+                        passed.</span>
+                </p>
+
+                <p class="text-[11px] text-slate-500 flex items-start gap-1.5 font-medium leading-relaxed">
+                    <svg class="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                        stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span><strong>Archived Limits:</strong> Instant portal certificate generation is restricted to
+                        records from the past 6 months only. For older records, please consult your physical record
+                        registers.</span>
+                </p>
+            </div>
         </div>
     </div>
 </div>
@@ -620,7 +647,7 @@ require_once 'header.php';
 
                     <div id="groom_jamath_container" class="space-y-2">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase">Select Groom (Eligible Males
-                            21+) *</label>
+                            21 - 70 Years Old) *</label>
                         <select id="groom_select" name="groom_member_id" onchange="autoPopulateGroom()"
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors appearance-none">
                             <option value="">-- Choose Groom --</option>
@@ -705,7 +732,7 @@ require_once 'header.php';
                                     class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] focus:ring-1 focus:ring-teal-500 focus:outline-none">
                                 <input type="hidden" id="groom_age_field" name="groom_age" value="">
                                 <p class="text-[9px] text-slate-400 mt-0.5">Age: <span id="groom_live_age_preview"
-                                        class="font-bold text-teal-700">--</span> (Min 21)</p>
+                                        class="font-bold text-teal-700">--</span> (Min 21 - Max 70)</p>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Marriage
@@ -831,7 +858,7 @@ require_once 'header.php';
 
                     <div id="bride_jamath_container" class="space-y-2">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase">Select Bride (Eligible
-                            Females 18+) *</label>
+                            Females 18 - 70 Years Old) *</label>
                         <select id="bride_select" name="bride_member_id" onchange="autoPopulateBride()"
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors appearance-none">
                             <option value="">-- Choose Bride --</option>
@@ -916,7 +943,7 @@ require_once 'header.php';
                                     class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] focus:ring-1 focus:ring-teal-500 focus:outline-none">
                                 <input type="hidden" id="bride_age_field" name="bride_age" value="">
                                 <p class="text-[9px] text-slate-400 mt-0.5">Age: <span id="bride_live_age_preview"
-                                        class="font-bold text-rose-700">--</span> (Min 18)</p>
+                                        class="font-bold text-rose-700">--</span> (Min 18 - Max 70)</p>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Marriage
@@ -1121,6 +1148,14 @@ require_once 'header.php';
                         *</label>
                     <input type="datetime-local" name="nikah_datetime" required id="nikah-datetime-field"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <p class="mt-1 text-[10px] text-slate-500 flex items-center gap-1 font-medium">
+                        <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor"
+                            stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Note: Date must be within the past 20 years or up to 6 months in the future.</span>
+                    </p>
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Nikah Venue *</label>
