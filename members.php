@@ -468,7 +468,7 @@ require_once 'header.php';
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Blood Group</label>
                             <select name="blood_group" id="field_blood_group"
@@ -519,6 +519,23 @@ require_once 'header.php';
                                         <?php echo htmlspecialchars($display_name); ?>
                                     </option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="member_study_level" class="block font-semibold text-slate-600 mb-1">Study
+                                Level*</label>
+                            <select name="study_level" id="member_study_level" required
+                                class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                <option value="">-- Select Study Level --</option>
+                                <option value="No Formal Education">No Formal Education</option>
+                                <option value="Primary School">Primary School (Class 1-5)</option>
+                                <option value="Middle School">Middle School (Class 6-8)</option>
+                                <option value="High School">High School / SSLC (Class 10)</option>
+                                <option value="Higher Secondary">Higher Secondary / HSC (Class 12)</option>
+                                <option value="Diploma / ITI">Diploma / ITI</option>
+                                <option value="Undergraduate">Undergraduate (UG - Bachelor's)</option>
+                                <option value="Postgraduate">Postgraduate (PG - Master's)</option>
+                                <option value="Doctorate">Doctorate / Ph.D.</option>
                             </select>
                         </div>
                     </div>
@@ -833,7 +850,7 @@ require_once 'header.php';
         </div>
 
         <div
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
             <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Search
                     Keyword</label>
@@ -906,6 +923,23 @@ require_once 'header.php';
                     <option value="Student">Student</option>
                     <option value="Unemployed">Unemployed</option>
                     <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Study
+                    Level</label>
+                <select id="rep-filter-studylevel" onchange="reloadReportEngine()"
+                    class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="All">All Study Levels</option>
+                    <option value="No Formal Education">No Formal Education</option>
+                    <option value="Primary School">Primary School (Class 1-5)</option>
+                    <option value="Middle School">Middle School (Class 6-8)</option>
+                    <option value="High School">High School / SSLC (Class 10)</option>
+                    <option value="Higher Secondary">Higher Secondary / HSC (Class 12)</option>
+                    <option value="Diploma / ITI">Diploma / ITI</option>
+                    <option value="Undergraduate">Undergraduate (UG)</option>
+                    <option value="Postgraduate">Postgraduate (PG)</option>
+                    <option value="Doctorate">Doctorate / Ph.D.</option>
                 </select>
             </div>
         </div>
@@ -1001,11 +1035,21 @@ require_once 'header.php';
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="p-3 border border-slate-150 rounded-xl">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-droplet text-rose-600"></i> Blood Group
-                    </p>
-                    <p id="card-blood" class="font-bold text-slate-800 mt-1">---</p>
+                <div class="p-3 border border-slate-150 rounded-xl flex flex-col justify-between gap-2">
+                    <div>
+                        <p
+                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-droplet text-rose-600"></i> Blood Group
+                        </p>
+                        <p id="card-blood" class="font-bold text-slate-800 mt-1">---</p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100">
+                        <p
+                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-graduation-cap text-indigo-600"></i> Study Level
+                        </p>
+                        <p id="card-study-level" class="font-bold text-slate-800 mt-1">---</p>
+                    </div>
                 </div>
                 <div class="p-3 border border-slate-150 rounded-xl flex items-center justify-around col-span-2">
                     <div>
@@ -1488,6 +1532,7 @@ require_once 'header.php';
 
         document.getElementById('field_blood_group').value = member.blood_group || '';
         document.getElementById('field_occupation').value = member.occupation || '';
+        document.getElementById('member_study_level').value = member.study_level || "";
 
         if (member.photo) {
             document.getElementById('photo-preview').src = member.photo;
@@ -1570,6 +1615,12 @@ require_once 'header.php';
         document.getElementById('card-occupation').textContent = member.occupation || 'N/A';
         document.getElementById('card-blood').textContent = member.blood_group || 'N/A';
 
+        // ADDED: Map Study Level data string safely with a fallback placeholder
+        const cardStudyField = document.getElementById('card-study-level');
+        if (cardStudyField) {
+            cardStudyField.textContent = member.study_level || 'Not Provided';
+        }
+
         // Populate New Identity Column Modifications safely
         document.getElementById('card-aadhar-num').textContent = member.aadhar_number ? member.aadhar_number : 'Not Provided';
         const aadharDocWrap = document.getElementById('card-aadhar-doc-container');
@@ -1648,6 +1699,7 @@ require_once 'header.php';
                 }
             }
         }
+
 
         const chandaForm = document.getElementById('card-chanda-form');
         if (chandaForm) {
@@ -1971,10 +2023,11 @@ require_once 'header.php';
         const chanda = encodeURIComponent(document.getElementById('rep-filter-chanda')?.value || 'All');
         const designation = encodeURIComponent(document.getElementById('rep-filter-designation')?.value || 'All');
         const occupation = encodeURIComponent(document.getElementById('rep-filter-occupation')?.value || 'All');
+        const study_level = encodeURIComponent(document.getElementById('rep-filter-studylevel')?.value || 'All');
 
         const frame = document.getElementById('member-report-frame');
         if (frame) {
-            frame.src = `member_report_engine.php?search=${search}&mahallah=${mahallah}&status=${status}&chanda=${chanda}&designation=${designation}&occupation=${occupation}`;
+            frame.src = `member_report_engine.php?search=${search}&mahallah=${mahallah}&status=${status}&chanda=${chanda}&designation=${designation}&occupation=${occupation}&study_level=${study_level}`;
         }
     };
 
@@ -2146,6 +2199,4 @@ require_once 'header.php';
             });
         }
     });
-</script>
-
-<?php require_once 'footer.php'; ?>
+</script><?php require_once 'footer.php'; ?>

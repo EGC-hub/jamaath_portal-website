@@ -23,6 +23,7 @@ $status = $_GET['status'] ?? 'All';
 $chanda = $_GET['chanda'] ?? 'All';
 $designation = $_GET['designation'] ?? 'All';
 $occupation = $_GET['occupation'] ?? 'All';
+$study_level = $_GET['study_level'] ?? 'All';
 $format = $_GET['format'] ?? '';
 
 $whereClauses = [];
@@ -54,13 +55,17 @@ if ($occupation !== 'All') {
     $whereClauses[] = "occupation = :occupation";
     $params[':occupation'] = $occupation;
 }
+if ($study_level !== 'All') {
+    $whereClauses[] = "study_level = :study_level";
+    $params[':study_level'] = $study_level;
+}
 
 $whereSql = !empty($whereClauses) ? " WHERE " . implode(" AND ", $whereClauses) : "";
 $rows = [];
 $reportTitle = "Customized Members Registry";
 
 try {
-    $queryStr = "SELECT card_no, first_name, last_name, family_name, father_husband_name, dob, phone, mahallah, occupation, designation, status, chanda_status FROM members" . $whereSql . " ORDER BY card_no ASC";
+    $queryStr = "SELECT card_no, first_name, last_name, family_name, father_husband_name, dob, phone, mahallah, occupation, study_level, designation, status, chanda_status FROM members" . $whereSql . " ORDER BY card_no ASC";
     $stmt = $db->prepare($queryStr);
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -80,8 +85,8 @@ if ($format === 'excel') {
     echo "\xEF\xBB\xBF"; // UTF-8 BOM representation
 
     echo "<table border='1'>";
-    echo "<tr><th colspan='9' style='background-color: #0f766e; color: #ffffff; font-size: 14px; font-weight: bold; text-align: center;'>NVK MUSLIM JAMAATH REGISTRY</th></tr>";
-    echo "<tr><th colspan='9' style='background-color: #f8fafc; color: #1e293b; font-size: 11px; font-weight: bold; text-align: center;'>$reportTitle</th></tr>";
+    echo "<tr><th colspan='10' style='background-color: #0f766e; color: #ffffff; font-size: 14px; font-weight: bold; text-align: center;'>NVK MUSLIM JAMAATH REGISTRY</th></tr>";
+    echo "<tr><th colspan='10' style='background-color: #f8fafc; color: #1e293b; font-size: 11px; font-weight: bold; text-align: center;'>$reportTitle</th></tr>";
 
     echo "<tr style='background-color: #0f766e; color: #ffffff; font-weight: bold;'>";
     echo "<th>Card No</th>";
@@ -91,6 +96,7 @@ if ($format === 'excel') {
     echo "<th>Mahallah Location</th>";
     echo "<th>Phone Contact</th>";
     echo "<th>Occupation Profile</th>";
+    echo "<th>Study Level</th>";
     echo "<th>Role Designation</th>";
     echo "<th>Chanda Status</th>";
     echo "</tr>";
@@ -111,6 +117,7 @@ if ($format === 'excel') {
         echo "<td style='mso-number-format:\"@\"; text-align: left;'>" . htmlspecialchars($row['phone']) . "</td>";
 
         echo "<td>" . htmlspecialchars($row['occupation'] ?: 'N/A') . "</td>";
+        echo "<td>" . htmlspecialchars($row['study_level'] ?: 'N/A') . "</td>";
         echo "<td>" . htmlspecialchars($row['designation']) . "</td>";
         echo "<td style='text-align: center; font-weight: bold;'>" . htmlspecialchars($row['chanda_status']) . "</td>";
         echo "</tr>";
@@ -149,7 +156,7 @@ if ($format === 'excel') {
                 class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5">
                 <i class="fa-solid fa-print"></i> Print Layout View
             </button>
-            <a href="?search=<?php echo urlencode($search); ?>&mahallah=<?php echo urlencode($mahallah); ?>&status=<?php echo urlencode($status); ?>&chanda=<?php echo urlencode($chanda); ?>&designation=<?php echo urlencode($designation); ?>&occupation=<?php echo urlencode($occupation); ?>&format=excel"
+            <a href="?search=<?php echo urlencode($search); ?>&mahallah=<?php echo urlencode($mahallah); ?>&status=<?php echo urlencode($status); ?>&chanda=<?php echo urlencode($chanda); ?>&designation=<?php echo urlencode($designation); ?>&occupation=<?php echo urlencode($occupation); ?>&study_level=<?php echo urlencode($study_level); ?>&format=excel"
                 class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5">
                 <i class="fa-solid fa-file-excel"></i> Export Native Excel Sheet
             </a>
@@ -174,30 +181,41 @@ if ($format === 'excel') {
         </div>
 
         <div
-            class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100 text-xs font-semibold text-slate-700 print:bg-transparent print:border-none">
-            <div>
-                <div class="text-[10px] uppercase text-slate-400 tracking-wider font-bold mb-0.5">Report Compilation
-                    Category</div>
-                <div class="text-slate-900 text-sm font-extrabold"><?php echo $reportTitle; ?></div>
-            </div>
-            <div>
-                <div class="text-[10px] uppercase text-slate-400 tracking-wider font-bold mb-0.5">Applied Selection
-                    Profile Bounds</div>
-                <div class="text-slate-600 font-mono text-[11px] leading-relaxed">
-                    Mahallah: <span class="text-slate-900 font-bold"><?php echo htmlspecialchars($mahallah); ?></span> |
-                    Status: <span class="text-slate-900 font-bold"><?php echo htmlspecialchars($status); ?></span><br>
-                    Role: <span class="text-slate-900 font-bold"><?php echo htmlspecialchars($designation); ?></span> |
-                    Work: <span class="text-slate-900 font-bold"><?php echo htmlspecialchars($occupation); ?></span>
-                    <?php if ($search !== ''): ?>
-                        <br>Keyword: <span class="text-rose-700 font-bold">"<?php echo htmlspecialchars($search); ?>"</span>
-                    <?php endif; ?>
+            class="max-w-6xl mx-auto bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100 text-xs font-semibold text-slate-700 print:bg-transparent print:border-none">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <div class="text-[10px] uppercase text-slate-400 tracking-wider font-bold mb-0.5">Report Compilation
+                        Category</div>
+                    <div class="text-slate-900 text-sm font-extrabold"><?php echo $reportTitle; ?></div>
                 </div>
-            </div>
-            <div class="text-right">
-                <div class="text-[10px] uppercase text-slate-400 tracking-wider font-bold mb-0.5">Total Matching Core
-                    Records</div>
-                <div class="text-teal-950 text-base font-black">
-                    <?php echo count($rows); ?> <span class="text-xs font-normal text-slate-400">Members Filtered</span>
+                <div>
+                    <div class="text-[10px] uppercase text-slate-400 tracking-wider font-bold mb-0.5">Applied Selection
+                        Profile Bounds</div>
+                    <div class="text-slate-600 font-mono text-[11px] leading-relaxed">
+                        Mahallah: <span
+                            class="text-slate-900 font-bold"><?php echo htmlspecialchars($mahallah); ?></span> |
+                        Status: <span
+                            class="text-slate-900 font-bold"><?php echo htmlspecialchars($status); ?></span><br>
+                        Role: <span
+                            class="text-slate-900 font-bold"><?php echo htmlspecialchars($designation); ?></span> |
+                        Work: <span
+                            class="text-slate-900 font-bold"><?php echo htmlspecialchars($occupation); ?></span><br>
+                        Study Level: <span
+                            class="text-slate-900 font-bold"><?php echo htmlspecialchars($study_level); ?></span>
+                        <?php if ($search !== ''): ?>
+                            <br>Keyword: <span
+                                class="text-rose-700 font-bold">"<?php echo htmlspecialchars($search); ?>"</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] uppercase text-slate-400 tracking-wider font-bold mb-0.5">Total Matching
+                        Core
+                        Records</div>
+                    <div class="text-teal-950 text-base font-black">
+                        <?php echo count($rows); ?> <span class="text-xs font-normal text-slate-400">Members
+                            Filtered</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -220,6 +238,7 @@ if ($format === 'excel') {
                             <th class="py-3 px-4">Mahallah Location</th>
                             <th class="py-3 px-4">Phone Number</th>
                             <th class="py-3 px-4">Occupation Profile</th>
+                            <th class="py-3 px-4">Study Level</th>
                             <th class="py-3 px-4">Designation Status Role</th>
                             <th class="py-3 px-4 text-center">Chanda Account</th>
                         </tr>
@@ -250,11 +269,16 @@ if ($format === 'excel') {
                                 <td class="py-3 px-4 text-slate-600">
                                     <?php echo htmlspecialchars($row['occupation'] ?: 'N/A'); ?>
                                 </td>
-                                <td class="py-3 px-4">
-                                    <span
-                                        class="px-2 py-0.5 rounded text-[10px] font-bold border <?php echo ($row['designation'] === 'Ordinary Member') ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-teal-50 text-teal-800 border-teal-200 uppercase'; ?>">
-                                        <?php echo htmlspecialchars($row['designation']); ?>
-                                    </span>
+                                <td class="py-3 px-4 text-slate-600 font-semibold">
+                                    <?php echo htmlspecialchars($row['study_level'] ?: 'N/A'); ?>
+                                </td>
+                                <td class="py-3 px-4 min-w-[140px] vertical-align-middle">
+                                    <div class="flex flex-col gap-1 items-start justify-center">
+                                        <span
+                                            class="inline-block px-2 py-0.5 rounded text-[10px] font-bold border leading-normal whitespace-normal max-w-[150px] <?php echo ($row['designation'] === 'Ordinary Member') ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-teal-50 text-teal-800 border-teal-200 uppercase tracking-wide'; ?>">
+                                            <?php echo htmlspecialchars($row['designation']); ?>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="py-3 px-4 text-center">
                                     <span

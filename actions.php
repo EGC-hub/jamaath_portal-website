@@ -39,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $occupation = trim($_POST['occupation']);
                 $designation = $_POST['designation'];
 
+                // ADDED: Capture and Sanitize Study Level Selection
+                $study_level = !empty($_POST['study_level']) ? trim($_POST['study_level']) : null;
+
                 // Address Split Parameters + Country Columns
                 $res_address_line1 = trim($_POST['res_address_line1']);
                 $res_address_line2 = trim($_POST['res_address_line2']);
@@ -89,8 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, marital_status, mahallah, phone, aadhar_number, aadhar_doc, blood_group, occupation, designation, res_address_line1, res_address_line2, res_city, res_pincode, res_country, comm_address_line1, comm_address_line2, comm_city, comm_pincode, comm_country, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, ?)");
-                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $aadhar_number, $aadhar_doc_path, $blood, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $res_country, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $comm_country, $status, $dec_date, $photo_data, $dependents_count]);
+                // MODIFIED: Included study_level in column list and values placeholder array
+                $stmt = $db->prepare("INSERT INTO members (card_no, first_name, last_name, family_name, father_husband_name, dob, gender, marital_status, mahallah, phone, aadhar_number, aadhar_doc, blood_group, occupation, designation, study_level, res_address_line1, res_address_line2, res_city, res_pincode, res_country, comm_address_line1, comm_address_line2, comm_city, comm_pincode, comm_country, status, deceased_date, chanda_status, photo, dependents_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, ?)");
+                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $aadhar_number, $aadhar_doc_path, $blood, $occupation, $designation, $study_level, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $res_country, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $comm_country, $status, $dec_date, $photo_data, $dependents_count]);
 
                 $member_id = $db->lastInsertId();
 
@@ -144,6 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $occupation = trim($_POST['occupation']);
                 $designation = $_POST['designation'];
+
+                // ADDED: Capture and Sanitize Study Level Selection
+                $study_level = !empty($_POST['study_level']) ? trim($_POST['study_level']) : null;
 
                 $res_address_line1 = trim($_POST['res_address_line1']);
                 $res_address_line2 = trim($_POST['res_address_line2']);
@@ -212,9 +219,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                // Primary Record Update Statement mapping
-                $stmt = $db->prepare("UPDATE members SET card_no = ?, first_name = ?, last_name = ?, family_name = ?, father_husband_name = ?, dob = ?, gender = ?, marital_status = ?, mahallah = ?, phone = ?, aadhar_number = ?, occupation = ?, designation = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, res_country = ?, comm_address_line1 = ?, comm_address_line2 = ?, comm_city = ?, comm_pincode = ?, comm_country = ?, blood_group = ?, status = ?, deceased_date = ?, dependents_count = ? WHERE id = ?");
-                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $aadhar_number, $occupation, $designation, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $res_country, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $comm_country, $blood, $status, $dec_date, $dependents_count, $id]);
+                // MODIFIED: Included study_level field mapping inside the main UPDATE statement array context
+                $stmt = $db->prepare("UPDATE members SET card_no = ?, first_name = ?, last_name = ?, family_name = ?, father_husband_name = ?, dob = ?, gender = ?, marital_status = ?, mahallah = ?, phone = ?, aadhar_number = ?, occupation = ?, designation = ?, study_level = ?, res_address_line1 = ?, res_address_line2 = ?, res_city = ?, res_pincode = ?, res_country = ?, comm_address_line1 = ?, comm_address_line2 = ?, comm_city = ?, comm_pincode = ?, comm_country = ?, blood_group = ?, status = ?, deceased_date = ?, dependents_count = ? WHERE id = ?");
+                $stmt->execute([$card, $first_name, $last_name, $family_name, $father, $dob, $gender, $marital_status, $mahallah, $phone, $aadhar_number, $occupation, $designation, $study_level, $res_address_line1, $res_address_line2, $res_city, $res_pincode, $res_country, $comm_address_line1, $comm_address_line2, $comm_city, $comm_pincode, $comm_country, $blood, $status, $dec_date, $dependents_count, $id]);
 
                 // Dependents cleanup & sync update loops mapping
                 $del_stmt = $db->prepare("DELETE FROM member_dependents WHERE member_id = ?");
