@@ -207,7 +207,7 @@ if ($format === 'excel') {
                         <tr
                             class="border-b-2 border-slate-400 bg-slate-50 text-slate-700 font-bold uppercase tracking-wider text-[10px]">
                             <th class="p-3">Card No</th>
-                            <th class="p-3">Member Full Name</th>
+                            <th class="p-3">Member Name</th>
                             <th class="p-3">Mahallah Sector</th>
                             <th class="p-3">Phone Number</th>
                             <th class="p-3 text-center">Status</th>
@@ -258,7 +258,7 @@ if ($format === 'excel') {
 
                             <tr class="bg-slate-50/80 font-bold text-sm border-t-2 border-slate-400">
                                 <td colspan="7" class="p-4 text-right uppercase tracking-wider text-xs text-slate-500">Grand
-                                    Total Financial Pool Summary:</td>
+                                    Total:</td>
                                 <td
                                     class="p-4 text-right text-teal-800 font-mono font-black border-b-4 border-double border-teal-600">
                                     ₹<?php echo number_format($grand_total_print, 2); ?></td>
@@ -268,24 +268,20 @@ if ($format === 'excel') {
                 </table>
             </div>
 
-            <div class="mt-12 pt-8 border-t border-dashed border-slate-300 flex justify-between items-center text-center">
+            <div class="mt-12 pt-16 border-t border-dashed border-slate-300 flex justify-between items-center text-center">
                 <div class="w-48">
                     <div
                         class="border-t border-slate-400 pt-2 text-[10px] uppercase font-bold tracking-wider text-slate-500">
                         Prepared By</div>
-                    <div class="text-xs font-semibold text-slate-700 mt-1">
-                        <?php echo htmlspecialchars(isset($_SESSION['display_name']) ? $_SESSION['display_name'] : 'Clerk Officer'); ?>
+                    <div class="text-xs font-semibold text-slate-400 mt-1">
+                        Treasurer
                     </div>
-                </div>
-                <div
-                    class="w-32 h-16 border-2 border-teal-700/30 rounded-full flex items-center justify-center text-teal-700/40 font-black text-[9px] uppercase tracking-widest rotate-12 select-none border-double">
-                    Official<br>Jamaath Seal
                 </div>
                 <div class="w-48">
                     <div
                         class="border-t border-slate-400 pt-2 text-[10px] uppercase font-bold tracking-wider text-slate-500">
                         Verified Authority</div>
-                    <div class="text-xs font-semibold text-slate-400 mt-1">General Secretary</div>
+                    <div class="text-xs font-semibold text-slate-400 mt-1">Secretary/President</div>
                 </div>
             </div>
         </div>

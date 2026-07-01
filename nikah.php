@@ -771,8 +771,7 @@ require_once 'header.php';
 
                         <div id="groom_aadhar_upload_container"
                             class="hidden bg-amber-50 border border-amber-200 p-2 rounded-lg space-y-1">
-                            <label class="block text-[10px] font-bold text-amber-900 uppercase">Mandhaar Copy Upload
-                                (Aadhaar Required) *</label>
+                            <label class="block text-[10px] font-bold text-amber-900 uppercase">Mandatory Aadhaar Copy Upload*</label>
                             <input type="file" id="groom_aadhar_file" name="groom_aadhar_file" accept=".pdf,image/*"
                                 onchange="previewFile(this, 'groom_aadhar_preview_box')"
                                 class="w-full bg-white border border-amber-200 rounded p-1 text-[10px]">
