@@ -209,10 +209,25 @@ require_once 'header.php';
                                 <?php endif; ?>
                             </td>
                             <td class="py-4 px-4 font-semibold text-teal-800">
-                                <span class="bg-teal-50 px-2.5 py-1 rounded-md text-[10px]">
-                                    <i class="fa-solid fa-clock mr-1"></i>
-                                    <?php echo date('d M Y - h:i A', strtotime($nikah['nikah_datetime'])); ?>
-                                </span>
+                                <div
+                                    class="bg-teal-50 px-3 py-2 rounded-xl text-[10px] inline-flex items-center gap-2 min-w-[145px]">
+                                    <i class="fa-solid fa-clock text-teal-600 text-xs shrink-0"></i>
+
+                                    <div class="flex flex-col leading-normal">
+                                        <span class="whitespace-nowrap font-bold text-slate-800">
+                                            <?php echo date('d M Y - h:i A', strtotime($nikah['nikah_datetime'])); ?>
+                                        </span>
+
+                                        <?php
+                                        $hijri = getHijriDate($nikah['nikah_datetime']);
+                                        if (!empty($hijri)):
+                                            ?>
+                                            <span class="text-teal-600 font-medium tracking-wide mt-0.5">
+                                                <?php echo htmlspecialchars($hijri); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </td>
                             <td class="py-4 px-4 text-right">
                                 <div onclick="event.stopPropagation()" class="flex items-center justify-end gap-1.5">
@@ -1199,12 +1214,27 @@ require_once 'header.php';
     function openNikahCard(data) {
         if (!data) return;
 
-        // 1. Set Date Header Format
+        // 1. Set Date Header Format with Stacked Hijri Subtitle
         const datetime = data.nikah_datetime ? new Date(data.nikah_datetime.replace(/-/g, "/")) : null;
-        document.getElementById('card-date-header').textContent = datetime
-            ? datetime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + " - " + datetime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-            : "---";
+        const cardDateHeader = document.getElementById('card-date-header');
 
+        if (datetime) {
+            const gregDateStr = datetime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = datetime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            // Fetch the dynamic Hijri string using your frontend translation logic
+            const hijriDateStr = getHijriDateJS(data.nikah_datetime);
+
+            // Render the primary date/time header, then drop the Islamic calendar date elegantly below it
+            cardDateHeader.innerHTML = `
+        <div class="flex flex-col">
+            <span class=" font-bold">${gregDateStr} - ${timeStr}</span>
+            ${hijriDateStr ? `<span class="text-xs font-medium  mt-0.5 tracking-wide">${hijriDateStr}</span>` : ''}
+        </div>
+    `;
+        } else {
+            cardDateHeader.textContent = "---";
+        }
         // 2. Populate Groom Node Fields & Contacts
         document.getElementById('pop-groom-first-name').textContent = data.groom_first_name || "---";
         document.getElementById('pop-groom-last-name').textContent = data.groom_last_name || "---";
@@ -1216,7 +1246,20 @@ require_once 'header.php';
         document.getElementById('pop-groom-father').textContent = data.groom_father ? data.groom_father + groomFatherStatus : "---";
         document.getElementById('pop-groom-mother').textContent = data.groom_mother ? data.groom_mother + groomMotherStatus : "---";
 
-        document.getElementById('pop-groom-dob').textContent = data.groom_dob || "---";
+        const groomHijri = getHijriDateJS(data.groom_dob);
+        let groomGregorian = "---";
+
+        if (data.groom_dob) {
+            const dateObj = new Date(data.groom_dob);
+            groomGregorian = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        document.getElementById('pop-groom-dob').innerHTML = data.groom_dob
+            ? `<div class="flex flex-col leading-tight">
+        <span class="text-slate-800 font-semibold">${groomGregorian}</span>
+        ${groomHijri ? `<span class="text-[11px] font-normal text-slate-500 mt-0.5 tracking-wide">${groomHijri}</span>` : ''}
+       </div>`
+            : "---";
         document.getElementById('pop-groom-age').textContent = data.groom_age ? data.groom_age + " Years" : "---";
         document.getElementById('pop-groom-status').textContent = data.groom_marriage_status || "---";
         document.getElementById('pop-groom-jamath').textContent = data.groom_jamath || "---";
@@ -1232,7 +1275,20 @@ require_once 'header.php';
         document.getElementById('pop-bride-father').textContent = data.bride_father ? data.bride_father + brideFatherStatus : "---";
         document.getElementById('pop-bride-mother').textContent = data.bride_mother ? data.bride_mother + brideMotherStatus : "---";
 
-        document.getElementById('pop-bride-dob').textContent = data.bride_dob || "---";
+        const brideHijri = getHijriDateJS(data.bride_dob);
+        let brideGregorian = "---";
+
+        if (data.bride_dob) {
+            const dateObj = new Date(data.bride_dob);
+            brideGregorian = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        document.getElementById('pop-bride-dob').innerHTML = data.bride_dob
+            ? `<div class="flex flex-col leading-tight">
+        <span class="text-slate-800 font-semibold">${brideGregorian}</span>
+        ${brideHijri ? `<span class="text-[11px] font-normal text-slate-500 mt-0.5 tracking-wide">${brideHijri}</span>` : ''}
+       </div>`
+            : "---";
         document.getElementById('pop-bride-age').textContent = data.bride_age ? data.bride_age + " Years" : "---";
         document.getElementById('pop-bride-status').textContent = data.bride_marriage_status || "---";
         document.getElementById('pop-bride-jamath').textContent = data.bride_jamath || "---";

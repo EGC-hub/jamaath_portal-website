@@ -1606,7 +1606,17 @@ require_once 'header.php';
         document.getElementById('card-age').textContent = calculateAgeJS(member.dob);
 
         document.getElementById('card-father').textContent = member.father_husband_name;
-        document.getElementById('card-dob').textContent = formatDateJS(member.dob);
+        const hijriPart = getHijriDateJS(member.dob);
+
+        if (hijriPart) {
+            // Renders Gregorian date, then appends the Hijri date neatly stacked directly underneath
+            document.getElementById('card-dob').innerHTML = `
+        <span>${formatDateJS(member.dob)}</span>
+        <span class="block text-[11px] text-slate-500 font-medium mt-0.5">${hijriPart}</span>
+    `;
+        } else {
+            document.getElementById('card-dob').textContent = formatDateJS(member.dob);
+        }
         document.getElementById('card-gender').textContent = member.gender;
         document.getElementById('card-marital').textContent = member.marital_status || 'Single';
 

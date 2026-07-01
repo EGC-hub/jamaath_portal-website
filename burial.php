@@ -153,10 +153,25 @@ require_once 'header.php';
                                 <?php endif; ?>
                             </td>
                             <td class="py-4 px-4 font-semibold text-rose-800">
-                                <span class="bg-rose-50 px-2.5 py-1 rounded-md text-[10px]">
-                                    <i class="fa-solid fa-clock mr-1"></i>
-                                    <?php echo date('d M Y - h:i A', strtotime($burial['burial_datetime'])); ?>
-                                </span>
+                                <div
+                                    class="bg-rose-50 px-3 py-2 rounded-xl text-[10px] inline-flex items-center gap-2 min-w-[145px]">
+                                    <i class="fa-solid fa-clock text-rose-600 text-xs shrink-0"></i>
+
+                                    <div class="flex flex-col leading-normal">
+                                        <span class="whitespace-nowrap font-bold text-slate-800">
+                                            <?php echo date('d M Y - h:i A', strtotime($burial['burial_datetime'])); ?>
+                                        </span>
+
+                                        <?php
+                                        $hijri = getHijriDate($burial['burial_datetime']);
+                                        if (!empty($hijri)):
+                                            ?>
+                                            <span class="text-rose-600 font-medium tracking-wide mt-0.5">
+                                                <?php echo htmlspecialchars($hijri); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </td>
                             <td class="py-4 px-4 font-medium text-slate-700">
                                 <i class="fa-solid fa-map-pin mr-1 text-slate-400"></i>
@@ -713,7 +728,16 @@ require_once 'header.php';
 
     // Open Pop-up details card modal
     function openBurialCard(burial) {
-        document.getElementById('card-date-header').textContent = "Buried Date: " + formatDateJS(burial.burial_datetime);
+        // Format and Stack the Burial Modal Card Header
+        const burialCardHijri = burial.burial_datetime ? getHijriDateJS(burial.burial_datetime) : "";
+        const burialCardGregorian = burial.burial_datetime ? formatDateJS(burial.burial_datetime) : "---";
+
+        document.getElementById('card-date-header').innerHTML = burial.burial_datetime
+            ? `<div class="flex flex-col leading-tight">
+        <span class=" font-semibold">Buried Date: ${burialCardGregorian}</span>
+        ${burialCardHijri ? `<span class="text-[11px] font-normal  mt-0.5 tracking-wide">${burialCardHijri}</span>` : ''}
+       </div>`
+            : "Buried Date: ---";
 
         // Deceased Details Populating
         document.getElementById('pop-dec-name').textContent = burial.deceased_name;
@@ -751,8 +775,27 @@ require_once 'header.php';
         }
 
         // Timestamps and Plots
-        document.getElementById('pop-death-time').textContent = burial.death_datetime ? formatDateJS(burial.death_datetime) : "---";
-        document.getElementById('pop-burial-time').textContent = formatDateJS(burial.burial_datetime);
+        // 1. Format and Stack Death Date & Time
+        const deathHijri = burial.death_datetime ? getHijriDateJS(burial.death_datetime) : "";
+        const deathGregorian = burial.death_datetime ? formatDateJS(burial.death_datetime) : "---";
+
+        document.getElementById('pop-death-time').innerHTML = burial.death_datetime
+            ? `<div class="flex flex-col leading-tight">
+        <span class="text-slate-800 font-semibold">${deathGregorian}</span>
+        ${deathHijri ? `<span class="text-[11px] font-normal text-slate-500 mt-0.5 tracking-wide">${deathHijri}</span>` : ''}
+       </div>`
+            : "---";
+
+        // 2. Format and Stack Burial Date & Time
+        const burialHijri = burial.burial_datetime ? getHijriDateJS(burial.burial_datetime) : "";
+        const burialGregorian = burial.burial_datetime ? formatDateJS(burial.burial_datetime) : "---";
+
+        document.getElementById('pop-burial-time').innerHTML = burial.burial_datetime
+            ? `<div class="flex flex-col leading-tight">
+        <span class="text-slate-800 font-semibold">${burialGregorian}</span>
+        ${burialHijri ? `<span class="text-[11px] font-normal text-slate-500 mt-0.5 tracking-wide">${burialHijri}</span>` : ''}
+       </div>`
+            : "---";
         document.getElementById('pop-plot').textContent = burial.plot_details;
 
         const nocState = document.getElementById('pop-noc-state');

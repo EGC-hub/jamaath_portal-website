@@ -377,6 +377,23 @@
             }, true);
         }
     });
+
+    function getHijriDateJS(gregorianDateStr) {
+        if (!gregorianDateStr || gregorianDateStr.startsWith('0000')) return '';
+
+        const date = new Date(gregorianDateStr);
+        if (isNaN(date.getTime())) return '';
+
+        // Uses internationalization tools present inside modern standard browsers
+        const formatter = new Intl.DateTimeFormat('en-TN-u-ca-islamic-umalqura', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        // Returns formatted string like "16 Muharram 1448 AH"
+        return formatter.format(date).replace("ERA1", "AH");
+    }
 </script>
 <!-- Trigger system messages if redirects pass status text -->
 <?php if (isset($_GET['msg'])): ?>
@@ -385,8 +402,8 @@
             showToast(<?php echo json_encode($_GET['msg']); ?>, "✅");
         });
     </script>
-    <?php endif; ?>
+<?php endif; ?>
 
-    </body>
+</body>
 
-    </html>
+</html>

@@ -215,25 +215,43 @@ require_once 'header.php';
                                         <?php echo htmlspecialchars($m_dec['deceased_member_card_no']); ?>
                                     </td>
                                     <td class="py-3.5 px-4 text-xs text-slate-500">
-                                        <?php echo date('d M Y - h:i A', strtotime($m_dec['death_datetime'])); ?>
+                                        <?php echo htmlspecialchars($m_dec['deceased_mahallah']); ?>
                                     </td>
                                     <td class="py-3.5 px-4 text-rose-600 font-semibold text-xs">
-                                        <span class="bg-teal-50 px-2.5 py-1 rounded-md text-[10px]">
-                                            <i class="fa-solid fa-clock mr-1"></i>
-                                            <?php
-                                            if (!empty($m_dec['death_datetime'])) {
-                                                // Standardizes parsing from database format
-                                                $dateObj = date_create($m_dec['death_datetime']);
-                                                if ($dateObj) {
-                                                    echo date_format($dateObj, 'd M Y - h:i A');
-                                                } else {
-                                                    echo htmlspecialchars($m_dec['death_datetime']); // Fallback if string is purely text
-                                                }
-                                            } else {
-                                                echo 'N/A';
-                                            }
-                                            ?>
-                                        </span>
+                                        <div
+                                            class="bg-rose-50 px-3 py-2 rounded-xl text-[10px] inline-flex items-center gap-2 min-w-[145px]">
+                                            <i class="fa-solid fa-clock text-rose-600 text-xs shrink-0"></i>
+
+                                            <div class="flex flex-col leading-normal">
+                                                <span class="whitespace-nowrap font-bold text-slate-800">
+                                                    <?php
+                                                    if (!empty($m_dec['death_datetime'])) {
+                                                        $dateObj = date_create($m_dec['death_datetime']);
+                                                        if ($dateObj) {
+                                                            echo date_format($dateObj, 'd M Y - h:i A');
+                                                        } else {
+                                                            echo htmlspecialchars($m_dec['death_datetime']);
+                                                        }
+                                                    } else {
+                                                        echo 'N/A';
+                                                    }
+                                                    ?>
+                                                </span>
+
+                                                <?php
+                                                if (!empty($m_dec['death_datetime']) && isset($dateObj) && $dateObj):
+                                                    $hijri = getHijriDate($m_dec['death_datetime']);
+                                                    if (!empty($hijri)):
+                                                        ?>
+                                                        <span class="text-rose-600 font-medium tracking-wide mt-0.5">
+                                                            <?php echo htmlspecialchars($hijri); ?>
+                                                        </span>
+                                                    <?php
+                                                    endif;
+                                                endif;
+                                                ?>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td class="py-3.5 px-4">
                                         <?php echo htmlspecialchars($m_dec['deceased_age']) ?>

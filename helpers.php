@@ -80,4 +80,63 @@ function isSystemAdmin()
     $current_user = $_SESSION['username'] ?? '';
     return ($current_user === 'admin');
 }
+
+if (!function_exists('getHijriDate')) {
+    function getHijriDate($gregorianDate)
+    {
+        if (empty($gregorianDate) || $gregorianDate === '0000-00-00') {
+            return '';
+        }
+
+        try {
+            $time = strtotime($gregorianDate);
+            if (!$time)
+                return '';
+
+            $year = (int) date('Y', $time);
+            $month = (int) date('m', $time);
+            $day = (int) date('d', $time);
+
+            if (($year > 1582) || (($year == 1582) && ($month > 10)) || (($year == 1582) && ($month == 10) && ($day > 14))) {
+                $jd = (int) ((1461 * ($year + 4800 + (int) (($month - 14) / 12))) / 4) +
+                    (int) ((367 * ($month - 2 - 12 * ((int) (($month - 14) / 12)))) / 12) -
+                    (int) ((3 * (int) (($year + 4900 + (int) (($month - 14) / 12)) / 100)) / 4) + $day - 32075;
+            } else {
+                $jd = 367 * $year - (int) ((7 * ($year + 5001 + (int) (($month - 9) / 7))) / 4) +
+                    (int) ((275 * $month) / 9) + $day + 1729777;
+            }
+
+            $l = $jd - 1948440 + 10632;
+            $n = (int) (($l - 1) / 10631);
+            $l = $l - 10631 * $n + 354;
+            $z = ((int) ((10985 - $l) / 5316)) * ((int) ((50 * $l) / 17719)) + ((int) ($l / 5670)) * ((int) ((43 * $l) / 15238));
+            $l = $l - ((int) ((30 - $z) / 15)) * ((int) ((17719 * $z) / 50)) - ((int) ($z / 16)) * ((int) ((15238 * $z) / 43)) + 29;
+
+            $month = (int) ((24 * $l) / 709);
+            $day = $l - (int) ((709 * $month) / 24);
+            $year = 30 * $n + $z - 30;
+
+            $hijriMonths = [
+                1 => "Muharram",
+                2 => "Safar",
+                3 => "Rabi' al-Awwal",
+                4 => "Rabi' ath-Thani",
+                5 => "Jumada al-Ula",
+                6 => "Jumada al-Akhirah",
+                7 => "Rajab",
+                8 => "Sha'ban",
+                9 => "Ramadan",
+                10 => "Shawwal",
+                11 => "Dhu al-Qa'dah",
+                12 => "Dhu al-Hijjah"
+            ];
+
+            $hijriMonthName = $hijriMonths[$month] ?? '';
+
+            return "$day $hijriMonthName $year AH";
+        } catch (Exception $e) {
+            return '';
+        }
+    }
+}
 ?>
