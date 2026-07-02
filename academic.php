@@ -160,7 +160,8 @@ include_once 'header.php';
                         Student Registry
                     </h2>
                     <p class="text-xs text-slate-500">
-                        Manage base demographics data profiles, program levels, and vital emergency contact parameters for students.
+                        Manage base demographics data profiles, program levels, and vital emergency contact parameters
+                        for students.
                     </p>
                 </div>
                 <button onclick="openStudentFormModal()"
@@ -200,34 +201,35 @@ include_once 'header.php';
                                 foreach ($students as $s):
                                     ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors">
-                                        <td class="px-6 py-4 font-mono font-bold text-slate-900">
+                                        <!-- Registration & Photo Grid -->
+                                        <td class="px-6 py-4 font-mono text-xs font-bold text-slate-700 tracking-wide">
                                             <?php echo htmlspecialchars($s['student_reg_no']); ?>
                                         </td>
+
+                                        <!-- Student Name Only Cell -->
                                         <td class="px-6 py-4 font-medium text-slate-800">
                                             <span onclick='triggerStudentProfileView(<?php echo json_encode($s); ?>)'
                                                 class="font-bold text-slate-900 block hover:text-emerald-700 cursor-pointer transition-colors">
                                                 <?php echo htmlspecialchars($s['first_name'] . ' ' . $s['last_name']); ?>
                                             </span>
-                                            <div class="text-[10px] text-slate-500 mt-0.5 font-sans select-none">
-                                                <?php echo htmlspecialchars($s['gender']); ?> &bull; DOB:
-                                                <?php echo date('d-m-Y', strtotime($s['dob'])); ?>
-                                            </div>
                                         </td>
-                                        <td class="px-6 py-4 font-medium text-slate-800">
+
+                                        <!-- Program Levels Placement Cell -->
+                                        <td class="px-6 py-4 text-xs text-slate-600">
                                             <span
-                                                class="inline-flex items-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase select-none tracking-wide mr-1">
-                                                <?php echo htmlspecialchars($s['study_level']); ?>
-                                            </span>
-                                            <span class="text-slate-500 text-xs font-normal">
-                                                <?php echo htmlspecialchars($s['study_specification'] ?? 'N/A'); ?>
-                                            </span>
+                                                class="inline-block bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-md uppercase text-[10px] tracking-wider mr-1.5"><?php echo htmlspecialchars($s['study_level']); ?></span>
+                                            <?php echo htmlspecialchars($s['study_specification'] ?? 'N/A'); ?>
                                         </td>
-                                        <td class="px-6 py-4 font-mono text-slate-700 text-xs">
-                                            <div class="font-bold text-slate-900 font-sans text-xs mb-0.5">
-                                                <?php echo htmlspecialchars($s['guardian_name']); ?>
+
+                                        <!-- Primary Contact: Father Full Profile Target -->
+                                        <td class="px-6 py-4 text-xs text-slate-700">
+                                            <div class="font-bold text-slate-900">
+                                                <?php echo htmlspecialchars($s['father_name']); ?>
                                             </div>
-                                            <i
-                                                class="fa-solid fa-phone text-[10px] text-slate-400 mr-1"></i><?php echo htmlspecialchars($s['guardian_phone']); ?>
+                                            <div class="text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                                                <i class="fa-solid fa-phone text-[10px] text-slate-400"></i>
+                                                <?php echo htmlspecialchars($s['father_phone']); ?>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4.5 text-center">
                                             <div class="inline-flex items-center justify-center gap-1.5">
@@ -405,7 +407,7 @@ include_once 'header.php';
                     <div>
                         <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Last
                             Name <span class="text-rose-500">*</span></label>
-                        <input type="text" name="last_name" id="field_last_name" required placeholder="e.g., Abdullah"
+                        <input type="text" name="last_name" id="field_last_name" required placeholder="e.g., Sulthan"
                             class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
                     </div>
                     <div>
@@ -422,6 +424,32 @@ include_once 'header.php';
                             of Birth <span class="text-rose-500">*</span></label>
                         <input type="date" name="dob" id="field_dob" required
                             class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Marital
+                            Status <span class="text-rose-500">*</span></label>
+                        <select name="marital_status" id="field_marital_status" required
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Blood
+                            Group <span class="text-rose-500">*</span></label>
+                        <select name="blood_group" id="field_blood_group" required
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
+                            <option value="">Select Blood Group</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -459,15 +487,81 @@ include_once 'header.php';
             </div>
 
             <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
-                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">3. Primary Communication
-                    Vectors</h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">3. Jamaath Affiliation
+                    Parameters
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Jamaath
+                            Status <span class="text-rose-500">*</span></label>
+                        <select name="jamaath_status" id="field_jamaath_status"
+                            onchange="toggleJamaathAffiliationFields()" required
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
+                            <option value="Within">Within Jamaath</option>
+                            <option value="Outside">Outside Jamaath</option>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Field: Inside Jamaath Input Box -->
+                    <div id="wrapper_jamaath_membership" class="block">
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Membership
+                            Card ID (Student / Father) <span class="text-rose-500">*</span></label>
+                        <input type="text" name="jamaath_membership_id" id="field_jamaath_membership_id"
+                            placeholder="e.g., M-1041 or F-302"
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all uppercase font-mono">
+                    </div>
+
+                    <!-- Dynamic Field: Outside Jamaath Dropdown List -->
+                    <div id="wrapper_jamaath_outside_dropdown" class="hidden">
+                        <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Select
+                            External Jamaath <span class="text-rose-500">*</span></label>
+                        <select name="external_jamaath_name" id="field_external_jamaath_name"
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
+                            <option value="">Select External Jamaath Region</option>
+                            <option value="Kottar Jamaath">Kottar Jamaath</option>
+                            <option value="Elankadai Jamaath">Elankadai Jamaath</option>
+                            <option value="Thuckalay Jamaath">Thuckalay Jamaath</option>
+                            <option value="Colachel Jamaath">Colachel Jamaath</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">4. Primary Family &
+                    Communication Contacts</h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Father's
+                            Name <span class="text-rose-500">*</span></label>
+                        <input type="text" name="father_name" id="field_father_name" required
+                            placeholder="Father's Full Name"
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Father's
+                            Contact Phone <span class="text-rose-500">*</span></label>
+                        <div class="iti-parent w-full">
+                            <input type="tel" name="father_phone" id="field_father_phone" required
+                                placeholder="Mandatory Contact"
+                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     <div>
                         <label
                             class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Student
-                            Phone Phone</label>
+                            Personal Phone</label>
                         <div class="iti-parent w-full">
-                            <input type="tel" name="student_phone" id="field_student_phone" placeholder="Optional"
+                            <input type="tel" name="student_phone" id="field_student_phone"
+                                placeholder="Optional (Self Contact)"
                                 class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
                         </div>
                     </div>
@@ -476,13 +570,13 @@ include_once 'header.php';
                             class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Guardian
                             Name <span class="text-rose-500">*</span></label>
                         <input type="text" name="guardian_name" id="field_guardian_name" required
-                            placeholder="Full Name"
+                            placeholder="Guardian's Name"
                             class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
                     </div>
                     <div>
                         <label
                             class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Guardian
-                            Phone <span class="text-rose-500">*</span></label>
+                            Phone Number <span class="text-rose-500">*</span></label>
                         <div class="iti-parent w-full">
                             <input type="tel" name="guardian_phone" id="field_guardian_phone" required
                                 placeholder="Emergency No"
@@ -493,48 +587,141 @@ include_once 'header.php';
             </div>
 
             <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
-                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">4. Residential Location
-                    Metrics</h4>
-                <div class="space-y-3">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label
-                                class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Address
-                                Line 1 <span class="text-rose-500">*</span></label>
-                            <input type="text" name="address_line1" id="field_address_line1" required
-                                placeholder="Door No, Building Name, Street"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">5. Residential & Communication
+                    Address</h4>
+                <div class="space-y-4">
+
+                    <!-- Sub-Card A: Residential Address Profile -->
+                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-150 space-y-3 shadow-2xs">
+                        <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs pb-1 select-none">
+                            <i class="fa-solid fa-house-chimney text-emerald-600"></i> Residential Address
                         </div>
-                        <div>
-                            <label
-                                class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Address
-                                Line 2</label>
-                            <input type="text" name="address_line2" id="field_address_line2"
-                                placeholder="Locality, Area Name"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Address
+                                    Line 1 <span class="text-rose-500">*</span></label>
+                                <input type="text" name="res_address_line1" id="field_res_address_line1" required
+                                    placeholder="Street / Door No"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Address
+                                    Line 2</label>
+                                <input type="text" name="res_address_line2" id="field_res_address_line2"
+                                    placeholder="Locality / Landmark"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">City
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="res_city" id="field_res_city" required
+                                    placeholder="e.g. Nagercoil"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Pincode
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="res_pincode" id="field_res_pincode" required
+                                    placeholder="e.g. 629002"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">State
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="res_state" id="field_res_state" required
+                                    placeholder="e.g. Tamil Nadu"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Country
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="res_country" id="field_res_country" required value="India"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+
+                    <!-- Sub-Card B: Communication Address Profile -->
+                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-150 space-y-3 shadow-2xs">
+                        <div class="flex items-center justify-between pb-1 select-none">
+                            <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs">
+                                <i class="fa-solid fa-briefcase text-teal-600"></i> Communication Address
+                            </div>
                             <label
-                                class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">City
-                                <span class="text-rose-500">*</span></label>
-                            <input type="text" name="city" id="field_city" required placeholder="e.g., Nagercoil"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                                class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer">
+                                <input type="checkbox" id="field_same_address_checkbox"
+                                    onchange="syncResidentialToCommunicationAddress()"
+                                    class="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                                Same as Residential Address
+                            </label>
                         </div>
-                        <div>
-                            <label
-                                class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Pincode
-                                / Postal Zip Code <span class="text-rose-500">*</span></label>
-                            <input type="text" name="pincode" id="field_pincode" required placeholder="e.g., 629001"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Address
+                                    Line 1 <span class="text-rose-500">*</span></label>
+                                <input type="text" name="comm_address_line1" id="field_comm_address_line1" required
+                                    placeholder="Street / Door No"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Address
+                                    Line 2</label>
+                                <input type="text" name="comm_address_line2" id="field_comm_address_line2"
+                                    placeholder="Locality / Landmark"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">City
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="comm_city" id="field_comm_city" required
+                                    placeholder="e.g. Nagercoil"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Pincode
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="comm_pincode" id="field_comm_pincode" required
+                                    placeholder="e.g. 629002"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">State
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="comm_state" id="field_comm_state" required
+                                    placeholder="e.g. Tamil Nadu"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Country
+                                    <span class="text-rose-500">*</span></label>
+                                <input type="text" name="comm_country" id="field_comm_country" required value="India"
+                                    class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
+                            </div>
                         </div>
                     </div>
+
                 </div>
+
             </div>
 
             <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
-                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">5. Verification Credentials
+                <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">6. Verification Credentials
                     Mapping</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <div>
@@ -581,6 +768,7 @@ include_once 'header.php';
     </div>
 </div>
 
+<!-- View Student Profile Modal Chassis -->
 <div id="student-view-modal"
     class="fixed inset-0 z-50 invisible opacity-0 transition-all duration-300 flex items-center justify-center p-4 overflow-y-auto">
     <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onclick="closeStudentViewModal()"></div>
@@ -588,20 +776,21 @@ include_once 'header.php';
     <div class="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden relative z-10 transform scale-95 transition-transform duration-300 my-8"
         id="student-view-chassis">
 
+        <!-- Header Profile Banner Panel -->
         <div class="bg-emerald-950 text-white p-6 relative flex justify-between items-start select-none">
             <div class="flex items-center gap-4">
-                <div class="w-32 h-32 rounded-full bg-emerald-800/50 border border-emerald-500/30 flex items-center justify-center text-white text-2xl font-bold tracking-wider font-mono shadow-inner"
+                <div class="w-24 h-24 rounded-full bg-emerald-800/50 border-2 border-emerald-500/30 flex items-center justify-center text-white text-3xl font-bold tracking-wider font-mono shadow-inner overflow-hidden shrink-0"
                     id="view_avatar_placeholder">
                     ST
                 </div>
-                <div class="space-y-1">
-                    <h3 id="view_full_name" class="text-xl font-bold tracking-tight">Student Name</h3>
+                <div class="space-y-1.5">
+                    <h3 id="view_full_name" class="text-2xl font-bold tracking-tight">Student Name</h3>
                     <div class="flex flex-wrap gap-1.5 items-center">
                         <span id="view_tag_reg_no"
-                            class="bg-emerald-900/80 border border-emerald-700/50 text-[10px] px-2 py-0.5 rounded-md font-bold font-mono uppercase text-emerald-300 tracking-wider">Card:
+                            class="bg-emerald-900/80 border border-emerald-700/50 text-[10px] px-2.5 py-0.5 rounded-md font-bold font-mono uppercase text-emerald-300 tracking-wider">Card:
                             N/A</span>
                         <span id="view_tag_gender"
-                            class="bg-emerald-900/80 border border-emerald-700/50 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase text-emerald-300 tracking-wider">Gender</span>
+                            class="bg-emerald-900/80 border border-emerald-700/50 text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase text-emerald-300 tracking-wider">Gender</span>
                     </div>
                 </div>
             </div>
@@ -609,10 +798,12 @@ include_once 'header.php';
                 class="text-white/60 hover:text-white transition-colors cursor-pointer text-xl font-semibold bg-white/10 hover:bg-white/20 w-7 h-7 rounded-full flex items-center justify-center">&times;</button>
         </div>
 
-        <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto bg-slate-50/30">
+        <!-- Main Dossier Content Body Grid -->
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto bg-slate-50/40">
 
+            <!-- Matrix 1: Core Institutional & Demographics Data Profile -->
             <div
-                class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-xs">
+                class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 <div>
                     <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Date of
                         Birth</span>
@@ -623,14 +814,33 @@ include_once 'header.php';
                         Level</span>
                     <div id="view_study_level" class="font-bold text-slate-800">N/A</div>
                 </div>
-                <div class="col-span-2 md:col-span-1">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Study
+                <div>
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Blood
+                        Group</span>
+                    <div id="view_blood_group" class="font-bold text-rose-600 font-mono">N/A</div>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Marital
+                        Status</span>
+                    <div id="view_marital_status" class="font-bold text-slate-800">N/A</div>
+                </div>
+                <div class="col-span-2">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Track
                         Specification</span>
                     <div id="view_study_specification" class="font-bold text-slate-800 truncate">N/A</div>
                 </div>
+                <div class="col-span-2">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Jamaath
+                        Connection Registry</span>
+                    <div id="view_jamaath_identity"
+                        class="font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded inline-block">
+                        N/A</div>
+                </div>
             </div>
 
+            <!-- Matrix 2: Communication Vectors Grid Layout -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Phone Card -->
                 <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex items-start gap-3 text-xs">
                     <div
                         class="text-emerald-600 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
@@ -643,71 +853,90 @@ include_once 'header.php';
                     </div>
                 </div>
 
+                <!-- Father Identity Details -->
+                <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex items-start gap-3 text-xs">
+                    <div
+                        class="text-slate-600 bg-slate-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Father
+                            / Primary</span>
+                        <div id="view_father_name" class="font-bold text-slate-800 truncate">N/A</div>
+                        <div id="view_father_phone" class="font-mono text-[11px] text-slate-500 mt-0.5">N/A</div>
+                    </div>
+                </div>
+
+                <!-- Emergency Guardian Card -->
                 <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex items-start gap-3 text-xs">
                     <div class="text-teal-600 bg-teal-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
                         <i class="fa-solid fa-shield-halved"></i>
                     </div>
                     <div class="truncate">
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Primary
-                            Guardian</span>
+                        <span
+                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Guardian</span>
                         <div id="view_guardian_name" class="font-bold text-slate-800 truncate">N/A</div>
                         <div id="view_guardian_phone" class="font-mono text-[11px] text-slate-500 mt-0.5">N/A</div>
                     </div>
                 </div>
+            </div>
 
-                <div
-                    class="bg-white p-4 rounded-xl border border-dashed border-slate-200 shadow-xs flex items-start gap-3 text-xs">
+            <!-- Identity Verification Document Container -->
+            <div
+                class="bg-white p-4 rounded-xl border border-dashed border-slate-200 shadow-xs flex items-center justify-between text-xs">
+                <div class="flex items-center gap-3">
                     <div
                         class="text-indigo-600 bg-indigo-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
                         <i class="fa-solid fa-id-card"></i>
                     </div>
-                    <div class="truncate w-full">
+                    <div>
                         <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Aadhaar
                             Identity</span>
-                        <div id="view_aadhar_no" class="font-bold text-slate-800 font-mono tracking-wide">---- ----
-                            ----</div>
-                        <div id="view_aadhar_link_wrapper"
-                            class="mt-1 text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-                            <i class="fa-solid fa-file-arrow-down text-[10px]"></i>
-                            <a id="view_aadhar_download" href="#" target="_blank"
-                                class="underline hover:text-emerald-700 transition-colors">View Attachment</a>
-                        </div>
+                        <div id="view_aadhar_no" class="font-bold text-slate-800 tracking-wider">---- ---- ----</div>
                     </div>
+                </div>
+                <div id="view_aadhar_link_wrapper"
+                    class="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <a id="view_aadhar_download" href="#" target="_blank"
+                        class="hover:text-emerald-700 transition-colors">View Document Scan</a>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs text-xs space-y-3">
-                <div class="flex items-center gap-1.5 border-b border-slate-100 pb-2 text-slate-400 select-none">
-                    <i class="fa-solid fa-map-location-dot text-slate-300"></i>
-                    <h4 class="text-[10px] font-bold tracking-wider uppercase">Residential Location Metrics</h4>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Street
-                            Address Coordinates</span>
-                        <div id="view_address_full" class="font-semibold text-slate-700 leading-relaxed">Line 1,
-                            Line 2</div>
+            <!-- Matrix 3: Address Profiles Layout (Dual Column Stacked Cards) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Residential Address View Block -->
+                <!-- Residential Address View Block -->
+                <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs text-xs space-y-2">
+                    <div class="flex items-center gap-1.5 font-bold text-slate-700 border-b border-slate-100 pb-1.5">
+                        <i class="fa-solid fa-house-chimney text-emerald-600"></i> Residential Location Address
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <span
-                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">City
-                                / Town</span>
-                            <div id="view_city" class="font-bold text-slate-800">N/A</div>
-                        </div>
-                        <div>
-                            <span
-                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Postal
-                                Pincode</span>
-                            <div id="view_pincode" class="font-bold text-slate-800 font-mono">------</div>
-                        </div>
+                    <div class="space-y-1 text-slate-700 font-semibold leading-relaxed">
+                        <div id="view_res_address" class="text-slate-800 font-bold">N/A</div>
+                        <div><span id="view_res_city">N/A</span>, <span id="view_res_state">N/A</span>, <span
+                                id="view_res_country" class="text-slate-500 font-bold">India</span></div>
+                        <div class="font-mono text-[11px] text-slate-400" id="view_res_postal">------</div>
+                    </div>
+                </div>
+
+                <!-- Communication Address View Block -->
+                <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs text-xs space-y-2">
+                    <div class="flex items-center gap-1.5 font-bold text-slate-700 border-b border-slate-100 pb-1.5">
+                        <i class="fa-solid fa-briefcase text-teal-600"></i> Communication Contact Address
+                    </div>
+                    <div class="space-y-1 text-slate-700 font-semibold leading-relaxed">
+                        <div id="view_comm_address" class="text-slate-800 font-bold">N/A</div>
+                        <div><span id="view_comm_city">N/A</span>, <span id="view_comm_state">N/A</span>, <span
+                                id="view_comm_country" class="text-slate-500 font-bold">India</span></div>
+                        <div class="font-mono text-[11px] text-slate-400" id="view_comm_postal">------</div>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-150 flex items-center justify-end select-none">
+        <!-- Footer Dismiss Window Action Belt -->
+        <div class="bg-slate-50 px-5 py-3.5 border-t border-t-slate-150 flex items-center justify-end select-none">
             <button onclick="closeStudentViewModal()"
                 class="px-5 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-all shadow-xs cursor-pointer tracking-wide">
                 Close Profile
@@ -811,6 +1040,16 @@ include_once 'header.php';
 
         modal.classList.remove('invisible', 'opacity-0');
         setTimeout(() => chassis.classList.remove('scale-95'), 20);
+
+        // Default form configuration parameters for fresh inputs
+        document.getElementById('field_jamaath_status').value = 'Within';
+        toggleJamaathAffiliationFields();
+
+        const sameAddrCheck = document.getElementById('field_same_address_checkbox');
+        if (sameAddrCheck) {
+            sameAddrCheck.checked = false;
+            syncResidentialToCommunicationAddress();
+        }
     }
 
     function closeStudentFormModal() {
@@ -836,32 +1075,74 @@ include_once 'header.php';
         document.getElementById('student-modal-title').innerHTML = `Modify Student Profile Workspace Parameters: [${student.student_reg_no}]`;
         document.getElementById('student-form-submit-btn').innerHTML = 'Apply Changes';
 
-        // Bind corresponding values safely to layout fields
+        // --- Block 1: Demographics & Core Fields ---
         document.getElementById('field_first_name').value = student.first_name;
         document.getElementById('field_last_name').value = student.last_name;
         document.getElementById('field_gender').value = student.gender;
         document.getElementById('field_dob').value = student.dob;
+        document.getElementById('field_marital_status').value = student.marital_status || 'Single';
+        document.getElementById('field_blood_group').value = student.blood_group || '';
+
+        // --- Block 2: Academic Track ---
         document.getElementById('field_study_level').value = student.study_level;
         document.getElementById('field_study_specification').value = student.study_specification || '';
+
+        // --- New Section: Jamaath Affiliation Mappings ---
+        if (student.jamaath_status) {
+            document.getElementById('field_jamaath_status').value = student.jamaath_status;
+            if (student.jamaath_status === 'Within') {
+                document.getElementById('field_jamaath_membership_id').value = student.jamaath_membership_id || '';
+            } else if (student.jamaath_status === 'Outside') {
+                document.getElementById('field_external_jamaath_name').value = student.external_jamaath_name || '';
+            }
+        }
+        toggleJamaathAffiliationFields(); // Fire layout visibility filter
+
+        // --- Block 3: Family Contacts ---
+        document.getElementById('field_father_name').value = student.father_name || '';
+        document.getElementById('field_father_phone').value = student.father_phone || '';
         document.getElementById('field_student_phone').value = student.student_phone || '';
         document.getElementById('field_guardian_name').value = student.guardian_name;
         document.getElementById('field_guardian_phone').value = student.guardian_phone;
-        document.getElementById('field_address_line1').value = student.address_line1;
-        document.getElementById('field_address_line2').value = student.address_line2 || '';
-        document.getElementById('field_city').value = student.city;
-        document.getElementById('field_pincode').value = student.pincode;
 
-        // Handle identification records mapping
-        document.getElementById('field_aadhar_no').value = student.aadhar_no;
-        document.getElementById('field_aadhar_no').disabled = true;
+        // --- Block 4: Dual Address Infrastructure Mappings ---
+        document.getElementById('field_res_address_line1').value = student.res_address_line1 || '';
+        document.getElementById('field_res_address_line2').value = student.res_address_line2 || '';
+        document.getElementById('field_res_city').value = student.res_city || '';
+        document.getElementById('field_res_pincode').value = student.res_pincode || '';
+        document.getElementById('field_res_state').value = student.res_state || '';
+        document.getElementById('field_res_country').value = student.res_country || 'India';
 
-        // --- FILE HANDLING MANAGEMENT RULES FOR EDITS ---
+        document.getElementById('field_comm_address_line1').value = student.comm_address_line1 || '';
+        document.getElementById('field_comm_address_line2').value = student.comm_address_line2 || '';
+        document.getElementById('field_comm_city').value = student.comm_city || '';
+        document.getElementById('field_comm_pincode').value = student.comm_pincode || '';
+        document.getElementById('field_comm_state').value = student.comm_state || '';
+        document.getElementById('field_comm_country').value = student.comm_country || 'India';
 
-        // Since files already exist on the server, they are not mandatory for edits
+        // Evaluate if Residential matches Communication to set synchronization state toggle
+        const isSameAddress =
+            (student.res_address_line1 === student.comm_address_line1) &&
+            (student.res_address_line2 === student.comm_address_line2) &&
+            (student.res_city === student.comm_city) &&
+            (student.res_pincode === student.comm_pincode) &&
+            (student.res_state === student.comm_state) &&
+            (student.res_country === student.comm_country);
+
+        const sameAddrCheckbox = document.getElementById('field_same_address_checkbox');
+        if (sameAddrCheckbox) {
+            sameAddrCheckbox.checked = isSameAddress;
+            syncResidentialToCommunicationAddress(); // Activates lock styles if true
+        }
+
+        // --- Block 5: File Handling and Identity Management ---
+        document.getElementById('field_aadhar_no').value = student.aadhar_no || '';
+        document.getElementById('field_aadhar_no').disabled = true; // Lock identity field adjustments
+
         document.getElementById('field_student_avatar').required = false;
         document.getElementById('field_aadhar_doc').required = false;
 
-        // 1. Populate Existing Student Avatar Preview Image
+        // Handle Avatar Preview
         const avatarImg = document.getElementById('field_avatar_preview');
         const avatarIcon = document.getElementById('field_avatar_icon');
         if (student.avatar_path) {
@@ -873,24 +1154,21 @@ include_once 'header.php';
             avatarIcon.classList.remove('hidden');
         }
 
-        // 2. Populate Existing Document Preview Framework Mappings
+        // Handle Verification Scan Document Preview
         const docLink = document.getElementById('field_aadhar_doc_link');
         const previewContainer = document.getElementById('field_aadhar_preview_container');
         const imgPreview = document.getElementById('field_aadhar_img_preview');
         const pdfPreview = document.getElementById('field_aadhar_pdf_preview');
         const pdfName = document.getElementById('field_aadhar_pdf_name');
 
-        // Clear previous state selections
         if (previewContainer) previewContainer.classList.add('hidden');
         if (imgPreview) imgPreview.classList.add('hidden');
         if (pdfPreview) pdfPreview.classList.add('hidden');
 
         if (student.aadhar_doc_path) {
-            // Render text link indicator beneath file container channel
             docLink.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> <a href="${student.aadhar_doc_path}" target="_blank" class="underline font-bold hover:text-emerald-700">View Active Document Scan Profile</a>`;
             docLink.classList.remove('hidden');
 
-            // Render live preview element inside preview blocks if it's an image or a PDF template
             if (previewContainer) {
                 const extension = student.aadhar_doc_path.split('.').pop().toLowerCase();
                 previewContainer.classList.remove('hidden');
@@ -911,9 +1189,10 @@ include_once 'header.php';
             docLink.classList.add('hidden');
         }
 
-        // Auto-detect and set international flag configurations on edit population
+        // Set phone flags formatting parameters dynamically
         if (itiStudent && student.student_phone) itiStudent.setNumber(student.student_phone);
         if (itiGuardian && student.guardian_phone) itiGuardian.setNumber(student.guardian_phone);
+        if (itiFather && student.father_phone) itiFather.setNumber(student.father_phone);
 
         modal.classList.remove('invisible', 'opacity-0');
         setTimeout(() => chassis.classList.remove('scale-95'), 20);
@@ -925,7 +1204,7 @@ include_once 'header.php';
     });
 
     // Global references for international phone validation tracking
-    let itiStudent, itiGuardian;
+    let itiStudent, itiGuardian, itiFather;
 
     document.addEventListener("DOMContentLoaded", function () {
         const studentInput = document.getElementById("field_student_phone");
@@ -949,16 +1228,23 @@ include_once 'header.php';
             });
         }
 
+        // Initialize Father Phone Field
+        const fatherInput = document.getElementById("field_father_phone");
+        if (fatherInput && typeof window.intlTelInput !== "undefined") {
+            itiFather = window.intlTelInput(fatherInput, {
+                initialCountry: "in",
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+            });
+        }
+
         // Intercept form submit to append full international numbers seamlessly
         const studentForm = document.getElementById("student-config-form");
         if (studentForm) {
             studentForm.addEventListener("submit", function () {
-                if (itiStudent && studentInput.value.trim()) {
-                    studentInput.value = itiStudent.getNumber(); // Replaces local digits with full international string (+91...)
-                }
-                if (itiGuardian && guardianInput.value.trim()) {
-                    guardianInput.value = itiGuardian.getNumber();
-                }
+                if (itiStudent && studentInput.value.trim()) studentInput.value = itiStudent.getNumber();
+                if (itiGuardian && guardianInput.value.trim()) guardianInput.value = itiGuardian.getNumber();
+                if (itiFather && fatherInput.value.trim()) fatherInput.value = itiFather.getNumber(); // Appends +91 format securely
             });
         }
     });
@@ -1055,93 +1341,93 @@ include_once 'header.php';
 
     // View Modal Display Interface Controller Matrix
     function triggerStudentProfileView(student) {
-        console.log("Profile view handler sequence invoked for:", student);
+        console.log("Invoking view pipeline layout parameters context tracker:", student);
 
         const modal = document.getElementById('student-view-modal');
         const chassis = document.getElementById('student-view-chassis');
 
-        if (!modal || !chassis) {
-            console.error("Layout target wrapper matching chassis containers could not be found in active DOM frameworks.");
-            return;
-        }
+        if (!modal || !chassis) return;
 
-        // Safe Assignments using optional checks and value verification cascades
+        // Force Modal Display Visibility States
+        modal.classList.remove('invisible', 'opacity-0');
+        setTimeout(() => chassis.classList.remove('scale-95'), 20);
+
+        // Core Profile Name Identifiers
         const fName = student.first_name || '';
         const lName = student.last_name || '';
-        const fullName = (fName + ' ' + lName).trim() || 'Unmapped Profile';
+        document.getElementById('view_full_name').textContent = `${fName} ${lName}`.trim();
+        document.getElementById('view_tag_reg_no').textContent = `Card: ${student.student_reg_no || 'N/A'}`;
+        document.getElementById('view_tag_gender').textContent = student.gender || 'N/A';
 
-        const elFullName = document.getElementById('view_full_name');
-        if (elFullName) elFullName.textContent = fullName;
-
-        const elRegNo = document.getElementById('view_tag_reg_no');
-        if (elRegNo) elRegNo.textContent = `Card: ${student.student_reg_no || 'N/A'}`;
-
-        const elGender = document.getElementById('view_tag_gender');
-        if (elGender) elGender.textContent = student.gender || 'N/A';
-
+        // Set Dynamic Photo Avatar Box
         const elAvatar = document.getElementById('view_avatar_placeholder');
         if (elAvatar) {
             if (student.avatar_path) {
-                elAvatar.innerHTML = `<img src="${student.avatar_path}" class="w-full h-full object-cover rounded-full" alt="Student Profile Picture">`;
+                elAvatar.innerHTML = `<img src="${student.avatar_path}" class="w-full h-full object-cover" alt="Student profile picture asset">`;
             } else {
-                elAvatar.textContent = ((student.first_name?.charAt(0) || '') + (student.last_name?.charAt(0) || '')).toUpperCase();
+                elAvatar.textContent = ((fName.charAt(0) || '') + (lName.charAt(0) || '')).toUpperCase();
             }
         }
 
-        const elDob = document.getElementById('view_dob');
-        if (elDob) {
-            elDob.textContent = student.dob ? student.dob.split('-').reverse().join('-') : '--/--/----';
+        // Expanded Informational Profiles Matrix
+        document.getElementById('view_dob').textContent = student.dob ? student.dob.split('-').reverse().join('-') : '--------';
+        document.getElementById('view_study_level').textContent = student.study_level || 'N/A';
+        document.getElementById('view_study_specification').textContent = student.study_specification || 'N/A';
+        document.getElementById('view_blood_group').textContent = student.blood_group || 'N/A';
+        document.getElementById('view_marital_status').textContent = student.marital_status || 'Single';
+
+        // Process Jamaath Text Conditions Label
+        const elJamaath = document.getElementById('view_jamaath_identity');
+        if (elJamaath) {
+            if (student.jamaath_status === 'Within') {
+                elJamaath.textContent = `Within Jamaath (ID: ${student.jamaath_membership_id || 'N/A'})`;
+                elJamaath.className = "font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded inline-block text-[11px]";
+            } else {
+                elJamaath.textContent = `External: ${student.external_jamaath_name || 'N/A'}`;
+                elJamaath.className = "font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded inline-block text-[11px]";
+            }
         }
 
-        const elLevel = document.getElementById('view_study_level');
-        if (elLevel) elLevel.textContent = student.study_level || 'N/A';
+        // Contact Nodes Assignments
+        document.getElementById('view_student_phone').textContent = student.student_phone || 'N/A';
+        document.getElementById('view_father_name').textContent = student.father_name || 'N/A';
+        document.getElementById('view_father_phone').textContent = student.father_phone || 'N/A';
+        document.getElementById('view_guardian_name').textContent = student.guardian_name || 'N/A';
+        document.getElementById('view_guardian_phone').textContent = student.guardian_phone || 'N/A';
 
-        const elSpec = document.getElementById('view_study_specification');
-        if (elSpec) elSpec.textContent = student.study_specification || 'N/A';
-
-        const elPhone = document.getElementById('view_student_phone');
-        if (elPhone) elPhone.textContent = student.student_phone || 'N/A';
-
-        const elGName = document.getElementById('view_guardian_name');
-        if (elGName) elGName.textContent = student.guardian_name || 'N/A';
-
-        const elGPhone = document.getElementById('view_guardian_phone');
-        if (elGPhone) elGPhone.textContent = student.guardian_phone || 'N/A';
-
+        // Dynamic Identification Formatting
         const elAadhar = document.getElementById('view_aadhar_no');
         if (elAadhar) {
             elAadhar.textContent = student.aadhar_no ? student.aadhar_no.replace(/(\d{4})/g, '$1 ').trim() : '---- ---- ----';
         }
 
-        // Geographic address configuration mapping check
-        const elAddress = document.getElementById('view_address_full');
-        if (elAddress) {
-            const secondaryAddress = student.address_line2 ? `, ${student.address_line2}` : '';
-            elAddress.textContent = `${student.address_line1 || ''}${secondaryAddress}`;
-        }
+        // Mapping Card A: Residential Geographic Locations with Country
+        const secondaryRes = student.res_address_line2 ? `, ${student.res_address_line2}` : '';
+        document.getElementById('view_res_address').textContent = `${student.res_address_line1 || 'N/A'}${secondaryRes}`;
+        document.getElementById('view_res_city').textContent = student.res_city || 'N/A';
+        document.getElementById('view_res_state').textContent = student.res_state || 'N/A';
+        document.getElementById('view_res_country').textContent = student.res_country || 'India';
+        document.getElementById('view_res_postal').textContent = student.res_pincode ? `PIN: ${student.res_pincode}` : '------';
 
-        const elCity = document.getElementById('view_city');
-        if (elCity) elCity.textContent = student.city || 'N/A';
+        // Mapping Card B: Communication Geographic Locations with Country
+        const secondaryComm = student.comm_address_line2 ? `, ${student.comm_address_line2}` : '';
+        document.getElementById('view_comm_address').textContent = `${student.comm_address_line1 || 'N/A'}${secondaryComm}`;
+        document.getElementById('view_comm_city').textContent = student.comm_city || 'N/A';
+        document.getElementById('view_comm_state').textContent = student.comm_state || 'N/A';
+        document.getElementById('view_comm_country').textContent = student.comm_country || 'India';
+        document.getElementById('view_comm_postal').textContent = student.comm_pincode ? `PIN: ${student.comm_pincode}` : '------';
 
-        const elPincode = document.getElementById('view_pincode');
-        if (elPincode) elPincode.textContent = student.pincode || '------';
-
-        // Secure download link attachment asset pipeline mapping validation check
+        // Control Document Link Mapping Structures
         const downloadAction = document.getElementById('view_aadhar_download');
         const linkWrapper = document.getElementById('view_aadhar_link_wrapper');
-
         if (downloadAction && linkWrapper) {
             if (student.aadhar_doc_path) {
                 downloadAction.href = student.aadhar_doc_path;
-                linkWrapper.classList.remove('hidden');
+                linkWrapper.style.display = 'flex';
             } else {
-                linkWrapper.classList.add('hidden');
+                linkWrapper.style.display = 'none';
             }
         }
-
-        // Fire display configuration animation transitions
-        modal.classList.remove('invisible', 'opacity-0');
-        setTimeout(() => chassis.classList.remove('scale-95'), 20);
     }
 
     function closeStudentViewModal() {
@@ -1151,6 +1437,82 @@ include_once 'header.php';
         chassis.classList.add('scale-95');
         modal.classList.add('opacity-0');
         setTimeout(() => modal.classList.add('invisible'), 300);
+    }
+
+    function syncResidentialToCommunicationAddress() {
+        const isSynced = document.getElementById('field_same_address_checkbox').checked;
+
+        // Define key field mapping pairs
+        const addressMap = [
+            { source: 'field_res_address_line1', target: 'field_comm_address_line1' },
+            { source: 'field_res_address_line2', target: 'field_comm_address_line2' },
+            { source: 'field_res_city', target: 'field_comm_city' },
+            { source: 'field_res_pincode', target: 'field_comm_pincode' },
+            { source: 'field_res_state', target: 'field_comm_state' },
+            { source: 'field_res_country', target: 'field_comm_country' }
+        ];
+
+        addressMap.forEach(pair => {
+            const srcEl = document.getElementById(pair.source);
+            const tgtEl = document.getElementById(pair.target);
+
+            if (srcEl && tgtEl) {
+                if (isSynced) {
+                    tgtEl.value = srcEl.value;
+                    tgtEl.readOnly = true;
+                    tgtEl.classList.add('bg-slate-50', 'text-slate-500'); // Add locked styling hint
+                } else {
+                    tgtEl.readOnly = false;
+                    tgtEl.classList.remove('bg-slate-50', 'text-slate-500');
+                }
+            }
+        });
+    }
+
+    // Attach real-time input listeners to residential fields so changes reflect instantly while checked
+    document.addEventListener("DOMContentLoaded", function () {
+        const fieldsToWatch = ['field_res_address_line1', 'field_res_address_line2', 'field_res_city', 'field_res_pincode', 'field_res_state', 'field_res_country'];
+        fieldsToWatch.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', function () {
+                    if (document.getElementById('field_same_address_checkbox').checked) {
+                        syncResidentialToCommunicationAddress();
+                    }
+                });
+            }
+        });
+    });
+
+    function toggleJamaathAffiliationFields() {
+        const status = document.getElementById('field_jamaath_status').value;
+        const wrapMembership = document.getElementById('wrapper_jamaath_membership');
+        const wrapOutside = document.getElementById('wrapper_jamaath_outside_dropdown');
+
+        const inputMembership = document.getElementById('field_jamaath_membership_id');
+        const selectOutside = document.getElementById('field_external_jamaath_name');
+
+        if (status === 'Within') {
+            // Show membership layout path
+            wrapMembership.classList.remove('hidden');
+            wrapOutside.classList.add('hidden');
+
+            if (inputMembership) inputMembership.required = true;
+            if (selectOutside) {
+                selectOutside.required = false;
+                selectOutside.value = ''; // Flush stale choice
+            }
+        } else if (status === 'Outside') {
+            // Show external region mapping dropdown path
+            wrapMembership.classList.add('hidden');
+            wrapOutside.classList.remove('hidden');
+
+            if (inputMembership) {
+                inputMembership.required = false;
+                inputMembership.value = '';
+            }
+            if (selectOutside) selectOutside.required = true;
+        }
     }
 </script>
 
