@@ -941,6 +941,7 @@ require_once 'header.php';
                     <option value="Undergraduate">Undergraduate (UG)</option>
                     <option value="Postgraduate">Postgraduate (PG)</option>
                     <option value="Doctorate">Doctorate / Ph.D.</option>
+                    <option value="Post Doctorate">Post Doctorate</option>
                 </select>
             </div>
         </div>
