@@ -155,6 +155,11 @@ $active_script = basename($_SERVER['PHP_SELF']);
                     class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'burial.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
                     <i class="fa-solid fa-monument"></i> <span>Burial Registry</span>
                 </a>
+
+                <a href="academic.php"
+                    class="whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 <?php echo ($active_script == 'academic.php') ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                    <i class="fa-solid fa-graduation-cap"></i> <span>Academy</span>
+                </a>
             </div>
         </div>
     </nav>

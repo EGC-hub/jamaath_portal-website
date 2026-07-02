@@ -1874,6 +1874,488 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: manage_gallery.php?msg=" . urlencode("Gallery asset deleted successfully from CMS."));
             exit;
         }
+
+        // =========================================================================
+        // ACADEMIC TRACK CATALOG CONTROLLER ROUTING HANDLERS
+        // =========================================================================
+
+        // 1. ADD NEW COURSE CATALOG DATA CAPTURE
+        if (isset($_POST['action']) && $_POST['action'] === 'add_course') {
+            // Invoke global administrative authorization verification interceptor
+            if (function_exists('checkGlobalAuthorization')) {
+                checkGlobalAuthorization('edit'); // Restrict unprivileged operations
+            }
+
+            // Extract, trim, and normalize input properties
+            $course_code = strtoupper(trim($_POST['course_code']));
+            $course_name = trim($_POST['course_name']);
+            $standard_fee = isset($_POST['standard_fee']) ? (float) $_POST['standard_fee'] : 0.00;
+            $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : 1;
+
+            // Strict validation check for empty critical parameters
+            if (empty($course_code) || empty($course_name)) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("All mandatory fields marked with an asterisk must be filled out."));
+                exit();
+            }
+
+            try {
+                // Enforce unique check to prevent duplicate identification codes
+                $check_stmt = $db->prepare("SELECT COUNT(*) FROM `academic_courses` WHERE `course_code` = ?");
+                $check_stmt->execute([$course_code]);
+                if ($check_stmt->fetchColumn() > 0) {
+                    header("Location: academic.php?tab=courses&error=" . urlencode("Configuration failure: Course Code '$course_code' already exists inside the database."));
+                    exit();
+                }
+
+                // Execute procedural PDO prepared payload insert operation
+                $insert_stmt = $db->prepare("INSERT INTO `academic_courses` (`course_name`, `course_code`, `standard_fee`, `is_active`, `date_created`) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                $insert_stmt->execute([$course_name, $course_code, $standard_fee, $is_active]);
+
+                header("Location: academic.php?tab=courses&msg=" . urlencode("New course track '$course_code' successfully cataloged."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("Database operational exception encountered: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+        // 2. EDIT / UPDATE REGISTERED COURSE CATALOG Track METRICS
+        if (isset($_POST['action']) && $_POST['action'] === 'edit_course') {
+            // Invoke global administrative authorization verification interceptor
+            if (function_exists('checkGlobalAuthorization')) {
+                checkGlobalAuthorization('edit');
+            }
+
+            // Extract dynamic update parameters
+            $course_id = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
+            $course_name = trim($_POST['course_name']);
+            $standard_fee = isset($_POST['standard_fee']) ? (float) $_POST['standard_fee'] : 0.00;
+            $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : 1;
+
+            if (empty($course_id) || empty($course_name)) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("Update error: Invalid reference parameters or missing required fields."));
+                exit();
+            }
+
+            try {
+                // Execute dynamic column update via PDO matching target primary row ID
+                // Note: course_code remains safely locked to maintain clean foreign tracking relationships
+                $update_stmt = $db->prepare("UPDATE `academic_courses` SET `course_name` = ?, `standard_fee` = ?, `is_active` = ? WHERE `id` = ?");
+                $update_stmt->execute([$course_name, $standard_fee, $is_active, $course_id]);
+
+                header("Location: academic.php?tab=courses&msg=" . urlencode("Catalog settings updated successfully."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("Database modification exception: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+        // 3. DELETE EXISTENT COURSE CATALOG RECORDS
+        if (isset($_POST['action']) && $_POST['action'] === 'delete_course') {
+            // Rigid absolute server-side security enforcement check
+            if (function_exists('isSystemAdmin')) {
+                if (!isSystemAdmin()) {
+                    die("Unauthorized system access command intercept triggered.");
+                }
+            }
+
+            // Extract, validate, and isolate primary key integer footprint
+            $course_id = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
+
+            if ($course_id <= 0) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("Operation cancelled: Invalid or unmapped course selection parameter received."));
+                exit();
+            }
+
+            try {
+                // Fetch course identifier code to generate accurate status messaging logs post-wipe
+                $fetch_stmt = $db->prepare("SELECT `course_code` FROM `academic_courses` WHERE `id` = ?");
+                $fetch_stmt->execute([$course_id]);
+                $course_code = $fetch_stmt->fetchColumn();
+
+                if (!$course_code) {
+                    header("Location: academic.php?tab=courses&error=" . urlencode("Target course reference could not be localized within the data registries."));
+                    exit();
+                }
+
+                // Execute destructive engine query string statement 
+                $delete_stmt = $db->prepare("DELETE FROM `academic_courses` WHERE `id` = ?");
+                $delete_stmt->execute([$course_id]);
+
+                header("Location: academic.php?tab=courses&msg=" . urlencode("Course track '$course_code' has been permanently dropped from system databases."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("Database operational exception encountered: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+
+
+        // 1. CAPTURE & CATALOG REGISTERED STUDENT FILES
+        if (isset($_POST['action']) && $_POST['action'] === 'add_student') {
+            if (function_exists('isSystemAdmin') && !isSystemAdmin()) {
+                die("Unauthorized system access command intercept triggered.");
+            }
+
+            // Pull raw demographics strings
+            $first_name = trim($_POST['first_name']);
+            $last_name = trim($_POST['last_name']);
+            $gender = $_POST['gender'];
+            $dob = $_POST['dob'];
+            $study_level = trim($_POST['study_level']);
+            $study_specification = !empty($_POST['study_specification']) ? trim($_POST['study_specification']) : null;
+            $student_phone = !empty($_POST['student_phone']) ? trim($_POST['student_phone']) : null;
+            $guardian_name = trim($_POST['guardian_name']);
+            $guardian_phone = trim($_POST['guardian_phone']);
+            $address_line1 = trim($_POST['address_line1']);
+            $address_line2 = !empty($_POST['address_line2']) ? trim($_POST['address_line2']) : null;
+            $city = trim($_POST['city']);
+            $pincode = trim($_POST['pincode']);
+            $aadhar_no = str_replace(' ', '', trim($_POST['aadhar_no']));
+
+            // Validate mandatory core variables
+            if (empty($first_name) || empty($last_name) || empty($guardian_name) || empty($guardian_phone) || empty($aadhar_no)) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Critical parameters missing from student data packet."));
+                exit();
+            }
+
+            // 1. Double check unique status for identity key numbers
+            $id_check = $db->prepare("SELECT COUNT(*) FROM `academic_students` WHERE `aadhar_no` = ?");
+            $id_check->execute([$aadhar_no]);
+            if ($id_check->fetchColumn() > 0) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Registration Failure: Verification identity document key number is already mapped to an active account profile."));
+                exit();
+            }
+
+            // 2. Process Core Secure File Upload Matrix
+            $uploaded_path = null;
+            $avatar_path = null;
+
+            // NEW PHASE: Ingest, Sanitize, and Validate Profile Avatar Image Payload
+            if (isset($_FILES['student_avatar']) && $_FILES['student_avatar']['error'] === UPLOAD_ERR_OK) {
+                $av_tmp = $_FILES['student_avatar']['tmp_name'];
+                $av_name = $_FILES['student_avatar']['name'];
+                $av_size = $_FILES['student_avatar']['size'];
+
+                if ($av_size > (2 * 1024 * 1024)) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Constraint trace drop: The profile photo exceeds the 2MB size threshold boundary rule."));
+                    exit();
+                }
+
+                $av_ext = strtolower(pathinfo($av_name, PATHINFO_EXTENSION));
+                if (in_array($av_ext, ['jpg', 'jpeg', 'png'])) {
+                    $avatar_dir = "uploads/academic/avatars/";
+                    if (!is_dir($avatar_dir)) {
+                        mkdir($avatar_dir, 0755, true);
+                    }
+                    $new_avatar_name = "IMG_" . bin2hex(random_bytes(8)) . "_" . time() . "." . $av_ext;
+                    $avatar_path = $avatar_dir . $new_avatar_name;
+
+                    if (!move_uploaded_file($av_tmp, $avatar_path)) {
+                        header("Location: academic.php?tab=students&error=" . urlencode("Upload stream anomaly encountered when writing avatar image files to space arrays."));
+                        exit();
+                    }
+                } else {
+                    header("Location: academic.php?tab=students&error=" . urlencode("File structure rejected: Profile pictures must match standard JPG, JPEG, or PNG criteria."));
+                    exit();
+                }
+            } else {
+                header("Location: academic.php?tab=students&error=" . urlencode("Mandatory profile setup constraint failure: Student photo registration is required."));
+                exit();
+            }
+
+            if (isset($_FILES['aadhar_doc']) && $_FILES['aadhar_doc']['error'] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['aadhar_doc']['tmp_name'];
+                $file_name = $_FILES['aadhar_doc']['name'];
+                $file_size = $_FILES['aadhar_doc']['size'];
+
+                // Server-Side 2MB Validation Gate
+                if ($file_size > (2 * 1024 * 1024)) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Upload constraint violation: Selected document file payload exceeds server threshold limits of 2MB."));
+                    exit();
+                }
+
+                $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                if (in_array($ext, ['pdf', 'jpg', 'jpeg', 'png'])) {
+                    // Create isolated verification workspace folder layout lines securely
+                    $target_dir = "uploads/academic/docs/";
+                    if (!is_dir($target_dir)) {
+                        mkdir($target_dir, 0755, true);
+                    }
+                    $new_file_name = "VERIF_" . bin2hex(random_bytes(8)) . "_" . time() . "." . $ext;
+                    $uploaded_path = $target_dir . $new_file_name;
+
+                    if (!move_uploaded_file($file_tmp, $uploaded_path)) {
+                        header("Location: academic.php?tab=students&error=" . urlencode("File tracking failed: Error writing object layer stream to cloud drive partitions."));
+                        exit();
+                    }
+                } else {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Document structure rejected: Formats are restricted strictly to image profiles or secure PDFs."));
+                    exit();
+                }
+            } else {
+                header("Location: academic.php?tab=students&error=" . urlencode("Mandatory requirement error: Verification identification scan documentation record is missing."));
+                exit();
+            }
+
+            try {
+                // 3. Generate Next Dynamic Serialized System Identification Registration String
+                $current_year = date("Y");
+                $reg_prefix = "NVK-ACA-" . $current_year . "-";
+
+                $seq_stmt = $db->prepare("SELECT `student_reg_no` FROM `academic_students` WHERE `student_reg_no` LIKE ? ORDER BY `id` DESC LIMIT 1");
+                $seq_stmt->execute([$reg_prefix . "%"]);
+                $last_reg = $seq_stmt->fetchColumn();
+
+                if ($last_reg) {
+                    $last_numeric_digit = (int) substr($last_reg, -4);
+                    $next_numeric_digit = $last_numeric_digit + 1;
+                } else {
+                    $next_numeric_digit = 1;
+                }
+                $student_reg_no = $reg_prefix . str_pad($next_numeric_digit, 4, "0", STR_PAD_LEFT);
+
+                // 4. Fire DB Transaction Stream payload block structure inside the repository
+                $insert_query = "INSERT INTO `academic_students` 
+                    (`student_reg_no`, `first_name`, `last_name`, `gender`, `dob`, `study_level`, `study_specification`, `student_phone`, `guardian_name`, `guardian_phone`, `address_line1`, `address_line2`, `city`, `pincode`, `aadhar_no`, `aadhar_doc_path`, `avatar_path`) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                $stmt = $db->prepare($insert_query);
+                $stmt->execute([
+                    $student_reg_no,
+                    $first_name,
+                    $last_name,
+                    $gender,
+                    $dob,
+                    $study_level,
+                    $study_specification,
+                    $student_phone,
+                    $guardian_name,
+                    $guardian_phone,
+                    $address_line1,
+                    $address_line2,
+                    $city,
+                    $pincode,
+                    $aadhar_no,
+                    $uploaded_path,
+                    $avatar_path
+                ]);
+
+                header("Location: academic.php?tab=students&msg=" . urlencode("Student profile file successfully generated under Institutional Identity Code: $student_reg_no"));
+                exit();
+            } catch (PDOException $e) {
+                // Garbage collection fallback layer: delete stray file layers if database transaction drops
+                if ($uploaded_path && file_exists($uploaded_path)) {
+                    unlink($uploaded_path);
+                }
+                header("Location: academic.php?tab=students&error=" . urlencode("Database operational trace error: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+        // 2. UPDATE EXISTENT STUDENT PROFILE FILES
+        if (isset($_POST['action']) && $_POST['action'] === 'edit_student') {
+            if (function_exists('isSystemAdmin') && !isSystemAdmin()) {
+                die("Unauthorized system access command intercept triggered.");
+            }
+
+            // Extract and isolate primary key target record
+            $student_id = isset($_POST['student_id']) ? (int) $_POST['student_id'] : 0;
+            if ($student_id <= 0) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Operation aborted: Missing primary key baseline locator record pointer."));
+                exit();
+            }
+
+            // Fetch current record state maps from database for fallback tracking metrics
+            $current_stmt = $db->prepare("SELECT `avatar_path`, `aadhar_doc_path`, `student_reg_no` FROM `academic_students` WHERE `id` = ?");
+            $current_stmt->execute([$student_id]);
+            $current_record = $current_stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$current_record) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Target records localized configuration map could not be verified inside database."));
+                exit();
+            }
+
+            $student_reg_no = $current_record['student_reg_no'];
+            $avatar_path = $current_record['avatar_path'];
+            $uploaded_path = $current_record['aadhar_doc_path'];
+
+            // Pull and clean input parameters
+            $first_name = trim($_POST['first_name']);
+            $last_name = trim($_POST['last_name']);
+            $gender = $_POST['gender'];
+            $dob = $_POST['dob'];
+            $study_level = trim($_POST['study_level']);
+            $study_specification = !empty($_POST['study_specification']) ? trim($_POST['study_specification']) : null;
+            $student_phone = !empty($_POST['student_phone']) ? trim($_POST['student_phone']) : null;
+            $guardian_name = trim($_POST['guardian_name']);
+            $guardian_phone = trim($_POST['guardian_phone']);
+            $address_line1 = trim($_POST['address_line1']);
+            $address_line2 = !empty($_POST['address_line2']) ? trim($_POST['address_line2']) : null;
+            $city = trim($_POST['city']);
+            $pincode = trim($_POST['pincode']);
+
+            // Validate mandatory data properties
+            if (empty($first_name) || empty($last_name) || empty($guardian_name) || empty($guardian_phone)) {
+                header("Location: academic.php?tab=students&error=" . urlencode("All mandatory fields marked with an asterisk must be filled out completely."));
+                exit();
+            }
+
+            // 1. Process Optional Avatar Photo Overwrite Update Pipeline
+            if (isset($_FILES['student_avatar']) && $_FILES['student_avatar']['error'] === UPLOAD_ERR_OK) {
+                $av_tmp = $_FILES['student_avatar']['tmp_name'];
+                $av_name = $_FILES['student_avatar']['name'];
+                $av_size = $_FILES['student_avatar']['size'];
+
+                if ($av_size > (2 * 1024 * 1024)) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Upload constraint trace: The selected profile photo exceeds the 2MB boundary rule limit."));
+                    exit();
+                }
+
+                $av_ext = strtolower(pathinfo($av_name, PATHINFO_EXTENSION));
+                if (in_array($av_ext, ['jpg', 'jpeg', 'png'])) {
+                    $avatar_dir = "uploads/academic/avatars/";
+                    $new_avatar_name = "IMG_" . bin2hex(random_bytes(8)) . "_" . time() . "." . $av_ext;
+                    $new_avatar_path = $avatar_dir . $new_avatar_name;
+
+                    if (move_uploaded_file($av_tmp, $new_avatar_path)) {
+                        // Purge old historical physical asset from disk if overwritten
+                        if (!empty($avatar_path) && file_exists($avatar_path)) {
+                            unlink($avatar_path);
+                        }
+                        $avatar_path = $new_avatar_path;
+                    } else {
+                        header("Location: academic.php?tab=students&error=" . urlencode("Upload processing error writing avatar picture byte streams to directory maps."));
+                        exit();
+                    }
+                }
+            }
+
+            // 2. Process Optional Document Scanning Attachment Overwrite Update Pipeline
+            if (isset($_FILES['aadhar_doc']) && $_FILES['aadhar_doc']['error'] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['aadhar_doc']['tmp_name'];
+                $file_name = $_FILES['aadhar_doc']['name'];
+                $file_size = $_FILES['aadhar_doc']['size'];
+
+                if ($file_size > (2 * 1024 * 1024)) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Upload constraint trace: Document scanning attachment trace size breaks 2MB max-threshold rules."));
+                    exit();
+                }
+
+                $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                if (in_array($ext, ['pdf', 'jpg', 'jpeg', 'png'])) {
+                    $target_dir = "uploads/academic/docs/";
+                    $new_file_name = "VERIF_" . bin2hex(random_bytes(8)) . "_" . time() . "." . $ext;
+                    $new_uploaded_path = $target_dir . $new_file_name;
+
+                    if (move_uploaded_file($file_tmp, $new_uploaded_path)) {
+                        if (!empty($uploaded_path) && file_exists($uploaded_path)) {
+                            unlink($uploaded_path);
+                        }
+                        $uploaded_path = $new_uploaded_path;
+                    } else {
+                        header("Location: academic.php?tab=students&error=" . urlencode("Upload processing trace dropped writing identity attachment fields down to target drives."));
+                        exit();
+                    }
+                }
+            }
+
+            try {
+                // 3. Fire Update query statement targeting explicit parameters mapping metrics
+                $update_query = "UPDATE `academic_students` SET 
+                    `first_name` = ?, `last_name` = ?, `gender` = ?, `dob` = ?, 
+                    `study_level` = ?, `study_specification` = ?, `student_phone` = ?, 
+                    `guardian_name` = ?, `guardian_phone` = ?, `address_line1` = ?, 
+                    `address_line2` = ?, `city` = ?, `pincode` = ?, 
+                    `aadhar_doc_path` = ?, `avatar_path` = ? 
+                    WHERE `id` = ?";
+
+                $stmt = $db->prepare($update_query);
+                $stmt->execute([
+                    $first_name,
+                    $last_name,
+                    $gender,
+                    $dob,
+                    $study_level,
+                    $study_specification,
+                    $student_phone,
+                    $guardian_name,
+                    $guardian_phone,
+                    $address_line1,
+                    $address_line2,
+                    $city,
+                    $pincode,
+                    $uploaded_path,
+                    $avatar_path,
+                    $student_id
+                ]);
+
+                header("Location: academic.php?tab=students&msg=" . urlencode("Student records successfully updated for ID [{$student_reg_no}]."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Database transactional execution failure encountered: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+        // 3. PERMANENTLY DROP EXISTENT STUDENT RECORD ENTRIES
+        if (isset($_POST['action']) && $_POST['action'] === 'delete_student') {
+            // Rigid absolute server-side security authorization check
+            if (function_exists('isSystemAdmin')) {
+                if (!isSystemAdmin()) {
+                    die("Unauthorized system access command intercept triggered.");
+                }
+            }
+
+            // Extract and validate target baseline row identifier
+            $student_id = isset($_POST['student_id']) ? (int) $_POST['student_id'] : 0;
+
+            if ($student_id <= 0) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Operation cancelled: Invalid student record reference pointer received."));
+                exit();
+            }
+
+            try {
+                // Fetch existing storage file references and registration sequence numbers before dropping row
+                $fetch_stmt = $db->prepare("SELECT `student_reg_no`, `avatar_path`, `aadhar_doc_path` FROM `academic_students` WHERE `id` = ?");
+                $fetch_stmt->execute([$student_id]);
+                $student_record = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$student_record) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Target records localized directory map could not be found."));
+                    exit();
+                }
+
+                $student_reg_no = $student_record['student_reg_no'];
+                $avatar_path = $student_record['avatar_path'];
+                $uploaded_path = $student_record['aadhar_doc_path'];
+
+                // Execute absolute query deletion statement 
+                $delete_stmt = $db->prepare("DELETE FROM `academic_students` WHERE `id` = ?");
+                $delete_stmt->execute([$student_id]);
+
+                // --- DISK STORAGE CLEANUP AND ASSET PURGE ENGINE ---
+
+                // 1. Physically unlink/purge student avatar photo asset from disk if present
+                if (!empty($avatar_path) && file_exists($avatar_path)) {
+                    unlink($avatar_path);
+                }
+
+                // 2. Physically unlink/purge verification scan attachment document from disk if present
+                if (!empty($uploaded_path) && file_exists($uploaded_path)) {
+                    unlink($uploaded_path);
+                }
+
+                header("Location: academic.php?tab=students&msg=" . urlencode("Profile files and all associated storage assets for [{$student_reg_no}] have been permanently wiped from system registers."));
+                exit();
+
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Database operational trace exception dropped: " . $e->getMessage()));
+                exit();
+            }
+        }
     }
 }
 
