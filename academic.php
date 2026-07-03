@@ -269,9 +269,160 @@ include_once 'header.php';
             </div>
         </div>
 
-        <div id="academic-panel-registrations"
-            class="academic-tab-content hidden text-center text-slate-400 p-12 bg-white rounded-xl border border-slate-200 shadow-sm italic text-xs">
-            Course allocation enrollment workflows console placeholder.
+        <!-- Tab Panel 3: Course Enrollments -->
+        <div id="academic-panel-registrations" class="academic-tab-content hidden space-y-4">
+
+            <!-- Header Block -->
+            <div
+                class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">Course Enrollment Registry</h2>
+                    <p class="text-xs text-slate-500">Connect students to multi-course tracks, monitor ongoing
+                        educational statuses, manage key timeline dates, and track dropped metrics.</p>
+                </div>
+                <button onclick="openEnrollmentModal()"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer select-none">
+                    Enroll Student
+                </button>
+            </div>
+
+            <!-- Main Data Grid Matrix -->
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
+                                <th class="px-6 py-4">Student Details</th>
+                                <th class="px-6 py-4">Enrolled Course</th>
+                                <th class="px-6 py-4">Instructor & Timeline</th>
+                                <th class="px-6 py-4 w-40">Status Track</th>
+                                <th class="px-6 py-4 w-56 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
+                            <?php
+                            $enroll_query = $db->query("
+                        SELECT ae.*, 
+                               stu.student_reg_no, stu.first_name, stu.last_name,
+                               ac.course_code, ac.course_name
+                        FROM academic_enrollments ae
+                        JOIN academic_students stu ON ae.student_id = stu.id
+                        JOIN academic_courses ac ON ae.course_id = ac.id
+                        ORDER BY ae.id DESC
+                    ");
+                            $enrollments = $enroll_query->fetchAll(PDO::FETCH_ASSOC);
+
+                            if (empty($enrollments)):
+                                ?>
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic bg-white">
+                                        No active course enrollment files cataloged inside the database registry yet.
+                                    </td>
+                                </tr>
+                                <?php
+                            else:
+                                foreach ($enrollments as $e):
+                                    ?>
+                                    <tr class="hover:bg-slate-50/80 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="font-bold text-slate-900 block"><?php echo htmlspecialchars($e['first_name'] . ' ' . $e['last_name']); ?></span>
+                                            <div class="text-slate-400 font-mono text-[11px] mt-0.5 tracking-wide">
+                                                <?php echo htmlspecialchars($e['student_reg_no']); ?>
+                                            </div>
+                                        </td>
+
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="inline-block bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-md uppercase text-[10px] tracking-wider mr-1.5"><?php echo htmlspecialchars($e['course_code']); ?></span>
+                                            <span
+                                                class="text-slate-800 font-medium"><?php echo htmlspecialchars($e['course_name']); ?></span>
+                                        </td>
+
+                                        <td class="px-6 py-4 text-xs text-slate-700">
+                                            <div class="font-bold text-slate-900 flex items-center gap-1">
+                                                <i class="fa-solid fa-chalkboard-teacher text-[10px] text-slate-400"></i>
+                                                <?php echo htmlspecialchars($e['instructor_id']); ?>
+                                            </div>
+                                            <div class="text-slate-500 font-mono mt-0.5 flex flex-col gap-0.5 text-[11px]">
+                                                <span>Start:
+                                                    <?php echo (!empty($e['start_date']) && $e['start_date'] !== '0000-00-00') ? htmlspecialchars($e['start_date']) : '<span class="italic text-slate-400">Course Not Started</span>'; ?></span>
+                                                <?php if ($e['status'] === 'completed' && !empty($e['end_date'])): ?>
+                                                    <span class="text-emerald-600 font-semibold">End:
+                                                        <?php echo htmlspecialchars($e['end_date']); ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+
+                                        <td class="px-6 py-4">
+                                            <?php
+                                            $statusColors = [
+                                                'assigned' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                                'ongoing' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                                'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                                'dropped' => 'bg-rose-50 text-rose-700 border-rose-200'
+                                            ];
+                                            $colorClass = $statusColors[$e['status']] ?? 'bg-slate-50 text-slate-700 border-slate-200';
+                                            ?>
+                                            <span
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border <?php echo $colorClass; ?>">
+                                                <?php echo ucfirst($e['status']); ?>
+                                            </span>
+                                            <?php if ($e['status'] === 'dropped' && !empty($e['drop_reason'])): ?>
+                                                <div class="text-[11px] text-rose-600 font-medium max-w-xs mt-1 italic"
+                                                    title="<?php echo htmlspecialchars($e['drop_reason']); ?>">
+                                                    Reason: <?php echo htmlspecialchars($e['drop_reason']); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td class="px-6 py-4.5 text-center">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <!-- Clean Step Status Corridor Dropdown Trigger Selector -->
+                                                <div class="relative inline-block text-left">
+                                                    <?php if (in_array($e['status'], ['completed', 'dropped'])): ?>
+                                                        <select disabled
+                                                            class="bg-slate-50 text-slate-400 cursor-not-allowed text-[11px] rounded-md border border-slate-200 px-2 py-1 focus:outline-hidden opacity-70">
+                                                            <option>Closed Track</option>
+                                                        </select>
+                                                    <?php else: ?>
+                                                        <select
+                                                            onchange="routeStatusModalTransition(<?php echo (int) $e['id']; ?>, this.value, '<?php echo $e['status']; ?>')"
+                                                            class="bg-white hover:bg-slate-50 text-slate-700 text-[11px] rounded-md border border-slate-200 px-2 py-1 focus:border-emerald-500 focus:outline-hidden cursor-pointer shadow-2xs font-medium">
+                                                            <option value="" selected hidden>Update Status</option>
+                                                            <?php if ($e['status'] === 'assigned'): ?>
+                                                                <option value="ongoing">Ongoing</option>
+                                                                <option value="dropped">Dropped</option>
+                                                            <?php elseif ($e['status'] === 'ongoing'): ?>
+                                                                <option value="completed">Completed</option>
+                                                                <option value="dropped">Dropped</option>
+                                                            <?php endif; ?>
+                                                        </select>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <div class="inline-flex items-center gap-1">
+                                                    <button type="button" title="Edit Metadata"
+                                                        onclick='populateEnrollmentEdit(<?php echo json_encode($e); ?>)'
+                                                        class="bg-emerald-50 hover:bg-teal-50 text-teal-600 w-8 h-8 rounded-lg border border-slate-200 text-xs flex items-center justify-center shadow-2xs"><i
+                                                            class="fa-solid fa-pen-to-square"></i></button>
+                                                    <button type="button" title="Delete Track"
+                                                        onclick="triggerEnrollmentDelete(<?php echo (int) $e['id']; ?>)"
+                                                        class="bg-rose-50 text-rose-500 w-8 h-8 rounded-lg border border-slate-200 text-xs flex items-center justify-center shadow-2xs"><i
+                                                            class="fa-solid fa-trash-can"></i></button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                endforeach;
+                            endif;
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div id="academic-panel-fees"
@@ -945,6 +1096,191 @@ include_once 'header.php';
     </div>
 </div>
 
+<!-- Enrollment Operational Modal Structure -->
+<div id="enrollment-modal" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs" onclick="closeEnrollmentModal()">
+        </div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+        <div
+            class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-slate-900" id="enrollment-modal-title">New Course Enrollment
+                    Configuration</h3>
+                <button type="button" onclick="closeEnrollmentModal()"
+                    class="text-slate-400 hover:text-slate-600 transition-colors"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="enrollment-form" method="POST" action="actions.php" class="p-6 space-y-4">
+                <input type="hidden" name="action" id="enrollment-action-type" value="add_enrollment">
+                <input type="hidden" name="enrollment_id" id="form-enrollment-id" value="">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Select
+                        Student</label>
+                    <select name="student_id" id="form-student-id" required
+                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
+                        <option value="">-- Choose Profile Track --</option>
+                        <?php
+                        // Fetch active student records directly within selection scope
+                        $modal_students = $db->query("SELECT id, student_reg_no, first_name, last_name FROM academic_students ORDER BY first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+                        foreach ($modal_students as $st) {
+                            echo '<option value="' . (int) $st['id'] . '">[' . htmlspecialchars($st['student_reg_no']) . '] ' . htmlspecialchars($st['first_name'] . ' ' . $st['last_name']) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Select
+                        Course</label>
+                    <select name="course_id" id="form-course-id" required
+                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
+                        <option value="">-- Choose Catalog Track --</option>
+                        <?php
+                        // Fetch active courses directly within selection scope
+                        $modal_courses = $db->query("SELECT id, course_code, course_name FROM academic_courses WHERE is_active = 1 ORDER BY course_code ASC")->fetchAll(PDO::FETCH_ASSOC);
+                        foreach ($modal_courses as $cr) {
+                            echo '<option value="' . (int) $cr['id'] . '">[' . htmlspecialchars($cr['course_code']) . '] ' . htmlspecialchars($cr['course_name']) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Assigned
+                        Instructor</label>
+                    <select name="instructor_id" id="form-instructor-id" required
+                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
+                        <option value="">-- Choose Academic Leader --</option>
+                        <option value="Staff 1">Staff 1</option>
+                        <option value="Staff 2">Staff 2</option>
+                    </select>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                    <button type="button" onclick="closeEnrollmentModal()"
+                        class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-200">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-all">Save
+                        Configurations</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL SUB-A: ONGOING TRANSITION DIALOG BLOCK
+     ========================================== -->
+<div id="modal-status-ongoing" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs"
+            onclick="closeStatusModal('ongoing')"></div>
+        <div
+            class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all my-8 max-w-sm w-full border border-slate-200 z-10">
+            <div class="bg-amber-50 px-6 py-4 border-b border-amber-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-amber-900">Commence Course Track: Ongoing</h3>
+                <button type="button" onclick="closeStatusModal('ongoing')"
+                    class="text-amber-500 hover:text-amber-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form method="POST" action="actions.php" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="update_enrollment_status">
+                <input type="hidden" name="enrollment_id" class="workflow-id-field" value="">
+                <input type="hidden" name="target_status" value="ongoing">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Actual Start
+                        Date</label>
+                    <input type="date" name="start_date" required
+                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-amber-500 focus:outline-hidden">
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+                    <button type="button" onclick="closeStatusModal('ongoing')"
+                        class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-md hover:bg-slate-200">Cancel</button>
+                    <button type="submit"
+                        class="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-md hover:bg-amber-700 shadow-sm">Set
+                        Ongoing</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL SUB-B: COMPLETED TRANSITION DIALOG BLOCK
+     ========================================== -->
+<div id="modal-status-completed" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs"
+            onclick="closeStatusModal('completed')"></div>
+        <div
+            class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all my-8 max-w-sm w-full border border-slate-200 z-10">
+            <div class="bg-emerald-50 px-6 py-4 border-b border-emerald-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-emerald-900">Graduate Course Track: Completed</h3>
+                <button type="button" onclick="closeStatusModal('completed')"
+                    class="text-emerald-500 hover:text-emerald-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form method="POST" action="actions.php" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="update_enrollment_status">
+                <input type="hidden" name="enrollment_id" class="workflow-id-field" value="">
+                <input type="hidden" name="target_status" value="completed">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Actual Completion
+                        Date</label>
+                    <input type="date" name="end_date" required
+                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+                    <button type="button" onclick="closeStatusModal('completed')"
+                        class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-md hover:bg-slate-200">Cancel</button>
+                    <button type="submit"
+                        class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-md hover:bg-emerald-700 shadow-sm">Set
+                        Completed</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL SUB-C: DROPPED TRANSITION DIALOG BLOCK
+     ========================================== -->
+<div id="modal-status-dropped" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs"
+            onclick="closeStatusModal('dropped')"></div>
+        <div
+            class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all my-8 max-w-sm w-full border border-slate-200 z-10">
+            <div class="bg-rose-50 px-6 py-4 border-b border-rose-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-rose-900">Terminate Course Track: Dropped</h3>
+                <button type="button" onclick="closeStatusModal('dropped')" class="text-rose-500 hover:text-rose-700"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form method="POST" action="actions.php" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="update_enrollment_status">
+                <input type="hidden" name="enrollment_id" class="workflow-id-field" value="">
+                <input type="hidden" name="target_status" value="dropped">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Reason for
+                        Dropping Track</label>
+                    <textarea name="drop_reason" required rows="3"
+                        placeholder="Provide precise administrative context explaining student departure..."
+                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-rose-500 focus:outline-hidden resize-none"></textarea>
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+                    <button type="button" onclick="closeStatusModal('dropped')"
+                        class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-md hover:bg-slate-200">Cancel</button>
+                    <button type="submit"
+                        class="px-3 py-1.5 bg-rose-600 text-white text-xs font-semibold rounded-md hover:bg-rose-700 shadow-sm">Set
+                        Dropped</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     // Tab Switching Controller (Matches the capsule navigation style cleanly)
     function switchAcademicTab(tabId) {
@@ -1512,6 +1848,124 @@ include_once 'header.php';
                 inputMembership.value = '';
             }
             if (selectOutside) selectOutside.required = true;
+        }
+    }
+
+
+    /**
+  * Phase 2 Handshake: Course Enrollments Lifecycles Script Engine
+  */
+
+    function routeStatusModalTransition(enrollmentId, targetStatus, currentStatus) {
+        if (!enrollmentId || !targetStatus) return;
+
+        if (currentStatus === 'completed' || currentStatus === 'dropped') {
+            alert("Operation blocked: Closed lifecycle tracks cannot be altered.");
+            window.location.reload();
+            return;
+        }
+
+        const targetModal = document.getElementById(`modal-status-${targetStatus}`);
+        if (!targetModal) return;
+
+        // Isolate this specific sub-modal's enrollment ID field
+        const idFields = targetModal.querySelectorAll('.workflow-id-field');
+        idFields.forEach(field => { field.value = enrollmentId; });
+
+        // --- DYNAMIC CALENDAR DATE VALIDATION BOUNDARIES ---
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        if (targetStatus === 'ongoing') {
+            const startDateInput = targetModal.querySelector('input[name="start_date"]');
+            if (startDateInput) {
+                // Rule: Start date cannot be more than 30 days in the future
+                const maxFutureDate = new Date();
+                maxFutureDate.setDate(maxFutureDate.getDate() + 30);
+
+                startDateInput.setAttribute('max', maxFutureDate.toISOString().split('T')[0]);
+                // Catch typos by blocking dates older than 1 year
+                const minPastDate = new Date();
+                minPastDate.setFullYear(minPastDate.getFullYear() - 1);
+                startDateInput.setAttribute('min', minPastDate.toISOString().split('T')[0]);
+            }
+        } else if (targetStatus === 'completed') {
+            const endDateInput = targetModal.querySelector('input[name="end_date"]');
+            if (endDateInput) {
+                // Rule: End date cannot be in the future relative to today
+                endDateInput.setAttribute('max', todayStr);
+
+                // Look up the active table row to fetch its associated start date string
+                const row = document.querySelector(`select[onchange*="${enrollmentId}"]`).closest('tr');
+                const timelineText = row.querySelector('.text-slate-500.font-mono').textContent;
+                const startMatch = timelineText.match(/Start:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/);
+
+                if (startMatch && startMatch[1]) {
+                    // Rule: End date must be on or after the actual start date
+                    endDateInput.setAttribute('min', startMatch[1]);
+                }
+            }
+        }
+
+        targetModal.classList.remove('hidden');
+    }
+
+    function closeStatusModal(statusType) {
+        const targetModal = document.getElementById(`modal-status-${statusType}`);
+        if (targetModal) targetModal.classList.add('hidden');
+        window.location.reload(); // Instantly sweeps selection states back to baseline indexes cleanly
+    }
+
+    function openEnrollmentModal(title = "New Course Enrollment Configuration", action = "add_enrollment") {
+        const modal = document.getElementById('enrollment-modal');
+        const form = document.getElementById('enrollment-form');
+        if (form) form.reset();
+
+        document.getElementById('enrollment-modal-title').textContent = title;
+        document.getElementById('enrollment-action-type').value = action;
+        document.getElementById('form-enrollment-id').value = "";
+
+        document.getElementById('form-student-id').removeAttribute('disabled');
+        document.getElementById('form-course-id').removeAttribute('disabled');
+
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeEnrollmentModal() {
+        const modal = document.getElementById('enrollment-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function populateEnrollmentEdit(enrollmentData) {
+        openEnrollmentModal("Modify Course Enrollment Track", "edit_enrollment");
+        document.getElementById('form-enrollment-id').value = enrollmentData.id;
+        document.getElementById('form-student-id').value = enrollmentData.student_id;
+        document.getElementById('form-course-id').value = enrollmentData.course_id;
+        document.getElementById('form-instructor-id').value = enrollmentData.instructor_id;
+
+        document.getElementById('form-student-id').setAttribute('disabled', 'disabled');
+        document.getElementById('form-course-id').setAttribute('disabled', 'disabled');
+    }
+
+    function triggerEnrollmentDelete(enrollmentId) {
+        if (confirm("Are you sure you want to permanently delete this course enrollment record track?")) {
+            const tempForm = document.createElement('form');
+            tempForm.method = 'POST';
+            tempForm.action = 'actions.php';
+
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_enrollment';
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'enrollment_id';
+            idInput.value = enrollmentId;
+
+            tempForm.appendChild(actionInput);
+            tempForm.appendChild(idInput);
+            document.body.appendChild(tempForm);
+            tempForm.submit();
         }
     }
 </script>

@@ -2369,6 +2369,225 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         }
+
+        // =========================================================================
+        // COMPACT ARCHITECTURE: ISOLATED LIFECYCLE ROUTING ENGINES
+        // =========================================================================
+
+        // 1. ADD NEW COURSE ENROLLMENT RECORD (START DATE FORCED TO NULL VALUE)
+        if (isset($_POST['action']) && $_POST['action'] === 'add_enrollment') {
+            if (function_exists('checkGlobalAuthorization')) {
+                checkGlobalAuthorization('edit');
+            }
+
+            $student_id = isset($_POST['student_id']) ? (int) $_POST['student_id'] : 0;
+            $course_id = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
+            $instructor_id = trim($_POST['instructor_id'] ?? '');
+
+            if (empty($student_id) || empty($course_id) || empty($instructor_id)) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("All fields are mandatory."));
+                exit();
+            }
+
+            try {
+                $check_stmt = $db->prepare("SELECT COUNT(*) FROM `academic_enrollments` WHERE `student_id` = ? AND `course_id` = ?");
+                $check_stmt->execute([$student_id, $course_id]);
+                if ($check_stmt->fetchColumn() > 0) {
+                    header("Location: academic.php?tab=registrations&error=" . urlencode("Student is already actively assigned to this course."));
+                    exit();
+                }
+
+                // Explicitly sets start_date to NULL to fix the 0000-00-00 layout display fault
+                $insert_stmt = $db->prepare("INSERT INTO `academic_enrollments` (`student_id`, `course_id`, `instructor_id`, `status`, `start_date`, `end_date`, `drop_reason`) VALUES (?, ?, ?, 'assigned', NULL, NULL, NULL)");
+                $insert_stmt->execute([$student_id, $course_id, $instructor_id]);
+
+                header("Location: academic.php?tab=registrations&msg=" . urlencode("Course track assigned cleanly with blank start dates."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("Database Fault: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+        // 2. STATE CORRIDOR LIFECYCLE TRANSITION TRACKER WITH CHRONOLOGICAL VALIDATION
+        if (isset($_POST['action']) && $_POST['action'] === 'update_enrollment_status') {
+            if (function_exists('checkGlobalAuthorization')) {
+                checkGlobalAuthorization('edit');
+            }
+
+            $enrollment_id = isset($_POST['enrollment_id']) ? (int) $_POST['enrollment_id'] : 0;
+            $target_status = trim($_POST['target_status'] ?? '');
+
+            if (empty($enrollment_id) || empty($target_status)) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("Lifecycle tracking token invalid or missing."));
+                exit();
+            }
+
+            try {
+                // Pull historical state and existing timelines
+                $state_fetch = $db->prepare("SELECT status, start_date FROM `academic_enrollments` WHERE id = ? LIMIT 1");
+                $state_fetch->execute([$enrollment_id]);
+                $current_record = $state_fetch->fetch(PDO::FETCH_ASSOC);
+
+                if (!$current_record) {
+                    throw new Exception("Targeted configuration history not found.");
+                }
+
+                $current_status = $current_record['status'];
+                $existing_start_date = $current_record['start_date'];
+
+                // Block back-revisions to enforce unidirectional workflow integrity
+                if (in_array($current_status, ['completed', 'dropped'])) {
+                    throw new Exception("Closed lifecycle profiles cannot be modified.");
+                }
+
+                $today = date('Y-m-d');
+
+                if ($target_status === 'ongoing' && $current_status === 'assigned') {
+                    $start_date = trim($_POST['start_date'] ?? '');
+                    if (empty($start_date))
+                        throw new Exception("Commencing requires providing a valid Start Date.");
+
+                    // Server Validation: Start date cannot exceed 30 days in the future
+                    $max_future = date('Y-m-d', strtotime('+30 days'));
+                    if ($start_date > $max_future) {
+                        throw new Exception("Start Date cannot be scheduled further than 30 days into the future.");
+                    }
+
+                    // Server Validation: Catch major past year typos
+                    $min_past = date('Y-m-d', strtotime('-1 year'));
+                    if ($start_date < $min_past) {
+                        throw new Exception("Start Date cannot precede the current calendar year tracking cycle.");
+                    }
+
+                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'ongoing', `start_date` = ? WHERE `id` = ?");
+                    $update_stmt->execute([$start_date, $enrollment_id]);
+
+                } elseif ($target_status === 'completed' && $current_status === 'ongoing') {
+                    $end_date = trim($_POST['end_date'] ?? '');
+                    if (empty($end_date))
+                        throw new Exception("Graduation requires providing an actual Completion Date.");
+
+                    // Server Validation: End date cannot be a future date
+                    if ($end_date > $today) {
+                        throw new Exception("Completion Date cannot be recorded in the future.");
+                    }
+
+                    // Server Validation: End date must follow start date chronologically
+                    if (!empty($existing_start_date) && $end_date < $existing_start_date) {
+                        throw new Exception("Chronological Error: Completion Date cannot precede the track's Actual Start Date ($existing_start_date).");
+                    }
+
+                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'completed', `end_date` = ? WHERE `id` = ?");
+                    $update_stmt->execute([$end_date, $enrollment_id]);
+
+                } elseif ($target_status === 'dropped') {
+                    $drop_reason = trim($_POST['drop_reason'] ?? '');
+                    if (empty($drop_reason))
+                        throw new Exception("Dropped tracks require an explanation reason.");
+
+                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'dropped', `drop_reason` = ? WHERE `id` = ?");
+                    $update_stmt->execute([$drop_reason, $enrollment_id]);
+                } else {
+                    throw new Exception("Illegal state mutation pathway requested.");
+                }
+
+                header("Location: academic.php?tab=registrations&msg=" . urlencode("Status track advanced to " . ucfirst($target_status)));
+                exit();
+            } catch (Exception $e) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode($e->getMessage()));
+                exit();
+            }
+        }
+
+        // 2. EDIT / UPDATE REGISTERED COURSE ENROLLMENT TRACK METRICS
+        if (isset($_POST['action']) && $_POST['action'] === 'edit_enrollment') {
+            // Invoke global administrative authorization verification interceptor
+            if (function_exists('checkGlobalAuthorization')) {
+                checkGlobalAuthorization('edit');
+            }
+
+            // Extract dynamic update parameters and filter tracking keys
+            $enrollment_id = isset($_POST['enrollment_id']) ? (int) $_POST['enrollment_id'] : 0;
+            $instructor_id = trim($_POST['instructor_id'] ?? '');
+            $status = trim($_POST['status'] ?? 'assigned');
+
+            $start_date = !empty($_POST['start_date']) ? trim($_POST['start_date']) : null;
+            $end_date = !empty($_POST['end_date']) ? trim($_POST['end_date']) : null;
+            $drop_reason = !empty($_POST['drop_reason']) ? trim($_POST['drop_reason']) : null;
+
+            if (empty($enrollment_id) || empty($instructor_id) || empty($status)) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("Update error: Invalid reference parameters or missing required fields."));
+                exit();
+            }
+
+            // Route business lifecycle rules logic filters
+            if ($status === 'ongoing') {
+                if (empty($start_date)) {
+                    header("Location: academic.php?tab=registrations&error=" . urlencode("Validation error: An ongoing course track requires an Actual Start Date parameter."));
+                    exit();
+                }
+                $end_date = null;
+                $drop_reason = null;
+            } elseif ($status === 'completed') {
+                if (empty($start_date) || empty($end_date)) {
+                    header("Location: academic.php?tab=registrations&error=" . urlencode("Validation error: Completed statuses mandate providing both explicit Start and End dates."));
+                    exit();
+                }
+                $drop_reason = null;
+            } elseif ($status === 'dropped') {
+                if (empty($drop_reason)) {
+                    header("Location: academic.php?tab=registrations&error=" . urlencode("Validation error: You must provide an administrative reason explanation for dropped tracks."));
+                    exit();
+                }
+                $start_date = null;
+                $end_date = null;
+            } else {
+                // Default back to pure 'assigned' parameters baseline metrics
+                $start_date = null;
+                $end_date = null;
+                $drop_reason = null;
+            }
+
+            try {
+                // Execute absolute record payload synchronization via PDO matching primary tracking key
+                $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `instructor_id` = ?, `status` = ?, `start_date` = ?, `end_date` = ?, `drop_reason` = ? WHERE `id` = ?");
+                $update_stmt->execute([$instructor_id, $status, $start_date, $end_date, $drop_reason, $enrollment_id]);
+
+                header("Location: academic.php?tab=registrations&msg=" . urlencode("Enrollment status and track timelines updated successfully."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("Database modification exception: " . $e->getMessage()));
+                exit();
+            }
+        }
+
+        // 3. DELETE / REVOKE EXISTING COURSE ENROLLMENT TRACK RECORD
+        if (isset($_POST['action']) && $_POST['action'] === 'delete_enrollment') {
+            // Invoke global administrative authorization verification interceptor
+            if (function_exists('checkGlobalAuthorization')) {
+                checkGlobalAuthorization('edit');
+            }
+
+            $enrollment_id = isset($_POST['enrollment_id']) ? (int) $_POST['enrollment_id'] : 0;
+
+            if (empty($enrollment_id)) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("Removal error: Missing absolute enrollment record verification index reference."));
+                exit();
+            }
+
+            try {
+                // Execute procedural database row extraction purge operation
+                $delete_stmt = $db->prepare("DELETE FROM `academic_enrollments` WHERE `id` = ?");
+                $delete_stmt->execute([$enrollment_id]);
+
+                header("Location: academic.php?tab=registrations&msg=" . urlencode("Course enrollment record revoked and purged successfully from database catalog files."));
+                exit();
+            } catch (PDOException $e) {
+                header("Location: academic.php?tab=registrations&error=" . urlencode("Database removal operational exception: " . $e->getMessage()));
+                exit();
+            }
+        }
     }
 }
 
