@@ -117,21 +117,25 @@ include_once 'header.php';
                                 class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
                                 <th class="px-6 py-4 w-36">Course Code</th>
                                 <th class="px-6 py-4">Course/Specification Name</th>
-                                <th class="px-6 py-4 text-right w-48">Standard Fee (₹)</th>
-                                <th class="px-6 py-4 w-44 text-center">Status</th>
+                                <th class="px-6 py-4 w-32 text-center">Duration</th>
+                                <th class="px-6 py-4 text-right w-40">Fee / Month (₹)</th>
+                                <th class="px-6 py-4 text-right w-40">Total Fee (₹)</th>
+                                <th class="px-6 py-4 w-36 text-center">Status</th>
                                 <th class="px-6 py-4 w-32 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
                             <?php if (empty($courses)): ?>
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic bg-white">
+                                    <td colspan="7" class="px-6 py-12 text-center text-slate-400 italic bg-white">
                                         No course tracks configured inside the registry catalog yet.
                                     </td>
                                 </tr>
                                 <?php
                             else:
                                 foreach ($courses as $index => $c):
+                                    // Dynamically calculate overall course financial scope values via the utility layer
+                                    $total_calculated_fee = calculateTotalCourseFee($c['standard_fee'], $c['duration_value'], $c['duration_unit']);
                                     ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors">
                                         <td class="px-6 py-4 font-mono font-bold text-slate-900">
@@ -140,8 +144,14 @@ include_once 'header.php';
                                         <td class="px-6 py-4 font-medium text-slate-800">
                                             <?php echo htmlspecialchars($c['course_name']); ?>
                                         </td>
-                                        <td class="px-6 py-4 text-right font-semibold font-mono text-slate-900">
+                                        <td class="px-6 py-4 text-center font-semibold text-slate-700">
+                                            <?php echo (int) $c['duration_value'] . ' ' . htmlspecialchars($c['duration_unit']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 text-right font-semibold font-mono text-slate-600">
                                             <?php echo number_format($c['standard_fee'], 2); ?>
+                                        </td>
+                                        <td class="px-6 py-4 text-right font-bold font-mono text-slate-900">
+                                            <?php echo number_format($total_calculated_fee, 2); ?>
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <?php if ((int) $c['is_active'] === 1): ?>
@@ -156,11 +166,11 @@ include_once 'header.php';
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4.5 text-right pr-8">
-                                            <div class="inline-flex items-center justify-end gap-1.5">
+                                        <td class="px-6 py-4.5 text-center">
+                                            <div class="inline-flex items-center justify-center gap-1.5">
                                                 <button type="button" title="Edit Course"
                                                     onclick='populateCourseEdit(<?php echo json_encode($c); ?>)'
-                                                    class="bg-teal-50 hover:bg-teal-100 text-teal-800 p-1.5 rounded-lg border border-teal-200 text-xs transition-colors">
+                                                    class="bg-teal-50 hover:bg-teal-100 text-teal-800 p-1.5 rounded-lg border border-teal-200 text-xs transition-colors cursor-pointer">
                                                     <i class="fa-solid fa-pen-to-square"></i>
                                                 </button>
 
@@ -170,7 +180,7 @@ include_once 'header.php';
                                                     <input type="hidden" name="action" value="delete_course">
                                                     <input type="hidden" name="course_id" value="<?php echo (int) $c['id']; ?>">
                                                     <button type="submit"
-                                                        class="bg-rose-50 hover:bg-rose-100 text-rose-800 p-1.5 rounded-lg border border-rose-200 text-xs transition-colors"
+                                                        class="bg-rose-50 hover:bg-rose-100 text-rose-800 p-1.5 rounded-lg border border-rose-200 text-xs transition-colors cursor-pointer"
                                                         title="Delete Course">
                                                         <i class="fa-solid fa-trash-can"></i>
                                                     </button>
@@ -586,14 +596,32 @@ include_once 'header.php';
                     class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all">
             </div>
 
-            <div>
-                <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Standard Fee
-                    Profile (₹) <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                    <span class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-xs">₹</span>
-                    <input type="number" name="standard_fee" id="field_standard_fee" step="0.01" min="0.00" required
-                        placeholder="0.00"
-                        class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-7 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Standard
+                        Fee / Month (₹) <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-xs">₹</span>
+                        <input type="number" name="standard_fee" id="field_standard_fee" step="0.01" min="0.00" required
+                            placeholder="0.00"
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-7 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Course
+                        Duration <span class="text-rose-500">*</span></label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <input type="number" name="duration_value" id="field_course_duration_value" min="1" required
+                            placeholder="e.g., 3"
+                            class="col-span-3 w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+
+                        <select name="duration_unit" id="field_course_duration_unit" required
+                            class="col-span-2 w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -1697,6 +1725,8 @@ include_once 'header.php';
         document.getElementById('field_course_code').disabled = true; // Safe lock primary key value matches
         document.getElementById('field_course_name').value = course.course_name;
         document.getElementById('field_standard_fee').value = course.standard_fee;
+        document.getElementById('field_course_duration_value').value = course.duration_value;
+        document.getElementById('field_course_duration_unit').value = course.duration_unit || 'Months';
         document.getElementById('field_course_is_active').value = course.is_active;
 
         modal.classList.remove('invisible', 'opacity-0');

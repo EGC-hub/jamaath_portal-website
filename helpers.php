@@ -139,4 +139,22 @@ if (!function_exists('getHijriDate')) {
         }
     }
 }
+
+function calculateTotalCourseFee($standard_fee, $duration_value, $duration_unit)
+{
+    $fee = (float) $standard_fee;
+    $val = (int) $duration_value;
+
+    if ($val <= 0) {
+        return 0.00;
+    }
+
+    if (strcasecmp($duration_unit, 'Days') === 0) {
+        // Enforce a strict daily pro-rated benchmark calculation mapped against a standard 30-day matrix
+        return ($fee / 30.0) * $val;
+    }
+
+    // Default standard multiplication cycle for month-based metrics
+    return $fee * $val;
+}
 ?>

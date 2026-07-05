@@ -404,6 +404,14 @@
     </script>
 <?php endif; ?>
 
+<?php if (isset($_GET['error'])): ?>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            showToast(<?php echo json_encode($_GET['error']); ?>, "❌");
+        });
+    </script>
+<?php endif; ?>
+
 </body>
 
 </html>

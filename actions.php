@@ -1890,11 +1890,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $course_code = strtoupper(trim($_POST['course_code']));
             $course_name = trim($_POST['course_name']);
             $standard_fee = isset($_POST['standard_fee']) ? (float) $_POST['standard_fee'] : 0.00;
+            $duration_value = isset($_POST['duration_value']) ? (int) $_POST['duration_value'] : 0;
+            $duration_unit = isset($_POST['duration_unit']) ? trim($_POST['duration_unit']) : 'Months';
             $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : 1;
 
             // Strict validation check for empty critical parameters
-            if (empty($course_code) || empty($course_name)) {
-                header("Location: academic.php?tab=courses&error=" . urlencode("All mandatory fields marked with an asterisk must be filled out."));
+            if (empty($course_code) || empty($course_name) || $duration_value <= 0) {
+                header("Location: academic.php?tab=courses&error=" . urlencode("All mandatory fields marked with an asterisk must be filled out correctly."));
                 exit();
             }
 
@@ -1908,8 +1910,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Execute procedural PDO prepared payload insert operation
-                $insert_stmt = $db->prepare("INSERT INTO `academic_courses` (`course_name`, `course_code`, `standard_fee`, `is_active`, `date_created`) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)");
-                $insert_stmt->execute([$course_name, $course_code, $standard_fee, $is_active]);
+                $insert_stmt = $db->prepare("INSERT INTO `academic_courses` (`course_name`, `course_code`, `standard_fee`, `duration_value`, `duration_unit`, `is_active`, `date_created`) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                $insert_stmt->execute([$course_name, $course_code, $standard_fee, $duration_value, $duration_unit, $is_active]);
 
                 header("Location: academic.php?tab=courses&msg=" . urlencode("New course track '$course_code' successfully cataloged."));
                 exit();
@@ -1930,9 +1932,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $course_id = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
             $course_name = trim($_POST['course_name']);
             $standard_fee = isset($_POST['standard_fee']) ? (float) $_POST['standard_fee'] : 0.00;
+            $duration_value = isset($_POST['duration_value']) ? (int) $_POST['duration_value'] : 0;
+            $duration_unit = isset($_POST['duration_unit']) ? trim($_POST['duration_unit']) : 'Months';
             $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : 1;
 
-            if (empty($course_id) || empty($course_name)) {
+            if (empty($course_id) || empty($course_name) || $duration_value <= 0) {
                 header("Location: academic.php?tab=courses&error=" . urlencode("Update error: Invalid reference parameters or missing required fields."));
                 exit();
             }
@@ -1940,8 +1944,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 // Execute dynamic column update via PDO matching target primary row ID
                 // Note: course_code remains safely locked to maintain clean foreign tracking relationships
-                $update_stmt = $db->prepare("UPDATE `academic_courses` SET `course_name` = ?, `standard_fee` = ?, `is_active` = ? WHERE `id` = ?");
-                $update_stmt->execute([$course_name, $standard_fee, $is_active, $course_id]);
+                $update_stmt = $db->prepare("UPDATE `academic_courses` SET `course_name` = ?, `standard_fee` = ?, `duration_value` = ?, `duration_unit` = ?, `is_active` = ? WHERE `id` = ?");
+                $update_stmt->execute([$course_name, $standard_fee, $duration_value, $duration_unit, $is_active, $course_id]);
 
                 header("Location: academic.php?tab=courses&msg=" . urlencode("Catalog settings updated successfully."));
                 exit();
@@ -1976,6 +1980,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$course_code) {
                     header("Location: academic.php?tab=courses&error=" . urlencode("Target course reference could not be localized within the data registries."));
+                    exit();
+                }
+
+                // Integrity Constraint Intercept: Verify if student tracking allocations depend on this primary key
+                $rel_stmt = $db->prepare("SELECT COUNT(*) FROM `academic_enrollments` WHERE `course_id` = ?");
+                $rel_stmt->execute([$course_id]);
+                $active_relations = (int) $rel_stmt->fetchColumn();
+
+                if ($active_relations > 0) {
+                    header("Location: academic.php?tab=courses&error=" . urlencode("Wipe rejected: Course track '$course_code' is currently tied to $active_relations active or historical enrollment ledger mappings. Break allocations first."));
                     exit();
                 }
 
