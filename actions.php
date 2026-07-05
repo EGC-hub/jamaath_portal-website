@@ -2591,6 +2591,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Check for the administrative record mutation intercept hook
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_fee_payment') {
+
+    // 2. Extract and Sanitize Base Input Matrix Fields
+    $enrollment_id = isset($_POST['enrollment_id']) ? (int) $_POST['enrollment_id'] : 0;
+    $paid_from = isset($_POST['paid_from']) ? trim($_POST['paid_from']) : '';
+    $paid_to = isset($_POST['paid_to']) ? trim($_POST['paid_to']) : '';
+    $amount_paid = isset($_POST['amount_paid']) ? filter_var($_POST['amount_paid'], FILTER_VALIDATE_FLOAT) : 0.00;
+    $payment_mode = isset($_POST['payment_mode']) ? trim($_POST['payment_mode']) : 'Cash';
+    $depositor_type = isset($_POST['depositor_type']) && $_POST['depositor_type'] === 'Someone Else' ? 'Someone Else' : 'Self';
+
+    // 3. Conditional Third-Party Payer Sanitization Metrics
+    $payer_name = null;
+    $payer_phone = null;
+
+    if ($depositor_type === 'Someone Else') {
+        $payer_name = isset($_POST['payer_name']) ? trim($_POST['payer_name']) : null;
+        // Collects the complete international number mapped by the submission handler
+        $payer_phone = isset($_POST['payer_phone']) ? trim($_POST['payer_phone']) : null;
+    }
+
+    // 4. Server-Side Operational Validations
+    if ($enrollment_id <= 0 || empty($paid_from) || empty($paid_to) || $amount_paid <= 0) {
+        die("Operational Failure: Missing or invalid required ledger input constraints parameters.");
+    }
+
+    // Enforce chronological layout integrity rule
+    if (strtotime($paid_to) < strtotime($paid_from)) {
+        die("Chronological Exception: The billing end-range date cannot precede the baseline starting matrix timeframe.");
+    }
+
+    try {
+        // 5. Verification Checkpoint: Ensure target track state is not strictly set to 'assigned'
+        $status_check = $db->prepare("SELECT status FROM academic_enrollments WHERE id = :enrollment_id");
+        $status_check->execute([':enrollment_id' => $enrollment_id]);
+        $current_status = $status_check->fetchColumn();
+
+        if (!$current_status) {
+            die("Database Error: Targeted course enrollment track instance reference lookup failed.");
+        }
+
+        if ($current_status === 'assigned') {
+            die("Business Logic Guardrail: Fee collections cannot be run for 'assigned' tracks. Change track status to 'ongoing' first.");
+        }
+
+        // 6. Overlap Guardrail: Verify the submitted range does not overlap with previously logged records
+        $overlap_check = $db->prepare("
+            SELECT COUNT(*) 
+            FROM academic_fee_payments 
+            WHERE enrollment_id = :enrollment_id 
+              AND (
+                  (:paid_from BETWEEN paid_from AND paid_to) OR
+                  (:paid_to BETWEEN paid_from AND paid_to) OR
+                  (paid_from BETWEEN :paid_from_alt AND :paid_to_alt)
+              )
+        ");
+        $overlap_check->execute([
+            ':enrollment_id' => $enrollment_id,
+            ':paid_from' => $paid_from,
+            ':paid_to' => $paid_to,
+            ':paid_from_alt' => $paid_from,
+            ':paid_to_alt' => $paid_to
+        ]);
+
+        if ((int) $overlap_check->fetchColumn() > 0) {
+            die("Double-Billing Prevention Guardrail: The selected coverage range overlaps with an existing transaction logged in the history ledger.");
+        }
+
+        // 7. Execute Transactional Ledger Insertion
+        $insert_query = "
+            INSERT INTO academic_fee_payments (
+                enrollment_id, paid_from, paid_to, amount_paid, 
+                payment_mode, depositor_type, payer_name, payer_phone
+            ) VALUES (
+                :enrollment_id, :paid_from, :paid_to, :amount_paid, 
+                :payment_mode, :depositor_type, :payer_name, :payer_phone
+            )
+        ";
+
+        $insert_stmt = $db->prepare($insert_query);
+        $insert_stmt->execute([
+            ':enrollment_id' => $enrollment_id,
+            ':paid_from' => $paid_from,
+            ':paid_to' => $paid_to,
+            ':amount_paid' => $amount_paid,
+            ':payment_mode' => $payment_mode,
+            ':depositor_type' => $depositor_type,
+            ':payer_name' => $payer_name,
+            ':payer_phone' => $payer_phone
+        ]);
+
+        // 8. Execution Success: Redirect gracefully back to the Fee tab landscape interface
+        header("Location: academic.php?tab=fees&status=payment_success");
+        exit;
+
+    } catch (PDOException $e) {
+        // Structural system isolation logging
+        error_log("Academic Module Fee Execution Exception: " . $e->getMessage());
+        die("Critical Engine Error: Database transactional operational processing crash.");
+    }
+}
+
 // Fallback catch-all diagnostic layer
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $received_action = $_POST['action'] ?? 'NOT SET';

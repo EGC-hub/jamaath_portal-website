@@ -15,6 +15,43 @@ $active_tab = isset($_GET['tab']) ? trim($_GET['tab']) : 'courses';
 $courses_query = $db->query("SELECT * FROM academic_courses ORDER BY course_code ASC");
 $courses = $courses_query->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch all active students along with their complete course mapping and payment histories in a single query pass
+$fee_students_query = "
+    SELECT 
+        s.id,
+        s.student_reg_no,
+        s.first_name,
+        s.last_name,
+        s.gender,
+        s.avatar_path,
+        COUNT(CASE WHEN e.status IN ('assigned', 'ongoing') THEN 1 END) AS active_tracks_count,
+        -- Complete Course allocations map serialization
+        GROUP_CONCAT(
+            DISTINCT CONCAT_WS('||', e.id, e.status, c.course_code, c.course_name, c.standard_fee, IFNULL(e.start_date, '')) 
+            SEPARATOR ';;;'
+        ) AS serialized_courses,
+        -- Historic payments ledger log map serialization
+        (
+            SELECT GROUP_CONCAT(
+                CONCAT_WS('||', p.enrollment_id, p.paid_from, p.paid_to, p.amount_paid, p.payment_mode, p.depositor_type, IFNULL(p.payer_name, ''))
+                ORDER BY p.paid_from DESC SEPARATOR ';;;'
+            )
+            FROM academic_fee_payments p
+            INNER JOIN academic_enrollments e2 ON p.enrollment_id = e2.id
+            WHERE e2.student_id = s.id
+        ) AS serialized_payments
+    FROM academic_students s
+    INNER JOIN academic_enrollments e ON s.id = e.student_id
+    INNER JOIN academic_courses c ON e.course_id = c.id
+    GROUP BY s.id
+    HAVING active_tracks_count > 0
+    ORDER BY s.student_reg_no ASC
+";
+
+$stmt = $db->prepare($fee_students_query);
+$stmt->execute();
+$students_with_enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Include the standard system navigation layouts
 include_once 'header.php';
 ?>
@@ -425,9 +462,86 @@ include_once 'header.php';
             </div>
         </div>
 
-        <div id="academic-panel-fees"
-            class="academic-tab-content hidden text-center text-slate-400 p-12 bg-white rounded-xl border border-slate-200 shadow-sm italic text-xs">
-            Financial payment ledger collection records overlay placeholder.
+        <!-- Tab 4: Fee Collection View Block -->
+        <div id="academic-panel-fees" class="academic-tab-content hidden space-y-4">
+
+            <!-- Top Information Banner Block matching image_e9bae6.png -->
+            <div
+                class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">
+                        Fee Collection Ledger
+                    </h2>
+                    <p class="text-xs text-slate-500">Track active course tracks, monitor anniversary due dates, and
+                        process structured subscription fee entries.</p>
+                </div>
+            </div>
+
+            <!-- Main Simplified Student Registry Matrix Grid -->
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <!-- Table Head Header Block Alignment matching image_e9bae4.png -->
+                        <thead>
+                            <tr
+                                class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
+                                <th class="px-6 py-4 w-44">Registration No</th>
+                                <th class="px-6 py-4">Student Name</th>
+                                <th class="px-6 py-4 text-center w-48">Active Tracks</th>
+                                <th class="px-6 py-4 text-center w-32">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <!-- Table Body Content Matrix -->
+                        <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
+                            <?php if (empty($students_with_enrollments)): ?>
+                                <tr>
+                                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic bg-white">
+                                        No active student enrollment maps found inside the registry yet.
+                                    </td>
+                                </tr>
+                                <?php
+                            else:
+                                foreach ($students_with_enrollments as $s):
+                                    ?>
+                                    <tr class="hover:bg-slate-50/80 transition-colors">
+                                        <!-- Registration Column matching font-mono guidelines -->
+                                        <td class="px-6 py-4 font-mono font-bold text-slate-900">
+                                            <?php echo htmlspecialchars($s['student_reg_no']); ?>
+                                        </td>
+
+                                        <!-- Student Profile Identifiers -->
+                                        <td class="px-6 py-4 font-medium text-slate-800">
+                                            <?php echo htmlspecialchars($s['first_name'] . ' ' . $s['last_name']); ?>
+                                        </td>
+
+                                        <!-- Active Tracks Badge Count Layout -->
+                                        <td class="px-6 py-4 text-center">
+                                            <span
+                                                class="inline-flex items-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase select-none">
+                                                <?php echo (int) $s['active_tracks_count']; ?> Active Courses
+                                            </span>
+                                        </td>
+
+                                        <!-- Actions Component Layout Block matching strict guidelines -->
+                                        <td class="px-6 py-4 text-center">
+                                            <div class="inline-flex items-center justify-center gap-1.5">
+                                                <button type="button" title="Open Fee Workspace"
+                                                    onclick='openFeeAllocationModal(<?php echo json_encode($s); ?>)'
+                                                    class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 rounded-lg border border-emerald-200 text-xs transition-colors cursor-pointer select-none">
+                                                    <i class="fa-solid fa-wallet"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                endforeach;
+                            endif;
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div id="academic-panel-reports"
@@ -1281,6 +1395,242 @@ include_once 'header.php';
     </div>
 </div>
 
+<!-- Modal Template: Student Allocated Courses View -->
+<div id="feeAllocationModal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-2xl w-full overflow-hidden transform transition-all duration-300 scale-95 flex flex-col max-h-[90vh]">
+
+        <!-- Header Component Block matching image_e94249.png styling -->
+        <div class="bg-gradient-to-r from-emerald-950 to-slate-900 p-6 relative text-white flex items-center gap-4">
+            <!-- Avatar Circle Wrapper Block -->
+            <div
+                class="w-16 h-16 rounded-full border-2 border-emerald-500/30 bg-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                <div id="feeModalAvatarContainer">
+                    <i class="fa-solid fa-user text-2xl text-slate-400"></i>
+                </div>
+            </div>
+
+            <!-- Context Identifiers Block -->
+            <div class="space-y-1">
+                <h3 id="feeModalStudentName" class="text-lg font-bold tracking-tight text-white leading-tight">--</h3>
+                <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                    <span
+                        class="inline-flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/30 text-[10px] text-emerald-400 px-2 py-0.5 rounded-md font-mono font-semibold tracking-wide uppercase shadow-2xs select-none">
+                        CARD: <span id="feeModalRegNo">--</span>
+                    </span>
+                    <span id="feeModalGenderBadge"
+                        class="inline-flex items-center bg-emerald-950/80 border border-emerald-500/30 text-[10px] text-emerald-400 px-2 py-0.5 rounded-md font-bold uppercase select-none">
+                        --
+                    </span>
+                </div>
+            </div>
+
+            <!-- Standard Absolute Window Dismissal X Action Block -->
+            <button type="button" onclick="closeFeeAllocationModal()"
+                class="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer select-none">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Modal Workspace Body Container -->
+        <div class="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-50/50">
+            <div>
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider select-none">Allocated Course
+                    Tracks</h4>
+                <p class="text-[11px] text-slate-500 mt-0.5">Select an active course path below to manage, record, or
+                    view its specific milestone ledger history.</p>
+            </div>
+
+            <!-- Dynamic Track Injection Table Container Matching image_e9bae4.png Grid Standards -->
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr
+                            class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 tracking-wider uppercase select-none">
+                            <th class="px-5 py-3 w-32">Code</th>
+                            <th class="px-5 py-3">Course Specification</th>
+                            <th class="px-5 py-3 w-32 text-center">Track Status</th>
+                            <th class="px-5 py-3 w-20 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feeModalCourseRows" class="divide-y divide-slate-100 text-xs text-slate-600">
+                        <!-- Content Injected Dynamically by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bottom Action Bar Block -->
+        <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end">
+            <button type="button" onclick="closeFeeAllocationModal()"
+                class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg transition-colors cursor-pointer select-none">
+                Close Profile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Template: Chanda-Style Fee Collection & Ledger Dropdown Workspace -->
+<div id="feeLedgerDropdownModal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-2xl w-full overflow-hidden transform transition-all duration-300 scale-95 flex flex-col max-h-[95vh]">
+
+        <!-- Header Component Block -->
+        <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-4 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200">
+                <i class="fa-solid fa-calculator text-emerald-400"></i>
+                <span>Fee Collection Workspace: <span id="dropdownCourseTitle"
+                        class="text-white normal-case font-semibold">--</span></span>
+            </div>
+            <button type="button" onclick="closeFeeLedgerDropdownWorkspace()"
+                class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-700/50 text-slate-300 hover:text-white transition-colors cursor-pointer select-none">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+
+        <div class="p-5 flex-1 overflow-y-auto space-y-5 bg-white">
+
+            <!-- Top Summary Status Panel matching image_e94685.png -->
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-xs">
+                <div>
+                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Completed Paid
+                        Period</span>
+                    <div id="summaryPaidPeriod" class="text-sm font-bold text-emerald-700 mt-0.5">No payments recorded
+                        yet.</div>
+                </div>
+                <div>
+                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Outstanding Due
+                        Months</span>
+                    <div id="summaryOutstandingDue" class="text-sm font-bold text-rose-600 mt-0.5">Calculating tracking
+                        metrics...</div>
+                </div>
+            </div>
+
+            <!-- Record Form Container Box matching image_e94685.png dark aesthetic -->
+            <form id="feePaymentSubmissionForm" method="POST" action="actions.php"
+                class="bg-emerald-950 p-5 rounded-xl border border-emerald-900 shadow-inner text-white space-y-4">
+                <input type="hidden" name="action" value="add_fee_payment">
+                <input type="hidden" name="enrollment_id" id="formEnrollmentId">
+
+                <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider select-none">Record Subscription
+                    Payments</h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+                    <!-- Paid From Date Picker -->
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Paid From
+                            *</label>
+                        <input type="date" name="paid_from" id="inputPaidFrom" required
+                            class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-medium text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                    </div>
+                    <!-- Paid To Date Picker -->
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Paid To
+                            *</label>
+                        <input type="date" name="paid_to" id="inputPaidTo" required
+                            class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-medium text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                    </div>
+                    <!-- Total Paid (Alignment fixed: Standard fee string pushed underneath) -->
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Total Paid
+                            (₹) *</label>
+                        <input type="number" step="0.01" name="amount_paid" id="inputAmountPaid" required
+                            placeholder="0.00"
+                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                        <span id="referenceStandardFee"
+                            class="block text-[10px] text-emerald-400 font-medium pt-0.5"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Payment Mode -->
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payment
+                            Mode *</label>
+                        <select name="payment_mode" required
+                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="UPI / GPay">UPI / GPay</option>
+                        </select>
+                    </div>
+                    <!-- Depositor Radio Controls -->
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Depositor /
+                            Paid By *</label>
+                        <div
+                            class="flex items-center gap-4 bg-emerald-900/40 border border-emerald-800/60 rounded-lg px-3 py-2 h-[34px]">
+                            <label
+                                class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+                                <input type="radio" name="depositor_type" value="Self" checked
+                                    onchange="togglePayerFields(this.value)" class="accent-amber-500"> Member Self
+                            </label>
+                            <label
+                                class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+                                <input type="radio" name="depositor_type" value="Someone Else"
+                                    onchange="togglePayerFields(this.value)" class="accent-amber-500"> Someone Else
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conditional Third-Party Payer Component Fields (Hidden by Default) -->
+                <div id="thirdPartyPayerFields"
+                    class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-emerald-800/40">
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer Full
+                            Name *</label>
+                        <input type="text" name="payer_name" id="inputPayerName" placeholder="Enter payer's name"
+                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
+                    </div>
+                    <!-- Payer Contact with strict intl-tel-input block layouts overrides -->
+                    <div class="space-y-1 text-slate-900">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer
+                            Contact Number *</label>
+                        <div class="w-full">
+                            <input type="tel" id="inputPayerPhone" placeholder="081234 56789"
+                                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-hidden h-[34px]">
+                            <!-- Hidden parameter input field mapping parsed standard output strings cleanly back to actions.php -->
+                            <input type="hidden" name="payer_phone" id="hiddenPayerPhone">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Submit Button -->
+                <button type="submit"
+                    class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg transition-colors shadow-xs cursor-pointer select-none">
+                    Save Subscription Mapping
+                </button>
+            </form>
+
+            <!-- Ledger Audit History Logs Block matching image_e94685.png metrics -->
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider select-none">Ledger Audit History
+                    Logs</h4>
+                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 tracking-wider uppercase select-none">
+                                <th class="px-4 py-2.5">Period Range</th>
+                                <th class="px-4 py-2.5 text-right">Amount</th>
+                                <th class="px-4 py-2.5">Payment Mode</th>
+                                <th class="px-4 py-2.5">Recorded Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dropdownLedgerHistoryRows" class="divide-y divide-slate-100 text-xs text-slate-600">
+                            <!-- Injected dynamically via JSON payload structure mapping -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Tab Switching Controller (Matches the capsule navigation style cleanly)
     function switchAcademicTab(tabId) {
@@ -1966,6 +2316,271 @@ include_once 'header.php';
             tempForm.appendChild(idInput);
             document.body.appendChild(tempForm);
             tempForm.submit();
+        }
+    }
+
+    /**
+  * Opens the allocation modal and renders course data purely from pre-fetched backend inputs
+  * @param {Object} studentData - Complete student structure injected during PHP loop generation
+  */
+    function openFeeAllocationModal(studentData) {
+        if (!studentData) return;
+
+        // 1. Populate identity headers matching image_eb1384.png metrics
+        document.getElementById('feeModalStudentName').textContent = studentData.first_name + ' ' + studentData.last_name;
+        document.getElementById('feeModalRegNo').textContent = studentData.student_reg_no;
+        document.getElementById('feeModalGenderBadge').textContent = studentData.gender;
+
+        const avatarBox = document.getElementById('feeModalAvatarContainer');
+        if (studentData.avatar_path) {
+            avatarBox.innerHTML = '<img src="' + studentData.avatar_path + '" class="w-full h-full object-cover" alt="Profile">';
+        } else {
+            avatarBox.innerHTML = '<i class="fa-solid fa-user text-2xl text-slate-400"></i>';
+        }
+
+        const tbody = document.getElementById('feeModalCourseRows');
+        tbody.innerHTML = ''; // Wipe out baseline loading indications
+
+        // 2. Safely unpack serialized course listings
+        if (!studentData.serialized_courses) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-5 py-8 text-center text-slate-400 italic bg-white">
+                    No active matching courses or validated tracks configured for this profile context yet.
+                </td>
+            </tr>
+        `;
+        } else {
+            const courseRecords = studentData.serialized_courses.split(';;;');
+
+            courseRecords.forEach(function (recordString) {
+                const parts = recordString.split('||');
+                if (parts.length < 5) return;
+
+                const enrollmentId = parts[0];
+                const status = parts[1];
+                const courseCode = parts[2];
+                const courseName = parts[3];
+                const standardFee = parts[4];
+                const startDate = parts[5] || ''; // Safe fallback configuration mapping
+
+                // Filter out non-billing statuses dynamically on the client side
+                if (status !== 'assigned' && status !== 'ongoing') return;
+
+                // Generate conditional pill elements matching UI system rules
+                let statusBadge = '';
+                if (status === 'ongoing') {
+                    statusBadge = '<span class="inline-flex items-center bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">Ongoing</span>';
+                } else {
+                    statusBadge = '<span class="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">Assigned</span>';
+                }
+
+                // Fix scoping issue: Safely escape the raw strings to avoid injection breaks
+                const escapedPayments = escapeHtml(studentData.serialized_payments || '');
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors';
+                tr.innerHTML = `
+                <td class="px-5 py-3 font-mono font-bold text-slate-900">${escapeHtml(courseCode)}</td>
+                <td class="px-5 py-3 font-medium text-slate-800">${escapeHtml(courseName)}</td>
+                <td class="px-5 py-3 text-center">${statusBadge}</td>
+                <td class="px-5 py-3 text-center">
+                    <button type="button" 
+                            title="Manage Fee Collection Ledger"
+                            onclick="openFeeLedgerDropdownWorkspace(${parseInt(enrollmentId)}, '${escapeHtml(courseName)}', ${parseFloat(standardFee)}, '${escapeHtml(status)}', '${escapeHtml(startDate)}', '${escapedPayments}')"
+                            class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 rounded-lg border border-emerald-200 text-xs transition-colors cursor-pointer select-none">
+                        <i class="fa-solid fa-calculator"></i>
+                    </button>
+                </td>
+            `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 3. Make modal structural container visible instantly
+        const modal = document.getElementById('feeAllocationModal');
+        modal.classList.remove('hidden');
+    }
+
+    function closeFeeAllocationModal() {
+        document.getElementById('feeAllocationModal').classList.add('hidden');
+    }
+
+    function escapeHtml(string) {
+        return String(string).replace(/[&<>"']/g, function (s) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s];
+        });
+    }
+
+    /**
+ * Triggers the targeted secondary Chanda-style Workspace collection overlay window configuration
+ * @param {Number} enrollmentId - Primary key identifying the target student allocation path record
+ * @param {String} courseName - Descriptive context identifying title labels
+ * @param {Number} standardFee - Reference pricing base metric parsed down from upstream tables
+ */
+    // Global placeholder tracking state variable for the input validation instance
+    let payerPhoneInputInstance = null;
+
+    /**
+ * Triggers the targeted secondary Chanda-style Workspace collection overlay window configuration
+ */
+    function openFeeLedgerDropdownWorkspace(enrollmentId, courseName, standardFee, trackStatus, startDateStr, paymentsRawString) {
+        // 1. Map Structural Identifiers into the View Space Form elements
+        document.getElementById('formEnrollmentId').value = enrollmentId;
+        document.getElementById('dropdownCourseTitle').textContent = courseName;
+        document.getElementById('referenceStandardFee').textContent = `Standard: ₹${parseFloat(standardFee).toFixed(2)}`;
+        document.getElementById('inputAmountPaid').value = parseFloat(standardFee).toFixed(2);
+
+        document.getElementById('feePaymentSubmissionForm').reset();
+        document.getElementById('formEnrollmentId').value = enrollmentId;
+        togglePayerFields('Self');
+
+        const historyTbody = document.getElementById('dropdownLedgerHistoryRows');
+        historyTbody.innerHTML = '';
+
+        let matchedPayments = [];
+        let absoluteLatestPaidTo = null;
+
+        // 2. Parse Historic Payment Records directly from the array string parameters
+        if (paymentsRawString && paymentsRawString.trim() !== '') {
+            const structuralRecords = paymentsRawString.split(';;;');
+            structuralRecords.forEach(function (row) {
+                const tokens = row.split('||');
+                if (tokens.length < 6) return;
+
+                const pEnrollmentId = parseInt(tokens[0]);
+                if (pEnrollmentId !== enrollmentId) return; // Isolate context only to current course track
+
+                const paidFrom = tokens[1];
+                const paidTo = tokens[2];
+                const amountPaid = parseFloat(tokens[3]).toFixed(2);
+                const mode = tokens[4];
+                const depositor = tokens[5];
+                const payerName = tokens[6];
+
+                matchedPayments.push({ from: paidFrom, to: paidTo });
+
+                // Evaluate tracking sequence for anniversary milestones metrics logic
+                const currentToDate = new Date(paidTo);
+                if (!absoluteLatestPaidTo || currentToDate > absoluteLatestPaidTo) {
+                    absoluteLatestPaidTo = currentToDate;
+                }
+
+                // Build structural row outputs matching image_eb941c.png aesthetics
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors';
+                tr.innerHTML = `
+                <td class="px-4 py-2.5 font-medium tracking-tight text-slate-800">${paidFrom} to ${paidTo}</td>
+                <td class="px-4 py-2.5 text-right font-mono font-bold text-slate-900">₹${amountPaid}</td>
+                <td class="px-4 py-2.5 text-slate-600">${mode}</td>
+                <td class="px-4 py-2.5 text-slate-500 text-[11px]">${depositor === 'Self' ? 'Paid by student' : escapeHtml(payerName)}</td>
+            `;
+                historyTbody.appendChild(tr);
+            });
+        }
+
+        // Render fallback indicator row if ledger history is blank
+        if (matchedPayments.length === 0) {
+            historyTbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-4 py-6 text-center text-slate-400 italic bg-white">
+                    No historical subscription payments logged yet.
+                </td>
+            </tr>
+        `;
+        }
+
+        // 3. Scenario B: Dynamic Anniversary Metric Analytics Processing
+        const summaryPaid = document.getElementById('summaryPaidPeriod');
+        const summaryDue = document.getElementById('summaryOutstandingDue');
+
+        if (matchedPayments.length > 0 && absoluteLatestPaidTo) {
+            // Render current covered timeline ranges nicely
+            const formattedLatestStr = absoluteLatestPaidTo.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            summaryPaid.innerHTML = `Covered up to <span class="font-bold text-emerald-600">${formattedLatestStr}</span>`;
+
+            // Calculate the subsequent anniversary cycle target date
+            let nextCycleStart = new Date(absoluteLatestPaidTo);
+            nextCycleStart.setDate(nextCycleStart.getDate() + 1);
+
+            const dueStr = nextCycleStart.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+            summaryDue.innerHTML = `Next Cycle due from <span class="underline font-bold text-rose-600">${dueStr}</span>`;
+        } else {
+            // Default evaluation states if completely clean record track parameters
+            summaryPaid.innerHTML = `<span class="text-slate-400 font-normal italic">No payments recorded yet.</span>`;
+            if (trackStatus === 'ongoing' && startDateStr !== '') {
+                const rawDateObj = new Date(startDateStr);
+                const formattedStart = rawDateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+                summaryDue.innerHTML = `Outstanding from track start: <span class="underline font-bold text-rose-600">${formattedStart}</span>`;
+            } else {
+                summaryDue.innerHTML = `Outstanding from <span class="underline font-bold text-rose-600">Current Billing Cycle</span>`;
+            }
+        }
+
+        // 4. Reveal Modal Wrappers smoothly
+        const dropdownModal = document.getElementById('feeLedgerDropdownModal');
+        dropdownModal.classList.remove('hidden');
+    }
+
+    /**
+     * Handles toggling visibility conditions across conditional payer configurations
+     */
+    function togglePayerFields(type) {
+        const fieldWrapper = document.getElementById('thirdPartyPayerFields');
+        const nameInput = document.getElementById('inputPayerName');
+        const phoneInput = document.getElementById('inputPayerPhone');
+
+        if (type === 'Someone Else') {
+            fieldWrapper.classList.remove('hidden');
+            nameInput.setAttribute('required', 'required');
+
+            // Dynamic Setup Engine for intl-tel-input matching Tab 2 framework settings
+            if (typeof intlTelInput !== 'undefined' && !payerPhoneInputInstance) {
+                payerPhoneInputInstance = intlTelInput(phoneInput, {
+                    initialCountry: "in",
+                    separateDialCode: true,
+                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+                });
+
+                // Fix layout overflow mechanics caused by intl-tel wrapper structures
+                const wrapper = phoneInput.closest('.iti');
+                if (wrapper) {
+                    wrapper.classList.add('w-full');
+                }
+            }
+        } else {
+            fieldWrapper.classList.add('hidden');
+            nameInput.removeAttribute('required');
+
+            // Clear components instances upon cancellation paths
+            if (payerPhoneInputInstance) {
+                payerPhoneInputInstance.destroy();
+                payerPhoneInputInstance = null;
+            }
+        }
+    }
+
+    // Global Validation Interceptor Hook: Form submission handling
+    document.getElementById('feePaymentSubmissionForm').addEventListener('submit', function (e) {
+        const depositorType = document.querySelector('input[name="depositor_type"]:checked').value;
+
+        if (depositorType === 'Someone Else' && payerPhoneInputInstance) {
+            // Enforce parsing standard complete outputs down to database records paths
+            const fullNumber = payerPhoneInputInstance.getNumber();
+            if (!payerPhoneInputInstance.isValidNumber()) {
+                e.preventDefault();
+                alert('Please check the international phone structure formatting entry.');
+                return false;
+            }
+            document.getElementById('hiddenPayerPhone').value = fullNumber;
+        }
+    });
+
+    function closeFeeLedgerDropdownWorkspace() {
+        document.getElementById('feeLedgerDropdownModal').classList.add('hidden');
+        if (payerPhoneInputInstance) {
+            payerPhoneInputInstance.destroy();
+            payerPhoneInputInstance = null;
         }
     }
 </script>
