@@ -25,16 +25,16 @@ $fee_students_query = "
         s.gender,
         s.avatar_path,
         COUNT(CASE WHEN e.status IN ('assigned', 'ongoing') THEN 1 END) AS active_tracks_count,
-        -- Complete Course allocations map serialization
+        -- Complete Course allocations map serialization including newly added duration metrics
         GROUP_CONCAT(
-            DISTINCT CONCAT_WS('||', e.id, e.status, c.course_code, c.course_name, c.standard_fee, IFNULL(e.start_date, '')) 
+            DISTINCT CONCAT_WS('||', e.id, e.status, c.course_code, c.course_name, c.standard_fee, IFNULL(e.start_date, ''), c.duration_value, c.duration_unit) 
             SEPARATOR ';;;'
         ) AS serialized_courses,
-        -- Historic payments ledger log map serialization
+        -- Historic balance ledger log map serialization including receipt numbers and narratives
         (
             SELECT GROUP_CONCAT(
-                CONCAT_WS('||', p.enrollment_id, p.paid_from, p.paid_to, p.amount_paid, p.payment_mode, p.depositor_type, IFNULL(p.payer_name, ''))
-                ORDER BY p.paid_from DESC SEPARATOR ';;;'
+                CONCAT_WS('||', p.enrollment_id, p.receipt_no, p.amount_paid, p.payment_mode, IFNULL(p.payment_narrative, ''), p.depositor_type, IFNULL(p.payer_name, ''))
+                ORDER BY p.id DESC SEPARATOR ';;;'
             )
             FROM academic_fee_payments p
             INNER JOIN academic_enrollments e2 ON p.enrollment_id = e2.id
@@ -466,7 +466,7 @@ include_once 'header.php';
                                 endforeach;
                             endif;
                             ?>
-                        </tbody>
+                        </tbody>+
                     </table>
                 </div>
             </div>
@@ -475,15 +475,15 @@ include_once 'header.php';
         <!-- Tab 4: Fee Collection View Block -->
         <div id="academic-panel-fees" class="academic-tab-content hidden space-y-4">
 
-            <!-- Top Information Banner Block matching image_e9bae6.png -->
+            <!-- Top Information Banner Block -->
             <div
                 class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h2 class="text-sm font-bold text-slate-900">
                         Fee Collection Ledger
                     </h2>
-                    <p class="text-xs text-slate-500">Track active course tracks, monitor anniversary due dates, and
-                        process structured subscription fee entries.</p>
+                    <p class="text-xs text-slate-500">Track active course tracks, monitor outstanding balances, and
+                        process structured liability fee ledger entries.</p>
                 </div>
             </div>
 
@@ -491,7 +491,7 @@ include_once 'header.php';
             <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
-                        <!-- Table Head Header Block Alignment matching image_e9bae4.png -->
+                        <!-- Table Head Header Block Alignment -->
                         <thead>
                             <tr
                                 class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
@@ -1499,7 +1499,7 @@ include_once 'header.php';
     </div>
 </div>
 
-<!-- Modal Template: Chanda-Style Fee Collection & Ledger Dropdown Workspace -->
+<!-- Modal Template: Balance-Style Fee Collection & Ledger Dropdown Workspace -->
 <div id="feeLedgerDropdownModal"
     class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-300">
     <div
@@ -1520,88 +1520,90 @@ include_once 'header.php';
 
         <div class="p-5 flex-1 overflow-y-auto space-y-5 bg-white">
 
-            <!-- Top Summary Status Panel matching image_e94685.png -->
+            <!-- Top Summary Balance Status Panel -->
             <div
-                class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-xs">
+                class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-xs">
                 <div>
-                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Completed Paid
-                        Period</span>
-                    <div id="summaryPaidPeriod" class="text-sm font-bold text-emerald-700 mt-0.5">No payments recorded
-                        yet.</div>
+                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Total Course
+                        Fee</span>
+                    <div id="summaryTotalCourseFee" class="text-sm font-bold text-slate-900 mt-0.5">₹0.00</div>
                 </div>
                 <div>
-                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Outstanding Due
-                        Months</span>
-                    <div id="summaryOutstandingDue" class="text-sm font-bold text-rose-600 mt-0.5">Calculating tracking
-                        metrics...</div>
+                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Aggregate Amount
+                        Paid</span>
+                    <div id="summaryAggregatePaid" class="text-sm font-bold text-emerald-700 mt-0.5">₹0.00</div>
+                </div>
+                <div>
+                    <span class="block font-bold text-slate-500 uppercase tracking-wider text-[10px]">Outstanding
+                        Balance Due</span>
+                    <div id="summaryOutstandingBalance" class="text-sm font-bold text-rose-600 mt-0.5">₹0.00</div>
                 </div>
             </div>
 
-            <!-- Record Form Container Box matching image_e94685.png dark aesthetic -->
+            <!-- Record Form Container Box (Dark Aesthetic) -->
             <form id="feePaymentSubmissionForm" method="POST" action="actions.php"
                 class="bg-emerald-950 p-5 rounded-xl border border-emerald-900 shadow-inner text-white space-y-4">
                 <input type="hidden" name="action" value="add_fee_payment">
                 <input type="hidden" name="enrollment_id" id="formEnrollmentId">
 
-                <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider select-none">Record Subscription
-                    Payments</h3>
+                <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider select-none">Record Fee Liability
+                    Payment</h3>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-                    <!-- Paid From Date Picker -->
+                    <!-- Receipt Number Input Field -->
                     <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Paid From
-                            *</label>
-                        <input type="date" name="paid_from" id="inputPaidFrom" required
-                            class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-medium text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Receipt /
+                            Voucher No *</label>
+                        <input type="text" name="receipt_no" id="inputReceiptNo" required placeholder="e.g., RCP-10024"
+                            class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
                     </div>
-                    <!-- Paid To Date Picker -->
+
+                    <!-- Amount to Pay Input Field -->
                     <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Paid To
-                            *</label>
-                        <input type="date" name="paid_to" id="inputPaidTo" required
-                            class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-medium text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
-                    </div>
-                    <!-- Total Paid (Alignment fixed: Standard fee string pushed underneath) -->
-                    <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Total Paid
-                            (₹) *</label>
-                        <input type="number" step="0.01" name="amount_paid" id="inputAmountPaid" required
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Amount to
+                            Pay (₹) *</label>
+                        <input type="number" step="0.01" min="1.00" name="amount_paid" id="inputAmountPaid" required
                             placeholder="0.00"
                             class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
-                        <span id="referenceStandardFee"
-                            class="block text-[10px] text-emerald-400 font-medium pt-0.5"></span>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Payment Mode -->
                     <div class="space-y-1">
                         <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payment
                             Mode *</label>
-                        <select name="payment_mode" required
+                        <select name="payment_mode" id="inputPaymentMode" required
+                            onchange="togglePaymentNarrativeField(this.value)"
                             class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
                             <option value="Cash">Cash</option>
                             <option value="Bank Transfer">Bank Transfer</option>
                             <option value="UPI / GPay">UPI / GPay</option>
                         </select>
                     </div>
-                    <!-- Depositor Radio Controls -->
-                    <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Depositor /
-                            Paid By *</label>
-                        <div
-                            class="flex items-center gap-4 bg-emerald-900/40 border border-emerald-800/60 rounded-lg px-3 py-2 h-[34px]">
-                            <label
-                                class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
-                                <input type="radio" name="depositor_type" value="Self" checked
-                                    onchange="togglePayerFields(this.value)" class="accent-amber-500"> Member Self
-                            </label>
-                            <label
-                                class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
-                                <input type="radio" name="depositor_type" value="Someone Else"
-                                    onchange="togglePayerFields(this.value)" class="accent-amber-500"> Someone Else
-                            </label>
-                        </div>
+                </div>
+
+                <!-- Conditional Transaction Narrative Reference Text Input (Hidden by Default for Cash) -->
+                <div id="paymentNarrativeContainer" class="hidden space-y-1 pt-2 border-t border-emerald-800/40">
+                    <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Transaction
+                        Narrative Reference *</label>
+                    <input type="text" name="payment_narrative" id="inputPaymentNarrative"
+                        placeholder="Enter UTR number, UPI Transaction ID, or banking confirmation details"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
+                </div>
+
+                <!-- Depositor Radio Controls -->
+                <div class="space-y-1">
+                    <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Depositor /
+                        Paid By *</label>
+                    <div
+                        class="flex items-center gap-4 bg-emerald-900/40 border border-emerald-800/60 rounded-lg px-3 py-2 h-[34px]">
+                        <label class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+                            <input type="radio" name="depositor_type" value="Self" checked
+                                onchange="togglePayerFields(this.value)" class="accent-amber-500"> Member Self
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+                            <input type="radio" name="depositor_type" value="Someone Else"
+                                onchange="togglePayerFields(this.value)" class="accent-amber-500"> Someone Else
+                        </label>
                     </div>
                 </div>
 
@@ -1614,14 +1616,12 @@ include_once 'header.php';
                         <input type="text" name="payer_name" id="inputPayerName" placeholder="Enter payer's name"
                             class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
                     </div>
-                    <!-- Payer Contact with strict intl-tel-input block layouts overrides -->
                     <div class="space-y-1 text-slate-900">
                         <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer
                             Contact Number *</label>
                         <div class="w-full">
                             <input type="tel" id="inputPayerPhone" placeholder="081234 56789"
                                 class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-hidden h-[34px]">
-                            <!-- Hidden parameter input field mapping parsed standard output strings cleanly back to actions.php -->
                             <input type="hidden" name="payer_phone" id="hiddenPayerPhone">
                         </div>
                     </div>
@@ -1630,11 +1630,11 @@ include_once 'header.php';
                 <!-- Action Submit Button -->
                 <button type="submit"
                     class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg transition-colors shadow-xs cursor-pointer select-none">
-                    Save Subscription Mapping
+                    Save Ledger Transaction Entry
                 </button>
             </form>
 
-            <!-- Ledger Audit History Logs Block matching image_e94685.png metrics -->
+            <!-- Ledger Audit History Logs Block -->
             <div class="space-y-2">
                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider select-none">Ledger Audit History
                     Logs</h4>
@@ -1643,10 +1643,10 @@ include_once 'header.php';
                         <thead>
                             <tr
                                 class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 tracking-wider uppercase select-none">
-                                <th class="px-4 py-2.5">Period Range</th>
-                                <th class="px-4 py-2.5 text-right">Amount</th>
-                                <th class="px-4 py-2.5">Payment Mode</th>
-                                <th class="px-4 py-2.5">Recorded Details</th>
+                                <th class="px-4 py-2.5 w-32">Receipt No</th>
+                                <th class="px-4 py-2.5 text-right w-28">Amount</th>
+                                <th class="px-4 py-2.5 w-36">Payment Mode</th>
+                                <th class="px-4 py-2.5">Recorded Details / Reference</th>
                             </tr>
                         </thead>
                         <tbody id="dropdownLedgerHistoryRows" class="divide-y divide-slate-100 text-xs text-slate-600">
@@ -2356,7 +2356,7 @@ include_once 'header.php';
     function openFeeAllocationModal(studentData) {
         if (!studentData) return;
 
-        // 1. Populate identity headers matching image_eb1384.png metrics
+        // 1. Populate identity headers matching profile view panel rules
         document.getElementById('feeModalStudentName').textContent = studentData.first_name + ' ' + studentData.last_name;
         document.getElementById('feeModalRegNo').textContent = studentData.student_reg_no;
         document.getElementById('feeModalGenderBadge').textContent = studentData.gender;
@@ -2391,11 +2391,24 @@ include_once 'header.php';
                 const status = parts[1];
                 const courseCode = parts[2];
                 const courseName = parts[3];
-                const standardFee = parts[4];
-                const startDate = parts[5] || ''; // Safe fallback configuration mapping
+                const standardFee = parseFloat(parts[4]) || 0.00;
+                const startDate = parts[5] || '';
+                // Unpack the newly appended duration fields from the single query pass structure
+                const durationValue = parseInt(parts[6]) || 0;
+                const durationUnit = parts[7] || 'Months';
 
                 // Filter out non-billing statuses dynamically on the client side
                 if (status !== 'assigned' && status !== 'ongoing') return;
+
+                // Client-side execution logic matching server-side calculateTotalCourseFee() implementation
+                let totalCourseFee = 0.00;
+                if (durationValue > 0) {
+                    if (durationUnit.toLowerCase() === 'days') {
+                        totalCourseFee = (standardFee / 30.0) * durationValue;
+                    } else {
+                        totalCourseFee = standardFee * durationValue;
+                    }
+                }
 
                 // Generate conditional pill elements matching UI system rules
                 let statusBadge = '';
@@ -2408,6 +2421,21 @@ include_once 'header.php';
                 // Fix scoping issue: Safely escape the raw strings to avoid injection breaks
                 const escapedPayments = escapeHtml(studentData.serialized_payments || '');
 
+                // Formulate target button actions and UI styling parameters based on status parameters
+                let actionOnClick = '';
+                let buttonStyleClasses = '';
+                let buttonTitleText = '';
+
+                if (status === 'ongoing') {
+                    actionOnClick = `openFeeLedgerDropdownWorkspace(${parseInt(enrollmentId)}, '${escapeHtml(courseName)}', ${standardFee}, '${escapeHtml(status)}', '${escapeHtml(startDate)}', '${escapedPayments}', ${totalCourseFee.toFixed(2)})`;
+                    buttonStyleClasses = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 cursor-pointer';
+                    buttonTitleText = 'Manage Fee Collection Ledger';
+                } else {
+                    actionOnClick = `showToast('Business Logic Guardrail: Fee collections cannot be run for assigned tracks. Update status to ongoing first.', '⚠️')`;
+                    buttonStyleClasses = 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed';
+                    buttonTitleText = 'Course Not Set To Ongoing';
+                }
+
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition-colors';
                 tr.innerHTML = `
@@ -2416,9 +2444,9 @@ include_once 'header.php';
                 <td class="px-5 py-3 text-center">${statusBadge}</td>
                 <td class="px-5 py-3 text-center">
                     <button type="button" 
-                            title="Manage Fee Collection Ledger"
-                            onclick="openFeeLedgerDropdownWorkspace(${parseInt(enrollmentId)}, '${escapeHtml(courseName)}', ${parseFloat(standardFee)}, '${escapeHtml(status)}', '${escapeHtml(startDate)}', '${escapedPayments}')"
-                            class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 rounded-lg border border-emerald-200 text-xs transition-colors cursor-pointer select-none">
+                            title="${buttonTitleText}"
+                            onclick="${actionOnClick}"
+                            class="${buttonStyleClasses} p-1.5 rounded-lg border text-xs transition-colors select-none">
                         <i class="fa-solid fa-calculator"></i>
                     </button>
                 </td>
@@ -2454,107 +2482,104 @@ include_once 'header.php';
     /**
  * Triggers the targeted secondary Chanda-style Workspace collection overlay window configuration
  */
-    function openFeeLedgerDropdownWorkspace(enrollmentId, courseName, standardFee, trackStatus, startDateStr, paymentsRawString) {
+    function openFeeLedgerDropdownWorkspace(enrollmentId, courseName, standardFee, trackStatus, startDateStr, paymentsRawString, totalCourseFee) {
         // 1. Map Structural Identifiers into the View Space Form elements
         document.getElementById('formEnrollmentId').value = enrollmentId;
         document.getElementById('dropdownCourseTitle').textContent = courseName;
-        document.getElementById('referenceStandardFee').textContent = `Standard: ₹${parseFloat(standardFee).toFixed(2)}`;
-        document.getElementById('inputAmountPaid').value = parseFloat(standardFee).toFixed(2);
 
         document.getElementById('feePaymentSubmissionForm').reset();
         document.getElementById('formEnrollmentId').value = enrollmentId;
+
+        // Explicitly reset the form layout views to default operational states
         togglePayerFields('Self');
+        togglePaymentNarrativeField('Cash');
 
         const historyTbody = document.getElementById('dropdownLedgerHistoryRows');
         historyTbody.innerHTML = '';
 
-        let matchedPayments = [];
-        let absoluteLatestPaidTo = null;
+        let totalAmountPaid = 0.00;
 
-        // 2. Parse Historic Payment Records directly from the array string parameters
+        // 2. Parse Historic Balance Payment Records directly from string matrices
         if (paymentsRawString && paymentsRawString.trim() !== '') {
             const structuralRecords = paymentsRawString.split(';;;');
             structuralRecords.forEach(function (row) {
                 const tokens = row.split('||');
-                if (tokens.length < 6) return;
+                if (tokens.length < 5) return; // Shape matching: enrollment_id || receipt_no || amount_paid || payment_mode || payment_narrative || depositor_type || payer_name
 
                 const pEnrollmentId = parseInt(tokens[0]);
                 if (pEnrollmentId !== enrollmentId) return; // Isolate context only to current course track
 
-                const paidFrom = tokens[1];
-                const paidTo = tokens[2];
-                const amountPaid = parseFloat(tokens[3]).toFixed(2);
-                const mode = tokens[4];
+                const receiptNo = tokens[1];
+                const amountPaid = parseFloat(tokens[2]);
+                const mode = tokens[3];
+                const narrative = tokens[4];
                 const depositor = tokens[5];
-                const payerName = tokens[6];
+                const payerName = tokens[6] || '';
 
-                matchedPayments.push({ from: paidFrom, to: paidTo });
+                totalAmountPaid += amountPaid;
 
-                // Evaluate tracking sequence for anniversary milestones metrics logic
-                const currentToDate = new Date(paidTo);
-                if (!absoluteLatestPaidTo || currentToDate > absoluteLatestPaidTo) {
-                    absoluteLatestPaidTo = currentToDate;
-                }
-
-                // Build structural row outputs matching image_eb941c.png aesthetics
+                // Build structural row outputs matching new balance ledger parameters
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition-colors';
+
+                let detailsText = depositor === 'Self' ? 'Paid by student' : `Paid by: ${payerName}`;
+                if (narrative && narrative.trim() !== '') {
+                    detailsText += ` (${narrative})`;
+                }
+
                 tr.innerHTML = `
-                <td class="px-4 py-2.5 font-medium tracking-tight text-slate-800">${paidFrom} to ${paidTo}</td>
-                <td class="px-4 py-2.5 text-right font-mono font-bold text-slate-900">₹${amountPaid}</td>
-                <td class="px-4 py-2.5 text-slate-600">${mode}</td>
-                <td class="px-4 py-2.5 text-slate-500 text-[11px]">${depositor === 'Self' ? 'Paid by student' : escapeHtml(payerName)}</td>
+                <td class="px-4 py-2.5 font-mono text-slate-900 font-medium">${escapeHtml(receiptNo)}</td>
+                <td class="px-4 py-2.5 text-right font-mono font-bold text-slate-900">₹${amountPaid.toFixed(2)}</td>
+                <td class="px-4 py-2.5 text-slate-600 font-medium">${mode}</td>
+                <td class="px-4 py-2.5 text-slate-500 text-[11px]">${escapeHtml(detailsText)}</td>
             `;
                 historyTbody.appendChild(tr);
             });
         }
 
         // Render fallback indicator row if ledger history is blank
-        if (matchedPayments.length === 0) {
+        if (totalAmountPaid === 0.00) {
             historyTbody.innerHTML = `
             <tr>
                 <td colspan="4" class="px-4 py-6 text-center text-slate-400 italic bg-white">
-                    No historical subscription payments logged yet.
+                    No historical balance payments logged yet.
                 </td>
             </tr>
         `;
         }
 
-        // 3. Scenario B: Dynamic Anniversary Metric Analytics Processing
-        const summaryPaid = document.getElementById('summaryPaidPeriod');
-        const summaryDue = document.getElementById('summaryOutstandingDue');
+        // 3. Dynamic Financial Balance Matrix Operations
+        const courseLiability = parseFloat(totalCourseFee) || 0.00;
+        const outstandingDue = Math.max(0.00, courseLiability - totalAmountPaid);
 
-        if (matchedPayments.length > 0 && absoluteLatestPaidTo) {
-            // Render current covered timeline ranges nicely
-            const formattedLatestStr = absoluteLatestPaidTo.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-            summaryPaid.innerHTML = `Covered up to <span class="font-bold text-emerald-600">${formattedLatestStr}</span>`;
+        document.getElementById('summaryTotalCourseFee').textContent = `₹${courseLiability.toFixed(2)}`;
+        document.getElementById('summaryAggregatePaid').textContent = `₹${totalAmountPaid.toFixed(2)}`;
+        document.getElementById('summaryOutstandingBalance').textContent = `₹${outstandingDue.toFixed(2)}`;
 
-            // Calculate the subsequent anniversary cycle target date
-            let nextCycleStart = new Date(absoluteLatestPaidTo);
-            nextCycleStart.setDate(nextCycleStart.getDate() + 1);
-
-            const dueStr = nextCycleStart.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-            summaryDue.innerHTML = `Next Cycle due from <span class="underline font-bold text-rose-600">${dueStr}</span>`;
-        } else {
-            // Default evaluation states if completely clean record track parameters
-            summaryPaid.innerHTML = `<span class="text-slate-400 font-normal italic">No payments recorded yet.</span>`;
-            if (trackStatus === 'ongoing' && startDateStr !== '') {
-                const rawDateObj = new Date(startDateStr);
-                const formattedStart = rawDateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-                summaryDue.innerHTML = `Outstanding from track start: <span class="underline font-bold text-rose-600">${formattedStart}</span>`;
-            } else {
-                summaryDue.innerHTML = `Outstanding from <span class="underline font-bold text-rose-600">Current Billing Cycle</span>`;
-            }
-        }
+        // Preset input payment values with remaining balance due to streamline workflows
+        const amountInput = document.getElementById('inputAmountPaid');
+        amountInput.value = outstandingDue > 0 ? outstandingDue.toFixed(2) : "0.00";
+        amountInput.setAttribute('max', outstandingDue.toFixed(2));
 
         // 4. Reveal Modal Wrappers smoothly
         const dropdownModal = document.getElementById('feeLedgerDropdownModal');
         dropdownModal.classList.remove('hidden');
     }
 
-    /**
-     * Handles toggling visibility conditions across conditional payer configurations
-     */
+    function togglePaymentNarrativeField(mode) {
+        const container = document.getElementById('paymentNarrativeContainer');
+        const inputField = document.getElementById('inputPaymentNarrative');
+
+        if (mode !== 'Cash') {
+            container.classList.remove('hidden');
+            inputField.setAttribute('required', 'required');
+        } else {
+            container.classList.add('hidden');
+            inputField.removeAttribute('required');
+            inputField.value = '';
+        }
+    }
+
     function togglePayerFields(type) {
         const fieldWrapper = document.getElementById('thirdPartyPayerFields');
         const nameInput = document.getElementById('inputPayerName');
