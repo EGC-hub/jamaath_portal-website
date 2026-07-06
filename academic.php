@@ -466,7 +466,7 @@ include_once 'header.php';
                                 endforeach;
                             endif;
                             ?>
-                        </tbody>+
+                        </tbody>
                     </table>
                 </div>
             </div>

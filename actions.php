@@ -2332,6 +2332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ==========================================
         // ACTION: PERMANENTLY DROP STUDENT ENTRY
         // ==========================================
+        // 3. DELETE EXISTENT STUDENT RECORD WITH RELATIONAL PROTECTION CORRIDORS
         if (isset($_POST['action']) && $_POST['action'] === 'delete_student') {
             if (function_exists('isSystemAdmin') && !isSystemAdmin()) {
                 die("Unauthorized system access command intercept triggered.");
@@ -2359,7 +2360,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $avatar_path = $student_record['avatar_path'];
                 $uploaded_path = $student_record['aadhar_doc_path'];
 
-                // Delete the row from the database
+                // 1. Relational Check: Verify if historical or current fee collections are tied to this student
+                $fee_check = $db->prepare("
+                    SELECT COUNT(*) 
+                    FROM `academic_fee_payments` p
+                    INNER JOIN `academic_enrollments` ae ON p.enrollment_id = ae.id
+                    WHERE ae.student_id = ?
+                ");
+                $fee_check->execute([$student_id]);
+                $logged_payments = (int) $fee_check->fetchColumn();
+
+                if ($logged_payments > 0) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Wipe rejected: Student [{$student_reg_no}] has {$logged_payments} registered transactions logged in the fee ledger. Clear financial histories first."));
+                    exit();
+                }
+
+                // 2. Relational Check: Verify if the student has active or historical course mappings
+                $enrollment_check = $db->prepare("SELECT COUNT(*) FROM `academic_enrollments` WHERE `student_id` = ?");
+                $enrollment_check->execute([$student_id]);
+                $active_tracks = (int) $enrollment_check->fetchColumn();
+
+                if ($active_tracks > 0) {
+                    header("Location: academic.php?tab=students&error=" . urlencode("Wipe rejected: Student [{$student_reg_no}] is currently tied to {$active_tracks} course allocations. Revoke all active or assigned course tracks first."));
+                    exit();
+                }
+
+                // Delete the row from the database safely now that all checks passed
                 $delete_stmt = $db->prepare("DELETE FROM `academic_students` WHERE `id` = ?");
                 $delete_stmt->execute([$student_id]);
 
@@ -2591,6 +2617,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             try {
+                // Integrity Constraint Intercept: Verify if financial ledger history depends on this enrollment instance
+                $fee_check = $db->prepare("SELECT COUNT(*) FROM `academic_fee_payments` WHERE `enrollment_id` = ?");
+                $fee_check->execute([$enrollment_id]);
+                $logged_payments = (int) $fee_check->fetchColumn();
+
+                if ($logged_payments > 0) {
+                    header("Location: academic.php?tab=registrations&error=" . urlencode("Revocation rejected: This course track enrollment has $logged_payments registered transaction payments logged in the fee ledger. Clear financial receipts first."));
+                    exit();
+                }
+
                 // Execute procedural database row extraction purge operation
                 $delete_stmt = $db->prepare("DELETE FROM `academic_enrollments` WHERE `id` = ?");
                 $delete_stmt->execute([$enrollment_id]);
