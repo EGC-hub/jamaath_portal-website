@@ -2030,10 +2030,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $jamaath_membership_id = ($jamaath_status === 'Within' && !empty($_POST['jamaath_membership_id'])) ? strtoupper(trim($_POST['jamaath_membership_id'])) : null;
             $external_jamaath_name = ($jamaath_status === 'Outside' && !empty($_POST['external_jamaath_name'])) ? trim($_POST['external_jamaath_name']) : null;
 
-            // Contacts
+            // Contacts & Communication Channels
             $father_name = trim($_POST['father_name']);
             $father_phone = trim($_POST['father_phone']);
             $student_phone = !empty($_POST['student_phone']) ? trim($_POST['student_phone']) : null;
+            $email = isset($_POST['email']) ? filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL) : '';
             $guardian_name = trim($_POST['guardian_name']);
             $guardian_phone = trim($_POST['guardian_phone']);
 
@@ -2056,8 +2057,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $aadhar_no = str_replace(' ', '', trim($_POST['aadhar_no']));
 
             // Structural Validation Gate
-            if (empty($first_name) || empty($last_name) || empty($father_name) || empty($father_phone) || empty($guardian_name) || empty($guardian_phone) || empty($res_address_line1) || empty($comm_address_line1) || empty($aadhar_no)) {
+            if (empty($first_name) || empty($last_name) || empty($email) || empty($father_name) || empty($father_phone) || empty($guardian_name) || empty($guardian_phone) || empty($res_address_line1) || empty($comm_address_line1) || empty($aadhar_no)) {
                 header("Location: academic.php?tab=students&error=" . urlencode("All mandatory metrics marked with an asterisk must be satisfied."));
+                exit();
+            }
+
+            // Validate structured email formatting boundaries
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Operational error: Provided student email format is invalid."));
+                exit();
+            }
+
+            // Unique Check on Student Email Address Profile
+            $email_check = $db->prepare("SELECT COUNT(*) FROM `academic_students` WHERE `email` = ?");
+            $email_check->execute([$email]);
+            if ((int) $email_check->fetchColumn() > 0) {
+                header("Location: academic.php?tab=students&error=" . urlencode("System Lock: The email address '$email' is already registered to an active student record."));
                 exit();
             }
 
@@ -2127,14 +2142,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $student_reg_no = $reg_prefix . str_pad($next_digit, 4, "0", STR_PAD_LEFT);
 
                 $insert_query = "INSERT INTO `academic_students` 
-                    (`student_reg_no`, `first_name`, `last_name`, `gender`, `dob`, `marital_status`, `blood_group`, `study_level`, `study_specification`, `jamaath_status`, `jamaath_membership_id`, `external_jamaath_name`, `father_name`, `father_phone`, `student_phone`, `guardian_name`, `guardian_phone`, `res_address_line1`, `res_address_line2`, `res_city`, `res_pincode`, `res_state`, `res_country`, `comm_address_line1`, `comm_address_line2`, `comm_city`, `comm_pincode`, `comm_state`, `comm_country`, `aadhar_no`, `aadhar_doc_path`, `avatar_path`) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (`student_reg_no`, `first_name`, `last_name`, `email`, `gender`, `dob`, `marital_status`, `blood_group`, `study_level`, `study_specification`, `jamaath_status`, `jamaath_membership_id`, `external_jamaath_name`, `father_name`, `father_phone`, `student_phone`, `guardian_name`, `guardian_phone`, `res_address_line1`, `res_address_line2`, `res_city`, `res_pincode`, `res_state`, `res_country`, `comm_address_line1`, `comm_address_line2`, `comm_city`, `comm_pincode`, `comm_state`, `comm_country`, `aadhar_no`, `aadhar_doc_path`, `avatar_path`) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = $db->prepare($insert_query);
                 $stmt->execute([
                     $student_reg_no,
                     $first_name,
                     $last_name,
+                    $email,
                     $gender,
                     $dob,
                     $marital_status,
@@ -2224,6 +2240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $father_name = trim($_POST['father_name']);
             $father_phone = trim($_POST['father_phone']);
             $student_phone = !empty($_POST['student_phone']) ? trim($_POST['student_phone']) : null;
+            $email = isset($_POST['email']) ? filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL) : '';
             $guardian_name = trim($_POST['guardian_name']);
             $guardian_phone = trim($_POST['guardian_phone']);
 
@@ -2241,8 +2258,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $comm_state = trim($_POST['comm_state']);
             $comm_country = trim($_POST['comm_country']);
 
-            if (empty($first_name) || empty($last_name) || empty($father_name) || empty($father_phone) || empty($guardian_name) || empty($guardian_phone) || empty($res_address_line1) || empty($comm_address_line1)) {
+            if (empty($first_name) || empty($last_name) || empty($email) || empty($father_name) || empty($father_phone) || empty($guardian_name) || empty($guardian_phone) || empty($res_address_line1) || empty($comm_address_line1)) {
                 header("Location: academic.php?tab=students&error=" . urlencode("Required fields must remain populated."));
+                exit();
+            }
+
+            // Validate structured email formatting boundaries
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                header("Location: academic.php?tab=students&error=" . urlencode("Operational error: Provided student email format is invalid."));
+                exit();
+            }
+
+            // Exclude self row vector to ensure unique validations don't collide against original metrics
+            $email_check = $db->prepare("SELECT COUNT(*) FROM `academic_students` WHERE `email` = ? AND `id` != ?");
+            $email_check->execute([$email, $student_id]);
+            if ((int) $email_check->fetchColumn() > 0) {
+                header("Location: academic.php?tab=students&error=" . urlencode("System Lock: The email address '$email' is already linked to another student file."));
                 exit();
             }
 
@@ -2278,7 +2309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             try {
                 $update_query = "UPDATE `academic_students` SET 
-                    `first_name` = ?, `last_name` = ?, `gender` = ?, `dob` = ?, `marital_status` = ?, `blood_group` = ?,
+                    `first_name` = ?, `last_name` = ?, `email` = ?, `gender` = ?, `dob` = ?, `marital_status` = ?, `blood_group` = ?,
                     `study_level` = ?, `study_specification` = ?, `jamaath_status` = ?, `jamaath_membership_id` = ?, `external_jamaath_name` = ?,
                     `father_name` = ?, `father_phone` = ?, `student_phone` = ?, `guardian_name` = ?, `guardian_phone` = ?,
                     `res_address_line1` = ?, `res_address_line2` = ?, `res_city` = ?, `res_pincode` = ?, `res_state` = ?, `res_country` = ?,
@@ -2290,6 +2321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([
                     $first_name,
                     $last_name,
+                    $email,
                     $gender,
                     $dob,
                     $marital_status,

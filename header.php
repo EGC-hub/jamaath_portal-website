@@ -79,6 +79,40 @@ $active_script = basename($_SERVER['PHP_SELF']);
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* intl-tel-input Full Width Fix overrides */
+        .iti {
+            display: block !important;
+            width: 100% !important;
+        }
+
+        /* Custom Adaptive Micro-Scrollbar for Long Text Elements */
+        .custom-mini-scrollbar::-webkit-scrollbar {
+            height: 3px;
+            /* Keep it ultra-thin so it doesn't disrupt text alignment */
+        }
+
+        .custom-mini-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* The scrollbar thumb remains completely clear until explicit hover actions manifest */
+        .custom-mini-scrollbar::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 9999px;
+            transition: background-color 0.2s ease;
+        }
+
+        /* Smoothly reveal a clean slate indicator when the element box is actively hovered */
+        .custom-mini-scrollbar:hover::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            /* Smooth Tailwind slate-300 tone */
+        }
+
+        .custom-mini-scrollbar:hover {
+            padding-bottom: 0px;
+            /* Counter-balance layout shift when scrollbar appears */
+        }
     </style>
 </head>
 

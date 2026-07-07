@@ -752,7 +752,8 @@ include_once 'header.php';
                     Classification</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Education
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Education
                             Level <span class="text-rose-500">*</span></label>
                         <select name="study_level" id="field_study_level" required
                             class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
@@ -781,8 +782,7 @@ include_once 'header.php';
 
             <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
                 <h4 class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">3. Jamaath Affiliation
-                    Parameters
-                </h4>
+                    Parameters</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label
@@ -796,7 +796,6 @@ include_once 'header.php';
                         </select>
                     </div>
 
-                    <!-- Dynamic Field: Inside Jamaath Input Box -->
                     <div id="wrapper_jamaath_membership" class="block">
                         <label
                             class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Membership
@@ -806,7 +805,6 @@ include_once 'header.php';
                             class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all uppercase font-mono">
                     </div>
 
-                    <!-- Dynamic Field: Outside Jamaath Dropdown List -->
                     <div id="wrapper_jamaath_outside_dropdown" class="hidden">
                         <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Select
                             External Jamaath <span class="text-rose-500">*</span></label>
@@ -842,12 +840,12 @@ include_once 'header.php';
                         <div class="iti-parent w-full">
                             <input type="tel" name="father_phone" id="field_father_phone" required
                                 placeholder="Mandatory Contact"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-[11px] focus:border-emerald-500 focus:outline-none transition-all font-mono">
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <div>
                         <label
                             class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Student
@@ -855,9 +853,20 @@ include_once 'header.php';
                         <div class="iti-parent w-full">
                             <input type="tel" name="student_phone" id="field_student_phone"
                                 placeholder="Optional (Self Contact)"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-[11px] focus:border-emerald-500 focus:outline-none transition-all font-mono">
                         </div>
                     </div>
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Student
+                            Email Address <span class="text-rose-500">*</span></label>
+                        <input type="email" name="email" id="field_email" required
+                            placeholder="e.g., student@domain.com"
+                            class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <div>
                         <label
                             class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Guardian
@@ -873,7 +882,7 @@ include_once 'header.php';
                         <div class="iti-parent w-full">
                             <input type="tel" name="guardian_phone" id="field_guardian_phone" required
                                 placeholder="Emergency No"
-                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all font-mono">
+                                class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg pl-14 pr-3 py-[11px] focus:border-emerald-500 focus:outline-none transition-all font-mono">
                         </div>
                     </div>
                 </div>
@@ -884,7 +893,6 @@ include_once 'header.php';
                     Address</h4>
                 <div class="space-y-4">
 
-                    <!-- Sub-Card A: Residential Address Profile -->
                     <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-150 space-y-3 shadow-2xs">
                         <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs pb-1 select-none">
                             <i class="fa-solid fa-house-chimney text-emerald-600"></i> Residential Address
@@ -942,7 +950,6 @@ include_once 'header.php';
                         </div>
                     </div>
 
-                    <!-- Sub-Card B: Communication Address Profile -->
                     <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-150 space-y-3 shadow-2xs">
                         <div class="flex items-center justify-between pb-1 select-none">
                             <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs">
@@ -1118,7 +1125,8 @@ include_once 'header.php';
                     <div id="view_marital_status" class="font-bold text-slate-800">N/A</div>
                 </div>
                 <div class="col-span-2">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Specialisation</span>
+                    <span
+                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Specialisation</span>
                     <div id="view_study_specification" class="font-bold text-slate-800 truncate">N/A</div>
                 </div>
                 <div class="col-span-2">
@@ -1130,47 +1138,101 @@ include_once 'header.php';
                 </div>
             </div>
 
-            <!-- Matrix 2: Communication Vectors Grid Layout -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Phone Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex items-start gap-3 text-xs">
-                    <div
-                        class="text-emerald-600 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-phone"></i>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+
+                <div
+                    class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex flex-col justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="text-emerald-600 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-phone text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact
+                                Phone</span>
+                            <div id="view_student_phone"
+                                class="font-bold text-slate-800 font-mono tracking-wide overflow-x-auto scrollbar-none whitespace-nowrap">
+                                N/A</div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact
-                            Phone</span>
-                        <div id="view_student_phone" class="font-bold text-slate-800 font-mono">N/A</div>
+
+                    <div class="flex items-center gap-3 min-w-0 pt-2 border-t border-slate-100 group">
+                        <div
+                            class="text-teal-600 bg-teal-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-envelope text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Student
+                                Email</span>
+                            <div id="view_student_email"
+                                class="font-bold text-slate-800 font-mono text-[11px] hover:overflow-x-auto overflow-x-hidden whitespace-nowrap scroll-smooth custom-mini-scrollbar pb-0.5">
+                                N/A
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Father Identity Details -->
-                <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex items-start gap-3 text-xs">
-                    <div
-                        class="text-slate-600 bg-slate-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-user-tie"></i>
+                <div
+                    class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex flex-col justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="text-slate-600 bg-slate-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-user-tie text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Father
+                                / Primary</span>
+                            <div id="view_father_name" class="font-bold text-slate-800 truncate">N/A</div>
+                        </div>
                     </div>
-                    <div class="truncate">
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Father
-                            / Primary</span>
-                        <div id="view_father_name" class="font-bold text-slate-800 truncate">N/A</div>
-                        <div id="view_father_phone" class="font-mono text-[11px] text-slate-500 mt-0.5">N/A</div>
+
+                    <div class="flex items-center gap-3 min-w-0 pt-2 border-t border-slate-100">
+                        <div
+                            class="text-slate-400 bg-slate-50/50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-mobile-screen text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Father
+                                Contact Phone</span>
+                            <div id="view_father_phone"
+                                class="font-mono text-[11px] text-slate-600 font-bold tracking-wide">N/A</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Emergency Guardian Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex items-start gap-3 text-xs">
-                    <div class="text-teal-600 bg-teal-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-shield-halved"></i>
+                <div
+                    class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex flex-col justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="text-teal-600 bg-teal-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-shield-halved text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Guardian</span>
+                            <div id="view_guardian_name" class="font-bold text-slate-800 truncate">N/A</div>
+                        </div>
                     </div>
-                    <div class="truncate">
-                        <span
-                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Guardian</span>
-                        <div id="view_guardian_name" class="font-bold text-slate-800 truncate">N/A</div>
-                        <div id="view_guardian_phone" class="font-mono text-[11px] text-slate-500 mt-0.5">N/A</div>
+
+                    <div class="flex items-center gap-3 min-w-0 pt-2 border-t border-slate-100">
+                        <div
+                            class="text-teal-500 bg-teal-50/50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-phone-flip text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Guardian
+                                Phone Number</span>
+                            <div id="view_guardian_phone"
+                                class="font-mono text-[11px] text-slate-600 font-bold tracking-wide">N/A</div>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
             <!-- Identity Verification Document Container -->
@@ -1745,6 +1807,12 @@ include_once 'header.php';
         document.getElementById('field_aadhar_doc_link').classList.add('hidden');
         document.getElementById('field_aadhar_no').disabled = false;
 
+        // Reset email field value back to blank state for new entries
+        const emailField = document.getElementById('field_email');
+        if (emailField) {
+            emailField.value = '';
+        }
+
         // Force validation requirements for new additions
         document.getElementById('field_student_avatar').required = true;
         document.getElementById('field_aadhar_doc').required = true;
@@ -1817,6 +1885,7 @@ include_once 'header.php';
         document.getElementById('field_father_name').value = student.father_name || '';
         document.getElementById('field_father_phone').value = student.father_phone || '';
         document.getElementById('field_student_phone').value = student.student_phone || '';
+        document.getElementById('field_email').value = student.email || ''; // Maps dynamic email attribute values smoothly
         document.getElementById('field_guardian_name').value = student.guardian_name;
         document.getElementById('field_guardian_phone').value = student.guardian_phone;
 
@@ -2105,6 +2174,7 @@ include_once 'header.php';
 
         // Contact Nodes Assignments
         document.getElementById('view_student_phone').textContent = student.student_phone || 'N/A';
+        document.getElementById('view_student_email').textContent = student.email || 'N/A';
         document.getElementById('view_father_name').textContent = student.father_name || 'N/A';
         document.getElementById('view_father_phone').textContent = student.father_phone || 'N/A';
         document.getElementById('view_guardian_name').textContent = student.guardian_name || 'N/A';
