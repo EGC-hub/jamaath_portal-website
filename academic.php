@@ -225,7 +225,7 @@ include_once 'header.php';
                                 class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
                                 <th class="px-6 py-4 w-44">Registration No</th>
                                 <th class="px-6 py-4">Student Name</th>
-                                <th class="px-6 py-4">Study Level / Specification</th>
+                                <th class="px-6 py-4">Education Level / Specialisation</th>
                                 <th class="px-6 py-4 w-48">Primary Contact</th>
                                 <th class="px-6 py-4 w-32 text-center">Actions</th>
                             </tr>
@@ -752,7 +752,7 @@ include_once 'header.php';
                     Classification</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Study
+                        <label class="block text-[11px] uppercase tracking-wider font-bold text-slate-600 mb-1.5">Education
                             Level <span class="text-rose-500">*</span></label>
                         <select name="study_level" id="field_study_level" required
                             class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:outline-none transition-all cursor-pointer">
@@ -1103,7 +1103,7 @@ include_once 'header.php';
                     <div id="view_dob" class="font-bold text-slate-800 font-mono">--/--/----</div>
                 </div>
                 <div>
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Study
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Education
                         Level</span>
                     <div id="view_study_level" class="font-bold text-slate-800">N/A</div>
                 </div>
@@ -1118,8 +1118,7 @@ include_once 'header.php';
                     <div id="view_marital_status" class="font-bold text-slate-800">N/A</div>
                 </div>
                 <div class="col-span-2">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Track
-                        Specification</span>
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Specialisation</span>
                     <div id="view_study_specification" class="font-bold text-slate-800 truncate">N/A</div>
                 </div>
                 <div class="col-span-2">
