@@ -319,13 +319,12 @@ include_once 'header.php';
         <!-- Tab Panel 3: Course Enrollments -->
         <div id="academic-panel-registrations" class="academic-tab-content hidden space-y-4">
 
-            <!-- Header Block -->
             <div
                 class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h2 class="text-sm font-bold text-slate-900">Course Enrollment Registry</h2>
                     <p class="text-xs text-slate-500">Connect students to multi-course tracks, monitor ongoing
-                        educational statuses, manage key timeline dates, and track dropped metrics.</p>
+                        educational statuses, manage key timeline dates, and track lifecycle transitions.</p>
                 </div>
                 <button onclick="openEnrollmentModal()"
                     class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer select-none">
@@ -333,7 +332,6 @@ include_once 'header.php';
                 </button>
             </div>
 
-            <!-- Main Data Grid Matrix -->
             <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
@@ -343,21 +341,23 @@ include_once 'header.php';
                                 <th class="px-6 py-4">Student Details</th>
                                 <th class="px-6 py-4">Enrolled Course</th>
                                 <th class="px-6 py-4">Instructor & Timeline</th>
-                                <th class="px-6 py-4 w-40">Status Track</th>
+                                <th class="px-6 py-4 w-44">Status Track</th>
                                 <th class="px-6 py-4 w-56 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
                             <?php
                             $enroll_query = $db->query("
-                        SELECT ae.*, 
-                               stu.student_reg_no, stu.first_name, stu.last_name,
-                               ac.course_code, ac.course_name
-                        FROM academic_enrollments ae
-                        JOIN academic_students stu ON ae.student_id = stu.id
-                        JOIN academic_courses ac ON ae.course_id = ac.id
-                        ORDER BY ae.id DESC
-                    ");
+                                SELECT ae.id, ae.student_id, ae.course_id, ae.instructor_id, ae.status, 
+                                    ae.start_date, ae.end_date, ae.drop_reason, ae.cancellation_source, 
+                                    ae.resume_count, ae.pause_start_date, ae.accumulated_pause_days,
+                                    stu.student_reg_no, stu.first_name, stu.last_name,
+                                    ac.course_code, ac.course_name, ac.duration_value, ac.duration_unit
+                                FROM academic_enrollments ae
+                                JOIN academic_students stu ON ae.student_id = stu.id
+                                JOIN academic_courses ac ON ae.course_id = ac.id
+                                ORDER BY ae.id DESC
+                            ");
                             $enrollments = $enroll_query->fetchAll(PDO::FETCH_ASSOC);
 
                             if (empty($enrollments)):
@@ -385,6 +385,9 @@ include_once 'header.php';
                                                 class="inline-block bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-md uppercase text-[10px] tracking-wider mr-1.5"><?php echo htmlspecialchars($e['course_code']); ?></span>
                                             <span
                                                 class="text-slate-800 font-medium"><?php echo htmlspecialchars($e['course_name']); ?></span>
+                                            <div class="text-[10px] text-slate-400 mt-0.5">Duration:
+                                                <?php echo (int) $e['duration_value'] . ' ' . htmlspecialchars($e['duration_unit']); ?>
+                                            </div>
                                         </td>
 
                                         <td class="px-6 py-4 text-xs text-slate-700">
@@ -394,9 +397,10 @@ include_once 'header.php';
                                             </div>
                                             <div class="text-slate-500 font-mono mt-0.5 flex flex-col gap-0.5 text-[11px]">
                                                 <span>Start:
-                                                    <?php echo (!empty($e['start_date']) && $e['start_date'] !== '0000-00-00') ? htmlspecialchars($e['start_date']) : '<span class="italic text-slate-400">Course Not Started</span>'; ?></span>
-                                                <?php if ($e['status'] === 'completed' && !empty($e['end_date'])): ?>
-                                                    <span class="text-emerald-600 font-semibold">End:
+                                                    <?php echo (!empty($e['start_date']) && $e['start_date'] !== '0000-00-00') ? htmlspecialchars($e['start_date']) : '<span class="italic text-slate-400 text-[10px]">Not Started</span>'; ?></span>
+                                                <?php if (in_array($e['status'], ['completed', 'cancelled', 'dropped']) && !empty($e['end_date']) && $e['end_date'] !== '0000-00-00'): ?>
+                                                    <span
+                                                        class="<?php echo $e['status'] === 'completed' ? 'text-emerald-600 font-semibold' : 'text-slate-500'; ?>">End:
                                                         <?php echo htmlspecialchars($e['end_date']); ?></span>
                                                 <?php endif; ?>
                                             </div>
@@ -408,56 +412,136 @@ include_once 'header.php';
                                                 'assigned' => 'bg-blue-50 text-blue-700 border-blue-200',
                                                 'ongoing' => 'bg-amber-50 text-amber-700 border-amber-200',
                                                 'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                                'dropped' => 'bg-rose-50 text-rose-700 border-rose-200'
+                                                'dropped' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                                'hold' => 'bg-gray-100 text-gray-700 border-gray-300',
+                                                'cancelled' => 'bg-slate-100 text-slate-700 border-slate-300'
                                             ];
-                                            $colorClass = $statusColors[$e['status']] ?? 'bg-slate-50 text-slate-700 border-slate-200';
+
+                                            // DYNAMIC FUTURE DATE EVALUATION MASK
+                                            $displayStatus = $e['status'];
+                                            if ($e['status'] === 'ongoing' && !empty($e['start_date']) && $e['start_date'] > date('Y-m-d')) {
+                                                $displayStatus = 'assigned';
+                                            }
+
+                                            $colorClass = $statusColors[$displayStatus] ?? 'bg-slate-50 text-slate-700 border-slate-200';
                                             ?>
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border <?php echo $colorClass; ?>">
-                                                <?php echo ucfirst($e['status']); ?>
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap <?php echo $colorClass; ?>">
+                                                <?php echo ($e['status'] === 'ongoing' && $displayStatus === 'assigned') ? 'Assigned (Scheduled)' : ucfirst($displayStatus); ?>
                                             </span>
+
                                             <?php if ($e['status'] === 'dropped' && !empty($e['drop_reason'])): ?>
-                                                <div class="text-[11px] text-rose-600 font-medium max-w-xs mt-1 italic"
+                                                <div class="text-[10px] text-rose-600 font-medium max-w-xs mt-1 italic"
                                                     title="<?php echo htmlspecialchars($e['drop_reason']); ?>">
                                                     Reason: <?php echo htmlspecialchars($e['drop_reason']); ?>
+                                                </div>
+                                            <?php elseif ($e['status'] === 'hold' && !empty($e['drop_reason'])): ?>
+                                                <div class="text-[10px] text-gray-600 font-medium max-w-xs mt-1 italic"
+                                                    title="<?php echo htmlspecialchars($e['drop_reason']); ?>">
+                                                    Reason: <?php echo htmlspecialchars($e['drop_reason']); ?>
+                                                </div>
+                                            <?php elseif ($e['status'] === 'cancelled' && !empty($e['drop_reason'])): ?>
+                                                <div class="text-[10px] text-slate-600 font-medium max-w-xs mt-1 italic"
+                                                    title="<?php echo htmlspecialchars($e['drop_reason']); ?>">
+                                                    Reason: <?php echo htmlspecialchars($e['drop_reason']); ?>
+                                                    <span
+                                                        class="uppercase font-bold text-[9px] text-slate-500">([<?php echo htmlspecialchars($e['cancellation_source'] ?? 'N/A'); ?>])</span>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <?php if ((int) $e['resume_count'] > 0): ?>
+                                                <div class="text-[9px] text-purple-600 font-semibold mt-0.5 flex flex-col gap-0.5">
+                                                    <span>Resumed: <?php echo (int) $e['resume_count']; ?>/2</span>
+                                                    <?php if ((int) $e['accumulated_pause_days'] > 0): ?>
+                                                        <span class="text-slate-400 font-normal">Leave Days:
+                                                            <?php echo (int) $e['accumulated_pause_days']; ?> days excluded</span>
+                                                    <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>
                                         </td>
 
                                         <td class="px-6 py-4.5 text-center">
                                             <div class="flex items-center justify-center gap-2">
-                                                <!-- Clean Step Status Corridor Dropdown Trigger Selector -->
-                                                <div class="relative inline-block text-left">
-                                                    <?php if (in_array($e['status'], ['completed', 'dropped'])): ?>
+                                                <!-- FIXED WIDTH CORRIDOR TO PREVENT LAYOUT DISTORTION -->
+                                                <div class="relative inline-block text-left w-32">
+                                                    <?php
+                                                    // Evaluate if this enrollment has reached an absolute terminal lifecycle state
+                                                    $isTerminalDropped = ($e['status'] === 'dropped' && (int) $e['resume_count'] >= 2);
+                                                    $isCompleted = ($e['status'] === 'completed');
+                                                    $isStudentCancelled = ($e['status'] === 'cancelled' && $e['cancellation_source'] === 'student');
+
+                                                    if ($isTerminalDropped || $isCompleted || $isStudentCancelled):
+                                                        ?>
+                                                        <!-- SHOW DISABLED COMPONENT FOR CLOSED ENROLLMENTS -->
                                                         <select disabled
-                                                            class="bg-slate-50 text-slate-400 cursor-not-allowed text-[11px] rounded-md border border-slate-200 px-2 py-1 focus:outline-hidden opacity-70">
+                                                            class="w-full bg-slate-50 text-slate-400 cursor-not-allowed text-[11px] rounded-md border border-slate-200 px-2 py-1 focus:outline-hidden opacity-70 select-none">
                                                             <option>Closed Track</option>
                                                         </select>
                                                     <?php else: ?>
+                                                        <!-- SHOW ACTIVE WORKFLOW MANAGEMENT DROPDOWN -->
                                                         <select
-                                                            onchange="routeStatusModalTransition(<?php echo (int) $e['id']; ?>, this.value, '<?php echo $e['status']; ?>')"
-                                                            class="bg-white hover:bg-slate-50 text-slate-700 text-[11px] rounded-md border border-slate-200 px-2 py-1 focus:border-emerald-500 focus:outline-hidden cursor-pointer shadow-2xs font-medium">
+                                                            onchange="routeStatusModalTransition(<?php echo (int) $e['id']; ?>, this.value, '<?php echo $displayStatus; ?>', this)"
+                                                            data-student-id="<?php echo (int) $e['student_id']; ?>"
+                                                            data-course-id="<?php echo (int) $e['course_id']; ?>"
+                                                            data-instructor-id="<?php echo htmlspecialchars($e['instructor_id']); ?>"
+                                                            data-start-date="<?php echo htmlspecialchars($e['start_date'] ?? ''); ?>"
+                                                            data-duration-val="<?php echo (int) $e['duration_value']; ?>"
+                                                            data-duration-unit="<?php echo htmlspecialchars($e['duration_unit']); ?>"
+                                                            data-last-change-date="<?php echo htmlspecialchars($e['pause_start_date'] ?? ''); ?>"
+                                                            class="w-full bg-white hover:bg-slate-50 text-slate-700 text-[11px] rounded-md border border-slate-200 px-2 py-1 focus:border-emerald-500 focus:outline-hidden cursor-pointer shadow-2xs font-medium">
                                                             <option value="" selected hidden>Update Status</option>
-                                                            <?php if ($e['status'] === 'assigned'): ?>
-                                                                <option value="ongoing">Ongoing</option>
+
+                                                            <?php if ($displayStatus === 'assigned'): ?>
+                                                                <!-- If it's saved as ongoing in DB but masked as assigned, let them adjust the date -->
+                                                                <option value="ongoing">
+                                                                    <?php echo ($e['status'] === 'ongoing') ? 'Change Start Date' : 'Ongoing'; ?>
+                                                                </option>
                                                                 <option value="dropped">Dropped</option>
-                                                            <?php elseif ($e['status'] === 'ongoing'): ?>
+                                                                <option value="cancelled">Cancelled</option>
+
+                                                            <?php elseif ($displayStatus === 'ongoing'): ?>
                                                                 <option value="completed">Completed</option>
                                                                 <option value="dropped">Dropped</option>
+                                                                <option value="cancelled">Cancelled</option>
+                                                                <?php if ((int) $e['resume_count'] < 2): ?>
+                                                                    <option value="hold">Hold</option>
+                                                                <?php endif; ?>
+
+                                                            <?php elseif (in_array($displayStatus, ['hold', 'cancelled'])): ?>
+                                                                <?php if ((int) $e['resume_count'] < 2): ?>
+                                                                    <option value="resume">Resume Course</option>
+                                                                <?php else: ?>
+                                                                    <option value="dropped">Force Drop Track</option>
+                                                                <?php endif; ?>
                                                             <?php endif; ?>
                                                         </select>
                                                     <?php endif; ?>
                                                 </div>
 
+                                                <!-- ACTION BUTTONS STAY PERFECTLY STATIONARY -->
                                                 <div class="inline-flex items-center gap-1">
-                                                    <button type="button" title="Edit Metadata"
-                                                        onclick='populateEnrollmentEdit(<?php echo json_encode($e); ?>)'
-                                                        class="bg-emerald-50 hover:bg-teal-50 text-teal-600 w-8 h-8 rounded-lg border border-slate-200 text-xs flex items-center justify-center shadow-2xs"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button type="button" title="Delete Track"
-                                                        onclick="triggerEnrollmentDelete(<?php echo (int) $e['id']; ?>)"
-                                                        class="bg-rose-50 text-rose-500 w-8 h-8 rounded-lg border border-slate-200 text-xs flex items-center justify-center shadow-2xs"><i
-                                                            class="fa-solid fa-trash-can"></i></button>
+                                                    <?php
+                                                    // Evaluate if this specific row context is a locked terminal lifecycle state
+                                                    $isTerminalDropped = ($e['status'] === 'dropped' && (int) $e['resume_count'] >= 2);
+                                                    $isCompleted = ($e['status'] === 'completed');
+                                                    $isStudentCancelled = ($e['status'] === 'cancelled' && $e['cancellation_source'] === 'student');
+                                                    $isLockedState = ($isTerminalDropped || $isCompleted || $isStudentCancelled);
+                                                    ?>
+
+                                                    <button type="button"
+                                                        title="<?php echo $isLockedState ? 'Closed tracks cannot be altered' : 'Edit Metadata'; ?>"
+                                                        onclick='populateEnrollmentEdit(<?php echo json_encode($e); ?>)' <?php echo $isLockedState ? 'disabled' : ''; ?>
+                                                        class="<?php echo $isLockedState ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60' : 'bg-emerald-50 hover:bg-teal-50 text-teal-600 cursor-pointer border-slate-200'; ?> w-8 h-8 rounded-lg border text-xs flex items-center justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </button>
+
+                                                    <button type="button"
+                                                        title="<?php echo $isLockedState ? 'Closed tracks cannot be purged' : 'Delete Track'; ?>"
+                                                        onclick="triggerEnrollmentDelete(<?php echo (int) $e['id']; ?>, <?php echo $isLockedState ? 'true' : 'false'; ?>)"
+                                                        <?php echo $isLockedState ? 'disabled' : ''; ?>
+                                                        class="<?php echo $isLockedState ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60' : 'bg-rose-50 text-rose-500 hover:bg-rose-100 cursor-pointer border-slate-200'; ?> w-8 h-8 rounded-lg border text-xs flex items-center justify-center shadow-2xs">
+                                                        <i class="fa-solid fa-trash-can"></i>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </td>
@@ -1320,6 +1404,9 @@ include_once 'header.php';
                 <input type="hidden" name="action" id="enrollment-action-type" value="add_enrollment">
                 <input type="hidden" name="enrollment_id" id="form-enrollment-id" value="">
 
+                <input type="hidden" name="target_status" id="form-target-status" value="">
+                <input type="hidden" name="current_start_date" id="form-current-start-date" value="">
+
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Select
                         Student</label>
@@ -1327,7 +1414,6 @@ include_once 'header.php';
                         class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
                         <option value="">-- Choose Profile Track --</option>
                         <?php
-                        // Fetch active student records directly within selection scope
                         $modal_students = $db->query("SELECT id, student_reg_no, first_name, last_name FROM academic_students ORDER BY first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
                         foreach ($modal_students as $st) {
                             echo '<option value="' . (int) $st['id'] . '">[' . htmlspecialchars($st['student_reg_no']) . '] ' . htmlspecialchars($st['first_name'] . ' ' . $st['last_name']) . '</option>';
@@ -1339,14 +1425,13 @@ include_once 'header.php';
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Select
                         Course</label>
-                    <select name="course_id" id="form-course-id" required
+                    <select name="course_id" id="form-course-id" required onchange="handleModalCourseChange(this)"
                         class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
                         <option value="">-- Choose Catalog Track --</option>
                         <?php
-                        // Fetch active courses directly within selection scope
-                        $modal_courses = $db->query("SELECT id, course_code, course_name FROM academic_courses WHERE is_active = 1 ORDER BY course_code ASC")->fetchAll(PDO::FETCH_ASSOC);
+                        $modal_courses = $db->query("SELECT id, course_code, course_name, duration_value, duration_unit FROM academic_courses WHERE is_active = 1 ORDER BY course_code ASC")->fetchAll(PDO::FETCH_ASSOC);
                         foreach ($modal_courses as $cr) {
-                            echo '<option value="' . (int) $cr['id'] . '">[' . htmlspecialchars($cr['course_code']) . '] ' . htmlspecialchars($cr['course_name']) . '</option>';
+                            echo '<option value="' . (int) $cr['id'] . '" data-duration-val="' . (int) $cr['duration_value'] . '" data-duration-unit="' . htmlspecialchars($cr['duration_unit']) . '">[' . htmlspecialchars($cr['course_code']) . '] ' . htmlspecialchars($cr['course_name']) . '</option>';
                         }
                         ?>
                     </select>
@@ -1363,121 +1448,65 @@ include_once 'header.php';
                     </select>
                 </div>
 
+                <div id="contextual-status-fields" class="space-y-4 pt-2 border-t border-slate-100 hidden">
+
+                    <div id="modal-duration-badge"
+                        class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-600 text-[11px] flex items-center gap-2 hidden">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i>
+                        <span>Course Baseline Duration Required: <strong id="lbl-modal-duration"
+                                class="text-slate-900"></strong></span>
+                    </div>
+
+                    <div id="row-start-date" class="hidden">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Actual Start
+                            Date</label>
+                        <input type="date" name="start_date" id="form-start-date"
+                            class="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
+                    </div>
+
+                    <div id="row-end-date" class="hidden">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Completion
+                            End Date</label>
+                        <input type="date" name="end_date" id="form-end-date"
+                            class="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
+                    </div>
+
+                    <div id="row-status-reason" class="hidden">
+                        <label id="lbl-status-reason"
+                            class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Reason for
+                            Status Change</label>
+                        <textarea name="status_reason" id="form-status-reason" rows="2"
+                            class="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden placeholder:text-slate-400"
+                            placeholder="Provide detailed administrative notes..."></textarea>
+                    </div>
+
+                    <div id="row-cancellation-source" class="hidden">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Cancellation
+                            Liability Source</label>
+                        <div class="flex items-center gap-6 mt-1.5">
+                            <label
+                                class="inline-flex items-center text-xs text-slate-700 font-medium cursor-pointer select-none">
+                                <input type="radio" name="cancellation_source" value="student" id="cancel-src-student"
+                                    class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 mr-2">
+                                Cancelled by Student (No Reimbursement)
+                            </label>
+                            <label
+                                class="inline-flex items-center text-xs text-slate-700 font-medium cursor-pointer select-none">
+                                <input type="radio" name="cancellation_source" value="institution"
+                                    id="cancel-src-institution"
+                                    class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 mr-2">
+                                Cancelled by Institution (Restart Eligible)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
                     <button type="button" onclick="closeEnrollmentModal()"
                         class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-200">Cancel</button>
                     <button type="submit"
                         class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-all">Save
                         Configurations</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ==========================================
-     MODAL SUB-A: ONGOING TRANSITION DIALOG BLOCK
-     ========================================== -->
-<div id="modal-status-ongoing" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs"
-            onclick="closeStatusModal('ongoing')"></div>
-        <div
-            class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all my-8 max-w-sm w-full border border-slate-200 z-10">
-            <div class="bg-amber-50 px-6 py-4 border-b border-amber-200 flex justify-between items-center">
-                <h3 class="text-sm font-bold text-amber-900">Commence Course Track: Ongoing</h3>
-                <button type="button" onclick="closeStatusModal('ongoing')"
-                    class="text-amber-500 hover:text-amber-700"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form method="POST" action="actions.php" class="p-6 space-y-4">
-                <input type="hidden" name="action" value="update_enrollment_status">
-                <input type="hidden" name="enrollment_id" class="workflow-id-field" value="">
-                <input type="hidden" name="target_status" value="ongoing">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Actual Start
-                        Date</label>
-                    <input type="date" name="start_date" required
-                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-amber-500 focus:outline-hidden">
-                </div>
-                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
-                    <button type="button" onclick="closeStatusModal('ongoing')"
-                        class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-md hover:bg-slate-200">Cancel</button>
-                    <button type="submit"
-                        class="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-md hover:bg-amber-700 shadow-sm">Set
-                        Ongoing</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ==========================================
-     MODAL SUB-B: COMPLETED TRANSITION DIALOG BLOCK
-     ========================================== -->
-<div id="modal-status-completed" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs"
-            onclick="closeStatusModal('completed')"></div>
-        <div
-            class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all my-8 max-w-sm w-full border border-slate-200 z-10">
-            <div class="bg-emerald-50 px-6 py-4 border-b border-emerald-200 flex justify-between items-center">
-                <h3 class="text-sm font-bold text-emerald-900">Graduate Course Track: Completed</h3>
-                <button type="button" onclick="closeStatusModal('completed')"
-                    class="text-emerald-500 hover:text-emerald-700"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form method="POST" action="actions.php" class="p-6 space-y-4">
-                <input type="hidden" name="action" value="update_enrollment_status">
-                <input type="hidden" name="enrollment_id" class="workflow-id-field" value="">
-                <input type="hidden" name="target_status" value="completed">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Actual Completion
-                        Date</label>
-                    <input type="date" name="end_date" required
-                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-emerald-500 focus:outline-hidden">
-                </div>
-                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
-                    <button type="button" onclick="closeStatusModal('completed')"
-                        class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-md hover:bg-slate-200">Cancel</button>
-                    <button type="submit"
-                        class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-md hover:bg-emerald-700 shadow-sm">Set
-                        Completed</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ==========================================
-     MODAL SUB-C: DROPPED TRANSITION DIALOG BLOCK
-     ========================================== -->
-<div id="modal-status-dropped" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 transition-opacity bg-slate-900/40 backdrop-blur-xs"
-            onclick="closeStatusModal('dropped')"></div>
-        <div
-            class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all my-8 max-w-sm w-full border border-slate-200 z-10">
-            <div class="bg-rose-50 px-6 py-4 border-b border-rose-200 flex justify-between items-center">
-                <h3 class="text-sm font-bold text-rose-900">Terminate Course Track: Dropped</h3>
-                <button type="button" onclick="closeStatusModal('dropped')" class="text-rose-500 hover:text-rose-700"><i
-                        class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form method="POST" action="actions.php" class="p-6 space-y-4">
-                <input type="hidden" name="action" value="update_enrollment_status">
-                <input type="hidden" name="enrollment_id" class="workflow-id-field" value="">
-                <input type="hidden" name="target_status" value="dropped">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Reason for
-                        Dropping Track</label>
-                    <textarea name="drop_reason" required rows="3"
-                        placeholder="Provide precise administrative context explaining student departure..."
-                        class="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-rose-500 focus:outline-hidden resize-none"></textarea>
-                </div>
-                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
-                    <button type="button" onclick="closeStatusModal('dropped')"
-                        class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-md hover:bg-slate-200">Cancel</button>
-                    <button type="submit"
-                        class="px-3 py-1.5 bg-rose-600 text-white text-xs font-semibold rounded-md hover:bg-rose-700 shadow-sm">Set
-                        Dropped</button>
                 </div>
             </form>
         </div>
@@ -2305,66 +2334,178 @@ include_once 'header.php';
   * Phase 2 Handshake: Course Enrollments Lifecycles Script Engine
   */
 
-    function routeStatusModalTransition(enrollmentId, targetStatus, currentStatus) {
+    function routeStatusModalTransition(enrollmentId, targetStatus, currentStatus, selectElement) {
         if (!enrollmentId || !targetStatus) return;
 
-        if (currentStatus === 'completed' || currentStatus === 'dropped') {
+        if (currentStatus === 'completed') {
             alert("Operation blocked: Closed lifecycle tracks cannot be altered.");
             window.location.reload();
             return;
         }
 
-        const targetModal = document.getElementById(`modal-status-${targetStatus}`);
-        if (!targetModal) return;
+        // Safely reconstruct the data object out of the element data-attributes
+        activeTransitionData = {
+            id: enrollmentId,
+            student_id: selectElement.getAttribute('data-student-id'),
+            course_id: selectElement.getAttribute('data-course-id'),
+            instructor_id: selectElement.getAttribute('data-instructor-id'),
+            start_date: selectElement.getAttribute('data-start-date'),
+            duration_value: selectElement.getAttribute('data-duration-val'),
+            duration_unit: selectElement.getAttribute('data-duration-unit'),
+            last_status_change_date: selectElement.getAttribute('data-last-change-date')
+        };
 
-        // Isolate this specific sub-modal's enrollment ID field
-        const idFields = targetModal.querySelectorAll('.workflow-id-field');
-        idFields.forEach(field => { field.value = enrollmentId; });
+        const modal = document.getElementById('enrollment-modal');
+        const form = document.getElementById('enrollment-form');
+        if (form) form.reset();
 
-        // --- DYNAMIC CALENDAR DATE VALIDATION BOUNDARIES ---
+        // Configure structural parameters
+        document.getElementById('form-enrollment-id').value = enrollmentId;
+        document.getElementById('enrollment-action-type').value = "update_enrollment_status";
+        document.getElementById('form-target-status').value = targetStatus;
+        document.getElementById('form-current-start-date').value = activeTransitionData.start_date || '';
+
+        // Bind selection models
+        const studentSelect = document.getElementById('form-student-id');
+        const courseSelect = document.getElementById('form-course-id');
+        const instructorSelect = document.getElementById('form-instructor-id');
+
+        studentSelect.value = activeTransitionData.student_id;
+        courseSelect.value = activeTransitionData.course_id;
+        instructorSelect.value = activeTransitionData.instructor_id;
+
+        studentSelect.setAttribute('disabled', 'disabled');
+        courseSelect.setAttribute('disabled', 'disabled');
+        instructorSelect.setAttribute('disabled', 'disabled');
+
+        // Reset dropdown trigger value state so it resets cleanly on screen
+        selectElement.value = "";
+
+        // Update operational title context 
+        const humanStatus = targetStatus === 'resume' ? 'RESUME BACK TO ONGOING' : targetStatus.toUpperCase();
+        document.getElementById('enrollment-modal-title').textContent = `Manage Status: Route to [${humanStatus}]`;
+
+        // Display sub-container wrapper
+        document.getElementById('contextual-status-fields').classList.remove('hidden');
+        handleModalCourseChange(courseSelect);
+
+        // Reset layout fields
+        const rowStart = document.getElementById('row-start-date');
+        const rowEnd = document.getElementById('row-end-date');
+        const rowReason = document.getElementById('row-status-reason');
+        const rowCancelSrc = document.getElementById('row-cancellation-source');
+
+        rowStart.classList.add('hidden');
+        rowEnd.classList.add('hidden');
+        rowReason.classList.add('hidden');
+        rowCancelSrc.classList.add('hidden');
+
+        const inputStart = document.getElementById('form-start-date');
+        const inputEnd = document.getElementById('form-end-date');
+        const inputReason = document.getElementById('form-status-reason');
+        const radioCancelStd = document.getElementById('cancel-src-student');
+
+        inputStart.removeAttribute('required');
+        inputEnd.removeAttribute('required');
+        inputReason.removeAttribute('required');
+        radioCancelStd.removeAttribute('required');
+
         const todayStr = new Date().toISOString().split('T')[0];
 
+        // Conditional Workflow Setup
         if (targetStatus === 'ongoing') {
-            const startDateInput = targetModal.querySelector('input[name="start_date"]');
-            if (startDateInput) {
-                // Rule: Start date cannot be more than 30 days in the future
-                const maxFutureDate = new Date();
-                maxFutureDate.setDate(maxFutureDate.getDate() + 30);
+            rowStart.classList.remove('hidden');
+            inputStart.setAttribute('required', 'true');
 
-                startDateInput.setAttribute('max', maxFutureDate.toISOString().split('T')[0]);
-                // Catch typos by blocking dates older than 1 year
-                const minPastDate = new Date();
-                minPastDate.setFullYear(minPastDate.getFullYear() - 1);
-                startDateInput.setAttribute('min', minPastDate.toISOString().split('T')[0]);
-            }
-        } else if (targetStatus === 'completed') {
-            const endDateInput = targetModal.querySelector('input[name="end_date"]');
-            if (endDateInput) {
-                // Rule: End date cannot be in the future relative to today
-                endDateInput.setAttribute('max', todayStr);
+            const maxFutureDate = new Date();
+            maxFutureDate.setDate(maxFutureDate.getDate() + 30);
+            inputStart.setAttribute('max', maxFutureDate.toISOString().split('T')[0]);
 
-                // Look up the active table row to fetch its associated start date string
-                const row = document.querySelector(`select[onchange*="${enrollmentId}"]`).closest('tr');
-                const timelineText = row.querySelector('.text-slate-500.font-mono').textContent;
-                const startMatch = timelineText.match(/Start:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/);
+            const minPastDate = new Date();
+            minPastDate.setFullYear(minPastDate.getFullYear() - 1);
+            inputStart.setAttribute('min', minPastDate.toISOString().split('T')[0]);
 
-                if (startMatch && startMatch[1]) {
-                    // Rule: End date must be on or after the actual start date
-                    endDateInput.setAttribute('min', startMatch[1]);
-                }
+            if (activeTransitionData.start_date && activeTransitionData.start_date !== '0000-00-00') {
+                inputStart.value = activeTransitionData.start_date;
             }
         }
+        else if (targetStatus === 'completed') {
+            rowEnd.classList.remove('hidden');
+            inputEnd.setAttribute('required', 'true');
+            inputEnd.setAttribute('max', todayStr);
 
-        targetModal.classList.remove('hidden');
+            if (activeTransitionData.start_date && activeTransitionData.start_date !== '0000-00-00') {
+                inputEnd.setAttribute('min', activeTransitionData.start_date);
+            }
+        }
+        else if (targetStatus === 'hold' || targetStatus === 'dropped') {
+            rowReason.classList.remove('hidden');
+            rowEnd.classList.remove('hidden');
+
+            document.getElementById('row-end-date').querySelector('label').textContent = `Effective Date of ${targetStatus.toUpperCase()}`;
+            inputEnd.setAttribute('required', 'true');
+            inputEnd.setAttribute('max', todayStr);
+            if (activeTransitionData.start_date && activeTransitionData.start_date !== '0000-00-00') {
+                inputEnd.setAttribute('min', activeTransitionData.start_date);
+            }
+
+            document.getElementById('lbl-status-reason').textContent = `Reason for placing track on ${targetStatus.toUpperCase()}`;
+            inputReason.setAttribute('required', 'true');
+        }
+        else if (targetStatus === 'cancelled') {
+            rowReason.classList.remove('hidden');
+            rowCancelSrc.classList.remove('hidden');
+            rowEnd.classList.remove('hidden');
+
+            document.getElementById('row-end-date').querySelector('label').textContent = "Effective Date of CANCELLATION";
+            inputEnd.setAttribute('required', 'true');
+            inputEnd.setAttribute('max', todayStr);
+            if (activeTransitionData.start_date && activeTransitionData.start_date !== '0000-00-00') {
+                inputEnd.setAttribute('min', activeTransitionData.start_date);
+            }
+
+            document.getElementById('lbl-status-reason').textContent = "Reason for Cancellation Matrix";
+            inputReason.setAttribute('required', 'true');
+            radioCancelStd.setAttribute('required', 'true');
+        }
+        else if (targetStatus === 'resume') {
+            document.getElementById('form-target-status').value = 'ongoing';
+            rowStart.classList.remove('hidden');
+            document.getElementById('row-start-date').querySelector('label').textContent = "Effective Resumption Date";
+
+            inputStart.setAttribute('required', 'true');
+            inputStart.setAttribute('max', todayStr);
+            if (activeTransitionData.last_status_change_date && activeTransitionData.last_status_change_date !== '0000-00-00') {
+                inputStart.setAttribute('min', activeTransitionData.last_status_change_date);
+            }
+
+            rowReason.classList.remove('hidden');
+            document.getElementById('lbl-status-reason').textContent = "Resumption Notes / Re-activation Context";
+            inputReason.setAttribute('required', 'true');
+        }
+
+        if (modal) modal.classList.remove('hidden');
     }
 
-    function closeStatusModal(statusType) {
-        const targetModal = document.getElementById(`modal-status-${statusType}`);
-        if (targetModal) targetModal.classList.add('hidden');
-        window.location.reload(); // Instantly sweeps selection states back to baseline indexes cleanly
+    let activeTransitionData = null;
+
+    function handleModalCourseChange(selectEl) {
+        const selectedOpt = selectEl.options[selectEl.selectedIndex];
+        const durationVal = selectedOpt.getAttribute('data-duration-val');
+        const durationUnit = selectedOpt.getAttribute('data-duration-unit');
+        const badge = document.getElementById('modal-duration-badge');
+        const lbl = document.getElementById('lbl-modal-duration');
+
+        if (durationVal && durationUnit) {
+            lbl.textContent = `${durationVal} ${durationUnit}`;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
     }
 
     function openEnrollmentModal(title = "New Course Enrollment Configuration", action = "add_enrollment") {
+        activeTransitionData = null;
         const modal = document.getElementById('enrollment-modal');
         const form = document.getElementById('enrollment-form');
         if (form) form.reset();
@@ -2372,9 +2513,15 @@ include_once 'header.php';
         document.getElementById('enrollment-modal-title').textContent = title;
         document.getElementById('enrollment-action-type').value = action;
         document.getElementById('form-enrollment-id').value = "";
+        document.getElementById('form-target-status').value = "";
+        document.getElementById('form-current-start-date').value = "";
 
         document.getElementById('form-student-id').removeAttribute('disabled');
         document.getElementById('form-course-id').removeAttribute('disabled');
+        document.getElementById('form-instructor-id').removeAttribute('disabled');
+
+        document.getElementById('contextual-status-fields').classList.add('hidden');
+        document.getElementById('modal-duration-badge').classList.add('hidden');
 
         if (modal) modal.classList.remove('hidden');
     }
@@ -2382,9 +2529,22 @@ include_once 'header.php';
     function closeEnrollmentModal() {
         const modal = document.getElementById('enrollment-modal');
         if (modal) modal.classList.add('hidden');
+        // Ensure labels revert back to base names when closed
+        document.getElementById('row-end-date').querySelector('label').textContent = "Completion End Date";
+        document.getElementById('row-start-date').querySelector('label').textContent = "Actual Start Date";
     }
 
     function populateEnrollmentEdit(enrollmentData) {
+        // Double-guard intercept against UI tampering
+        const isTerminalDropped = (enrollmentData.status === 'dropped' && parseInt(enrollmentData.resume_count) >= 2);
+        const isCompleted = (enrollmentData.status === 'completed');
+        const isStudentCancelled = (enrollmentData.status === 'cancelled' && enrollmentData.cancellation_source === 'student');
+
+        if (isTerminalDropped || isCompleted || isStudentCancelled) {
+            alert("Action Denied: This enrollment track is closed and cannot be modified.");
+            return;
+        }
+
         openEnrollmentModal("Modify Course Enrollment Track", "edit_enrollment");
         document.getElementById('form-enrollment-id').value = enrollmentData.id;
         document.getElementById('form-student-id').value = enrollmentData.student_id;
@@ -2395,7 +2555,13 @@ include_once 'header.php';
         document.getElementById('form-course-id').setAttribute('disabled', 'disabled');
     }
 
-    function triggerEnrollmentDelete(enrollmentId) {
+    function triggerEnrollmentDelete(enrollmentId, isLockedState) {
+        // Hard interrupt if row context is evaluated as terminal
+        if (isLockedState === true) {
+            alert("Action Denied: Finalized legal and academic records cannot be purged from the registry catalog.");
+            return;
+        }
+
         if (confirm("Are you sure you want to permanently delete this course enrollment record track?")) {
             const tempForm = document.createElement('form');
             tempForm.method = 'POST';
@@ -2707,6 +2873,64 @@ include_once 'header.php';
             payerPhoneInputInstance = null;
         }
     }
+
+    // Global Validation Interceptor Engine for course enrolment status
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('enrollment-form');
+        if (!form) return;
+
+        form.addEventListener('submit', function (e) {
+            const action = document.getElementById('enrollment-action-type').value;
+            const targetStatus = document.getElementById('form-target-status').value;
+
+            if (action === "update_enrollment_status") {
+                // Intercept completion baseline calculations
+                if (targetStatus === "completed") {
+                    const startVal = document.getElementById('form-current-start-date').value;
+                    const endVal = document.getElementById('form-end-date').value;
+
+                    if (!startVal || startVal === '0000-00-00') {
+                        e.preventDefault();
+                        alert("Cannot complete track: This enrollment does not have an active baseline Start Date.");
+                        return false;
+                    }
+
+                    const startDate = new Date(startVal);
+                    const endDate = new Date(endVal);
+
+                    if (endDate < startDate) {
+                        e.preventDefault();
+                        alert("Invalid Timeline Configuration: End Date cannot precede the Start Date.");
+                        return false;
+                    }
+
+                    const durationVal = parseInt(activeTransitionData.duration_value, 10);
+                    const durationUnit = activeTransitionData.duration_unit;
+
+                    let expectedMinDate = new Date(startDate);
+                    if (durationUnit === 'Days') {
+                        expectedMinDate.setDate(expectedMinDate.getDate() + durationVal);
+                    } else if (durationUnit === 'Months') {
+                        expectedMinDate.setMonth(expectedMinDate.getMonth() + durationVal);
+                    } else if (durationUnit === 'Years') {
+                        expectedMinDate.setFullYear(expectedMinDate.getFullYear() + durationVal);
+                    }
+
+                    if (endDate < expectedMinDate) {
+                        e.preventDefault();
+                        const formattedExpected = expectedMinDate.toISOString().split('T')[0];
+                        alert(`Validation Blocked: Enrolled course requires a minimum length of ${durationVal} ${durationUnit}. Earliest valid completion date is ${formattedExpected}.`);
+                        return false;
+                    }
+                }
+            }
+
+            // Safety step: release inputs right before POST processing
+            document.getElementById('form-student-id').removeAttribute('disabled');
+            document.getElementById('form-course-id').removeAttribute('disabled');
+            document.getElementById('form-instructor-id').removeAttribute('disabled');
+        });
+    });
 </script>
 
 <?php

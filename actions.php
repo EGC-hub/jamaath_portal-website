@@ -2473,7 +2473,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insert_stmt = $db->prepare("INSERT INTO `academic_enrollments` (`student_id`, `course_id`, `instructor_id`, `status`, `start_date`, `end_date`, `drop_reason`) VALUES (?, ?, ?, 'assigned', NULL, NULL, NULL)");
                 $insert_stmt->execute([$student_id, $course_id, $instructor_id]);
 
-                header("Location: academic.php?tab=registrations&msg=" . urlencode("Course track assigned cleanly with blank start dates."));
+                header("Location: academic.php?tab=registrations&msg=" . urlencode("Course track assigned to the student successfully."));
                 exit();
             } catch (PDOException $e) {
                 header("Location: academic.php?tab=registrations&error=" . urlencode("Database Fault: " . $e->getMessage()));
@@ -2496,8 +2496,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             try {
-                // Pull historical state and existing timelines
-                $state_fetch = $db->prepare("SELECT status, start_date FROM `academic_enrollments` WHERE id = ? LIMIT 1");
+                // Fixed column references to use pause_start_date and accumulated_pause_days
+                $state_fetch = $db->prepare("
+                    SELECT ae.status, ae.start_date, ae.pause_start_date, ae.accumulated_pause_days, ae.resume_count,
+                           ac.duration_value, ac.duration_unit, ae.cancellation_source
+                    FROM `academic_enrollments` ae
+                    JOIN `academic_courses` ac ON ae.course_id = ac.id
+                    WHERE ae.id = ? LIMIT 1
+                ");
                 $state_fetch->execute([$enrollment_id]);
                 $current_record = $state_fetch->fetch(PDO::FETCH_ASSOC);
 
@@ -2507,65 +2513,181 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $current_status = $current_record['status'];
                 $existing_start_date = $current_record['start_date'];
+                $pause_start_date = $current_record['pause_start_date'];
+                $resume_count = (int) $current_record['resume_count'];
+                $course_dur_val = (int) $current_record['duration_value'];
+                $course_dur_unit = $current_record['duration_unit'];
 
-                // Block back-revisions to enforce unidirectional workflow integrity
-                if (in_array($current_status, ['completed', 'dropped'])) {
-                    throw new Exception("Closed lifecycle profiles cannot be modified.");
+                // Block modifications on finalized states to ensure system safety
+                if ($current_status === 'completed' || ($current_status === 'cancelled' && $current_record['cancellation_source'] === 'student')) {
+                    throw new Exception("Closed lifecycle profiles cannot be altered.");
                 }
 
                 $today = date('Y-m-d');
 
+                // ===================================================================
+                // WORKFLOW PATH A: ASSIGNED -> ONGOING (Baseline Kickoff)
+                // ===================================================================
                 if ($target_status === 'ongoing' && $current_status === 'assigned') {
                     $start_date = trim($_POST['start_date'] ?? '');
-                    if (empty($start_date))
+                    if (empty($start_date)) {
                         throw new Exception("Commencing requires providing a valid Start Date.");
-
-                    // Server Validation: Start date cannot exceed 30 days in the future
-                    $max_future = date('Y-m-d', strtotime('+30 days'));
-                    if ($start_date > $max_future) {
-                        throw new Exception("Start Date cannot be scheduled further than 30 days into the future.");
                     }
 
-                    // Server Validation: Catch major past year typos
-                    $min_past = date('Y-m-d', strtotime('-1 year'));
-                    if ($start_date < $min_past) {
+                    if ($start_date > date('Y-m-d', strtotime('+30 days'))) {
+                        throw new Exception("Start Date cannot be scheduled further than 30 days into the future.");
+                    }
+                    if ($start_date < date('Y-m-d', strtotime('-1 year'))) {
                         throw new Exception("Start Date cannot precede the current calendar year tracking cycle.");
                     }
 
                     $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'ongoing', `start_date` = ? WHERE `id` = ?");
                     $update_stmt->execute([$start_date, $enrollment_id]);
+                }
+                // ===================================================================
+                // WORKFLOW PATH B: HOLD / CANCELLED -> ONGOING (Resumption Action)
+                // ===================================================================
+                elseif ($target_status === 'ongoing' && (in_array($current_status, ['hold', 'cancelled']))) {
+                    if ($resume_count >= 2) {
+                        throw new Exception("Security Violation: This track has reached its maximum allowance of 2 resumption overrides.");
+                    }
 
-                } elseif ($target_status === 'completed' && $current_status === 'ongoing') {
+                    $resumption_date = trim($_POST['start_date'] ?? '');
+                    if (empty($resumption_date)) {
+                        throw new Exception("Resuming requires providing an Effective Resumption Date.");
+                    }
+                    if (empty($pause_start_date) || $pause_start_date === '0000-00-00') {
+                        throw new Exception("Timeline tracking error: Baseline pause date was missing from system layers.");
+                    }
+                    if ($resumption_date < $pause_start_date) {
+                        throw new Exception("Chronological error: Resumption date cannot precede the date the track went on hold ($pause_start_date).");
+                    }
+
+                    // Calculate how many days were spent paused during THIS stint
+                    $pause_start = new DateTime($pause_start_date);
+                    $pause_end = new DateTime($resumption_date);
+                    $current_stint_paused_days = $pause_start->diff($pause_end)->days;
+
+                    // Append this pause duration to any historical pause durations already logged
+                    $total_accumulated_pause = (int) $current_record['accumulated_pause_days'] + $current_stint_paused_days;
+                    $new_resume_count = $resume_count + 1;
+
+                    $update_stmt = $db->prepare("
+                        UPDATE `academic_enrollments` 
+                        SET `status` = 'ongoing', 
+                            `pause_start_date` = NULL,
+                            `accumulated_pause_days` = ?,
+                            `resume_count` = ? 
+                        WHERE `id` = ?
+                    ");
+                    $update_stmt->execute([$total_accumulated_pause, $new_resume_count, $enrollment_id]);
+                }
+                // ===================================================================
+                // WORKFLOW PATH C: ONGOING -> COMPLETED (Graduation Check)
+                // ===================================================================
+                elseif ($target_status === 'completed' && $current_status === 'ongoing') {
                     $end_date = trim($_POST['end_date'] ?? '');
                     if (empty($end_date))
                         throw new Exception("Graduation requires providing an actual Completion Date.");
-
-                    // Server Validation: End date cannot be a future date
-                    if ($end_date > $today) {
+                    if ($end_date > $today)
                         throw new Exception("Completion Date cannot be recorded in the future.");
+                    if ($end_date < $existing_start_date)
+                        throw new Exception("Completion Date cannot precede Start Date.");
+
+                    // SERVER-SIDE CHRONOLOGY CHECK USING ACCUMULATED PAUSE DAYS
+                    $calc_start = new DateTime($existing_start_date);
+                    $calc_min_expected = clone $calc_start;
+
+                    if ($course_dur_unit === 'Days') {
+                        $calc_min_expected->modify("+$course_dur_val days");
+                    } elseif ($course_dur_unit === 'Months') {
+                        $calc_min_expected->modify("+$course_dur_val months");
+                    } elseif ($course_dur_unit === 'Years') {
+                        $calc_min_expected->modify("+$course_dur_val years");
                     }
 
-                    // Server Validation: End date must follow start date chronologically
-                    if (!empty($existing_start_date) && $end_date < $existing_start_date) {
-                        throw new Exception("Chronological Error: Completion Date cannot precede the track's Actual Start Date ($existing_start_date).");
+                    // ADD ACCUMULATED PAUSE DAYS TO THE EXTENDED MINIMUM VALID DATE
+                    $total_pause_days = (int) $current_record['accumulated_pause_days'];
+                    if ($total_pause_days > 0) {
+                        $calc_min_expected->modify("+$total_pause_days days");
                     }
 
-                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'completed', `end_date` = ? WHERE `id` = ?");
+                    $actual_end = new DateTime($end_date);
+                    if ($actual_end < $calc_min_expected) {
+                        throw new Exception("Validation Blocked: Enrolled course requires minimum active study matching duration metrics. Due to accumulated pauses, the earliest valid completion date is " . $calc_min_expected->format('Y-m-d') . ".");
+                    }
+
+                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'completed', `end_date` = ?, `pause_start_date` = NULL WHERE `id` = ?");
                     $update_stmt->execute([$end_date, $enrollment_id]);
+                }
+                // ===================================================================
+                // WORKFLOW PATH D: ONGOING -> HOLD (Pause Learning)
+                // ===================================================================
+                elseif ($target_status === 'hold' && $current_status === 'ongoing') {
+                    $effective_date = trim($_POST['end_date'] ?? '');
+                    $reason = trim($_POST['status_reason'] ?? '');
 
-                } elseif ($target_status === 'dropped') {
-                    $drop_reason = trim($_POST['drop_reason'] ?? '');
-                    if (empty($drop_reason))
+                    if (empty($effective_date) || empty($reason))
+                        throw new Exception("Required parameters missing.");
+
+                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'hold', `pause_start_date` = ?, `drop_reason` = ? WHERE `id` = ?");
+                    $update_stmt->execute([$effective_date, $reason, $enrollment_id]);
+                }
+                // ===================================================================
+                // WORKFLOW PATH E: ONGOING / ASSIGNED -> CANCELLED (Revocation)
+                // ===================================================================
+                elseif ($target_status === 'cancelled') {
+                    $effective_date = trim($_POST['end_date'] ?? '');
+                    $reason = trim($_POST['status_reason'] ?? '');
+                    $cancellation_source = trim($_POST['cancellation_source'] ?? '');
+
+                    if (empty($effective_date)) {
+                        throw new Exception("Cancellations require a specified Effective Date.");
+                    }
+                    if (empty($reason)) {
+                        throw new Exception("Cancellations require an explicit explanation note.");
+                    }
+                    if (!in_array($cancellation_source, ['student', 'institution'])) {
+                        throw new Exception("Cancellations mandate assigning a Liability Source (Student or Institution).");
+                    }
+                    if ($current_status === 'ongoing' && $effective_date < $existing_start_date) {
+                        throw new Exception("Effective cancellation date cannot precede the active Start Date ($existing_start_date).");
+                    }
+                    if ($effective_date > $today) {
+                        throw new Exception("Effective cancellation date cannot be logged in the future.");
+                    }
+
+                    // Replaced last_status_change_date reference with pause_start_date anchor
+                    $update_stmt = $db->prepare("
+                        UPDATE `academic_enrollments` 
+                        SET `status` = 'cancelled', 
+                            `end_date` = ?,
+                            `pause_start_date` = ?, 
+                            `drop_reason` = ?,
+                            `cancellation_source` = ? 
+                        WHERE `id` = ?
+                    ");
+                    $update_stmt->execute([$effective_date, $effective_date, $reason, $cancellation_source, $enrollment_id]);
+                }
+                // ===================================================================
+                // WORKFLOW PATH F: ASSIGNED / ONGOING -> DROPPED (Legacy Terminate)
+                // ===================================================================
+                elseif ($target_status === 'dropped') {
+                    $reason = trim($_POST['status_reason'] ?? '');
+                    if (empty($reason)) {
                         throw new Exception("Dropped tracks require an explanation reason.");
+                    }
 
-                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'dropped', `drop_reason` = ? WHERE `id` = ?");
-                    $update_stmt->execute([$drop_reason, $enrollment_id]);
+                    // Cleared old last_status_change_date reference completely
+                    $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `status` = 'dropped', `drop_reason` = ?, `pause_start_date` = NULL WHERE `id` = ?");
+                    $update_stmt->execute([$reason, $enrollment_id]);
                 } else {
-                    throw new Exception("Illegal state mutation pathway requested.");
+                    throw new Exception("Illegal state mutation pathway requested or tracking constraints broken.");
                 }
 
-                header("Location: academic.php?tab=registrations&msg=" . urlencode("Status track advanced to " . ucfirst($target_status)));
+                header("Location: academic.php?tab=registrations&msg=" . urlencode("Status track updated successfully."));
                 exit();
+
             } catch (Exception $e) {
                 header("Location: academic.php?tab=registrations&error=" . urlencode($e->getMessage()));
                 exit();
@@ -2593,6 +2715,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
 
+            // Default safe boundaries for new schema components
+            $pause_start_date = null;
+
             // Route business lifecycle rules logic filters
             if ($status === 'ongoing') {
                 if (empty($start_date)) {
@@ -2601,19 +2726,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $end_date = null;
                 $drop_reason = null;
+            } elseif ($status === 'hold') {
+                // If modified manually via metadata editor to 'hold', set pause anchor to today if empty
+                $pause_start_date = !empty($end_date) ? $end_date : date('Y-m-d');
             } elseif ($status === 'completed') {
                 if (empty($start_date) || empty($end_date)) {
                     header("Location: academic.php?tab=registrations&error=" . urlencode("Validation error: Completed statuses mandate providing both explicit Start and End dates."));
                     exit();
                 }
                 $drop_reason = null;
-            } elseif ($status === 'dropped') {
+            } elseif ($status === 'dropped' || $status === 'cancelled') {
                 if (empty($drop_reason)) {
-                    header("Location: academic.php?tab=registrations&error=" . urlencode("Validation error: You must provide an administrative reason explanation for dropped tracks."));
+                    header("Location: academic.php?tab=registrations&error=" . urlencode("Validation error: You must provide an administrative reason explanation for this status change."));
                     exit();
                 }
-                $start_date = null;
-                $end_date = null;
+                if ($status === 'dropped') {
+                    $start_date = null;
+                    $end_date = null;
+                }
             } else {
                 // Default back to pure 'assigned' parameters baseline metrics
                 $start_date = null;
@@ -2623,8 +2753,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             try {
                 // Execute absolute record payload synchronization via PDO matching primary tracking key
-                $update_stmt = $db->prepare("UPDATE `academic_enrollments` SET `instructor_id` = ?, `status` = ?, `start_date` = ?, `end_date` = ?, `drop_reason` = ? WHERE `id` = ?");
-                $update_stmt->execute([$instructor_id, $status, $start_date, $end_date, $drop_reason, $enrollment_id]);
+                $update_stmt = $db->prepare("
+                    UPDATE `academic_enrollments` 
+                    SET `instructor_id` = ?, 
+                        `status` = ?, 
+                        `start_date` = ?, 
+                        `end_date` = ?, 
+                        `drop_reason` = ?,
+                        `pause_start_date` = ?
+                    WHERE `id` = ?
+                ");
+                $update_stmt->execute([$instructor_id, $status, $start_date, $end_date, $drop_reason, $pause_start_date, $enrollment_id]);
 
                 header("Location: academic.php?tab=registrations&msg=" . urlencode("Enrollment status and track timelines updated successfully."));
                 exit();
