@@ -15,7 +15,7 @@ $active_tab = isset($_GET['tab']) ? trim($_GET['tab']) : 'courses';
 $courses_query = $db->query("SELECT * FROM academic_courses ORDER BY course_code ASC");
 $courses = $courses_query->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all active students along with their complete course mapping and payment histories in a single query pass
+// Fetch students mapped to structural tracks (ongoing, completed, hold, cancelled) along with audit logs
 $fee_students_query = "
     SELECT 
         s.id,
@@ -24,13 +24,26 @@ $fee_students_query = "
         s.last_name,
         s.gender,
         s.avatar_path,
-        COUNT(CASE WHEN e.status IN ('assigned', 'ongoing') THEN 1 END) AS active_tracks_count,
-        -- Complete Course allocations map serialization including newly added duration metrics
+        -- Counts visibility parameters based on non-assigned actionable fields
+        COUNT(CASE WHEN e.status IN ('ongoing', 'completed', 'hold', 'cancelled') THEN 1 END) AS active_tracks_count,
+        -- Comprehensive course allocations serialization including lifecycle state mechanics and pause anchors
         GROUP_CONCAT(
-            DISTINCT CONCAT_WS('||', e.id, e.status, c.course_code, c.course_name, c.standard_fee, IFNULL(e.start_date, ''), c.duration_value, c.duration_unit) 
+            DISTINCT CONCAT_WS('||', 
+                e.id, 
+                e.status, 
+                c.course_code, 
+                c.course_name, 
+                c.standard_fee, 
+                IFNULL(e.start_date, ''), 
+                c.duration_value, 
+                c.duration_unit,
+                IFNULL(e.pause_start_date, ''),
+                IFNULL(e.cancellation_source, ''),
+                e.accumulated_pause_days
+            ) 
             SEPARATOR ';;;'
         ) AS serialized_courses,
-        -- Historic balance ledger log map serialization including receipt numbers and narratives
+        -- Historical balance ledger log map serialization tracking receipts, narratives, and payout footprints
         (
             SELECT GROUP_CONCAT(
                 CONCAT_WS('||', p.enrollment_id, p.receipt_no, p.amount_paid, p.payment_mode, IFNULL(p.payment_narrative, ''), p.depositor_type, IFNULL(p.payer_name, ''))
@@ -44,6 +57,7 @@ $fee_students_query = "
     INNER JOIN academic_enrollments e ON s.id = e.student_id
     INNER JOIN academic_courses c ON e.course_id = c.id
     GROUP BY s.id
+    -- Pulls any record containing structural visibility parameters outside of pure raw un-commenced assignments
     HAVING active_tracks_count > 0
     ORDER BY s.student_reg_no ASC
 ";
@@ -559,65 +573,58 @@ include_once 'header.php';
         <!-- Tab 4: Fee Collection View Block -->
         <div id="academic-panel-fees" class="academic-tab-content hidden space-y-4">
 
-            <!-- Top Information Banner Block -->
             <div
                 class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h2 class="text-sm font-bold text-slate-900">
                         Fee Collection Ledger
                     </h2>
-                    <p class="text-xs text-slate-500">Track active course tracks, monitor outstanding balances, and
-                        process structured liability fee ledger entries.</p>
+                    <p class="text-xs text-slate-500">
+                        Track active course tracks, monitor outstanding balances, and process structured liability or
+                        refund engine entries.
+                    </p>
                 </div>
             </div>
 
-            <!-- Main Simplified Student Registry Matrix Grid -->
             <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
-                        <!-- Table Head Header Block Alignment -->
                         <thead>
                             <tr
                                 class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
                                 <th class="px-6 py-4 w-44">Registration No</th>
                                 <th class="px-6 py-4">Student Name</th>
-                                <th class="px-6 py-4 text-center w-48">Active Tracks</th>
+                                <th class="px-6 py-4 text-center w-48">Actionable Tracks</th>
                                 <th class="px-6 py-4 text-center w-32">Actions</th>
                             </tr>
                         </thead>
 
-                        <!-- Table Body Content Matrix -->
                         <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
                             <?php if (empty($students_with_enrollments)): ?>
                                 <tr>
                                     <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic bg-white">
-                                        No active student enrollment maps found inside the registry yet.
+                                        No active, completed, or modifiable student enrollment tracks found inside the
+                                        registry.
                                     </td>
                                 </tr>
-                                <?php
-                            else:
-                                foreach ($students_with_enrollments as $s):
-                                    ?>
+                            <?php else: ?>
+                                <?php foreach ($students_with_enrollments as $s): ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors">
-                                        <!-- Registration Column matching font-mono guidelines -->
                                         <td class="px-6 py-4 font-mono font-bold text-slate-900">
                                             <?php echo htmlspecialchars($s['student_reg_no']); ?>
                                         </td>
 
-                                        <!-- Student Profile Identifiers -->
                                         <td class="px-6 py-4 font-medium text-slate-800">
                                             <?php echo htmlspecialchars($s['first_name'] . ' ' . $s['last_name']); ?>
                                         </td>
 
-                                        <!-- Active Tracks Badge Count Layout -->
                                         <td class="px-6 py-4 text-center">
                                             <span
                                                 class="inline-flex items-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase select-none">
-                                                <?php echo (int) $s['active_tracks_count']; ?> Active Courses
+                                                <?php echo (int) $s['active_tracks_count']; ?> Record Tracks
                                             </span>
                                         </td>
 
-                                        <!-- Actions Component Layout Block matching strict guidelines -->
                                         <td class="px-6 py-4 text-center">
                                             <div class="inline-flex items-center justify-center gap-1.5">
                                                 <button type="button" title="Open Fee Workspace"
@@ -628,10 +635,8 @@ include_once 'header.php';
                                             </div>
                                         </td>
                                     </tr>
-                                    <?php
-                                endforeach;
-                            endif;
-                            ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -1592,10 +1597,10 @@ include_once 'header.php';
 <!-- Modal Template: Balance-Style Fee Collection & Ledger Dropdown Workspace -->
 <div id="feeLedgerDropdownModal"
     class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-300">
-    <div
-        class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-2xl w-full overflow-hidden transform transition-all duration-300 scale-95 flex flex-col max-h-[95vh]">
 
-        <!-- Header Component Block -->
+    <div
+        class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-2xl w-full overflow-hidden transform transition-all duration-300 scale-95 flex flex-col max-h-[90vh]">
+
         <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-4 text-white flex items-center justify-between">
             <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200">
                 <i class="fa-solid fa-calculator text-emerald-400"></i>
@@ -1610,7 +1615,6 @@ include_once 'header.php';
 
         <div class="p-5 flex-1 overflow-y-auto space-y-5 bg-white">
 
-            <!-- Top Summary Balance Status Panel -->
             <div
                 class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-xs">
                 <div>
@@ -1630,7 +1634,6 @@ include_once 'header.php';
                 </div>
             </div>
 
-            <!-- Record Form Container Box (Dark Aesthetic) -->
             <form id="feePaymentSubmissionForm" method="POST" action="actions.php"
                 class="bg-emerald-950 p-5 rounded-xl border border-emerald-900 shadow-inner text-white space-y-4">
                 <input type="hidden" name="action" value="add_fee_payment">
@@ -1639,92 +1642,89 @@ include_once 'header.php';
                 <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider select-none">Record Fee Liability
                     Payment</h3>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-                    <!-- Receipt Number Input Field -->
-                    <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Receipt /
-                            Voucher No *</label>
-                        <input type="text" name="receipt_no" id="inputReceiptNo" required placeholder="e.g., RCP-10024"
-                            class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
-                    </div>
+                <div id="feePaymentFormFieldsGrid" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Receipt
+                                / Voucher No *</label>
+                            <input type="text" name="receipt_no" id="inputReceiptNo" required
+                                placeholder="e.g., RCP-10024"
+                                class="w-full bg-emerald-900/50 border border-emerald-700 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                        </div>
 
-                    <!-- Amount to Pay Input Field -->
-                    <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Amount to
-                            Pay (₹) *</label>
-                        <input type="number" step="0.01" min="1.00" name="amount_paid" id="inputAmountPaid" required
-                            placeholder="0.00"
-                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
-                    </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Amount
+                                to Pay (₹) *</label>
+                            <input type="number" step="0.01" name="amount_paid" id="inputAmountPaid" required
+                                placeholder="0.00"
+                                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                        </div>
 
-                    <!-- Payment Mode -->
-                    <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payment
-                            Mode *</label>
-                        <select name="payment_mode" id="inputPaymentMode" required
-                            onchange="togglePaymentNarrativeField(this.value)"
-                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
-                            <option value="Cash">Cash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="UPI / GPay">UPI / GPay</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Conditional Transaction Narrative Reference Text Input (Hidden by Default for Cash) -->
-                <div id="paymentNarrativeContainer" class="hidden space-y-1 pt-2 border-t border-emerald-800/40">
-                    <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Transaction
-                        Narrative Reference *</label>
-                    <input type="text" name="payment_narrative" id="inputPaymentNarrative"
-                        placeholder="Enter UTR number, UPI Transaction ID, or banking confirmation details"
-                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
-                </div>
-
-                <!-- Depositor Radio Controls -->
-                <div class="space-y-1">
-                    <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Depositor /
-                        Paid By *</label>
-                    <div
-                        class="flex items-center gap-4 bg-emerald-900/40 border border-emerald-800/60 rounded-lg px-3 py-2 h-[34px]">
-                        <label class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
-                            <input type="radio" name="depositor_type" value="Self" checked
-                                onchange="togglePayerFields(this.value)" class="accent-amber-500"> Member Self
-                        </label>
-                        <label class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
-                            <input type="radio" name="depositor_type" value="Someone Else"
-                                onchange="togglePayerFields(this.value)" class="accent-amber-500"> Someone Else
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Conditional Third-Party Payer Component Fields (Hidden by Default) -->
-                <div id="thirdPartyPayerFields"
-                    class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-emerald-800/40">
-                    <div class="space-y-1">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer Full
-                            Name *</label>
-                        <input type="text" name="payer_name" id="inputPayerName" placeholder="Enter payer's name"
-                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
-                    </div>
-                    <div class="space-y-1 text-slate-900">
-                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer
-                            Contact Number *</label>
-                        <div class="w-full">
-                            <input type="tel" id="inputPayerPhone" placeholder="081234 56789"
-                                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-hidden h-[34px]">
-                            <input type="hidden" name="payer_phone" id="hiddenPayerPhone">
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payment
+                                Mode *</label>
+                            <select name="payment_mode" id="inputPaymentMode" required
+                                onchange="togglePaymentNarrativeField(this.value)"
+                                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-emerald-500 transition-colors h-[34px]">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="UPI / GPay">UPI / GPay</option>
+                            </select>
                         </div>
                     </div>
-                </div>
 
-                <!-- Action Submit Button -->
-                <button type="submit"
-                    class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg transition-colors shadow-xs cursor-pointer select-none">
-                    Save Ledger Transaction Entry
-                </button>
+                    <div id="paymentNarrativeContainer" class="hidden space-y-1 pt-2 border-t border-emerald-800/40">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Transaction
+                            Narrative Reference *</label>
+                        <input type="text" name="payment_narrative" id="inputPaymentNarrative"
+                            placeholder="Enter UTR number, UPI Transaction ID, or banking confirmation details"
+                            class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Depositor /
+                            Paid By *</label>
+                        <div
+                            class="flex items-center gap-4 bg-emerald-900/40 border border-emerald-800/60 rounded-lg px-3 py-2 h-[34px]">
+                            <label
+                                class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+                                <input type="radio" name="depositor_type" value="Self" checked
+                                    onchange="togglePayerFields(this.value)" class="accent-amber-500"> Member Self
+                            </label>
+                            <label
+                                class="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+                                <input type="radio" name="depositor_type" value="Someone Else"
+                                    onchange="togglePayerFields(this.value)" class="accent-amber-500"> Someone Else
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="thirdPartyPayerFields"
+                        class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-emerald-800/40">
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer
+                                Full Name *</label>
+                            <input type="text" name="payer_name" id="inputPayerName" placeholder="Enter payer's name"
+                                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden h-[34px]">
+                        </div>
+                        <div class="space-y-1 text-slate-900">
+                            <label class="block text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Payer
+                                Contact Number *</label>
+                            <div class="w-full">
+                                <input type="tel" id="inputPayerPhone" placeholder="081234 56789"
+                                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-hidden h-[34px]">
+                                <input type="hidden" name="payer_phone" id="hiddenPayerPhone">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg transition-colors shadow-xs cursor-pointer select-none">
+                        Save Ledger Transaction Entry
+                    </button>
+                </div>
             </form>
 
-            <!-- Ledger Audit History Logs Block -->
             <div class="space-y-2">
                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider select-none">Ledger Audit History
                     Logs</h4>
@@ -1740,9 +1740,30 @@ include_once 'header.php';
                             </tr>
                         </thead>
                         <tbody id="dropdownLedgerHistoryRows" class="divide-y divide-slate-100 text-xs text-slate-600">
-                            <!-- Injected dynamically via JSON payload structure mapping -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <div id="feeProRatedFormulaCard"
+                class="hidden bg-slate-50 border border-slate-200 p-3 rounded-xl text-[11px] text-slate-600 font-mono space-y-1">
+                <div
+                    class="font-bold text-slate-700 uppercase tracking-wider text-[9px] select-none mb-1 text-slate-500">
+                    <i class="fa-solid fa-square-root-variable text-amber-500 mr-1"></i> Pro-Ration Math Trace Log
+                </div>
+                <div id="traceFormulaActiveDays"
+                    class="flex justify-between border-b border-dashed border-slate-200 pb-1">
+                    <span>Active Operational Windows:</span>
+                    <span class="font-bold text-slate-900">--</span>
+                </div>
+                <div id="traceFormulaDailyRate"
+                    class="flex justify-between border-b border-dashed border-slate-200 py-1">
+                    <span>Daily Baseline Rate Calculation:</span>
+                    <span class="font-bold text-slate-900">--</span>
+                </div>
+                <div id="traceFormulaNetLiability" class="flex justify-between pt-1 font-bold text-emerald-800">
+                    <span>Computed Pro-Rated Liability:</span>
+                    <span id="traceFormulaLiabilityValue">₹0.00</span>
                 </div>
             </div>
         </div>
@@ -2628,12 +2649,16 @@ include_once 'header.php';
                 const courseName = parts[3];
                 const standardFee = parseFloat(parts[4]) || 0.00;
                 const startDate = parts[5] || '';
-                // Unpack the newly appended duration fields from the single query pass structure
                 const durationValue = parseInt(parts[6]) || 0;
                 const durationUnit = parts[7] || 'Months';
 
-                // Filter out non-billing statuses dynamically on the client side
-                if (status !== 'assigned' && status !== 'ongoing') return;
+                // Extract advanced operational state markers from single-pass aggregation
+                const pauseStartDate = parts[8] || '';
+                const cancellationSource = parts[9] || '';
+                const accumulatedPauseDays = parseInt(parts[10]) || 0;
+
+                // Operational Filter: Only show actionable states (ongoing, completed, hold, cancelled)
+                if (!['ongoing', 'completed', 'hold', 'cancelled'].includes(status)) return;
 
                 // Client-side execution logic matching server-side calculateTotalCourseFee() implementation
                 let totalCourseFee = 0.00;
@@ -2645,30 +2670,35 @@ include_once 'header.php';
                     }
                 }
 
-                // Generate conditional pill elements matching UI system rules
+                // Generate conditional badge elements reflecting real-time business paths
                 let statusBadge = '';
                 if (status === 'ongoing') {
                     statusBadge = '<span class="inline-flex items-center bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">Ongoing</span>';
-                } else {
-                    statusBadge = '<span class="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">Assigned</span>';
+                } else if (status === 'completed') {
+                    statusBadge = '<span class="inline-flex items-center bg-blue-50 text-blue-700 border border-blue-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">Completed</span>';
+                } else if (status === 'hold') {
+                    statusBadge = '<span class="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">On Hold</span>';
+                } else if (status === 'cancelled') {
+                    const sourceText = cancellationSource === 'institution' ? 'Inst' : 'Student';
+                    statusBadge = `<span class="inline-flex items-center bg-rose-50 text-rose-700 border border-rose-200 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase select-none">Cancelled (${sourceText})</span>`;
                 }
 
-                // Fix scoping issue: Safely escape the raw strings to avoid injection breaks
                 const escapedPayments = escapeHtml(studentData.serialized_payments || '');
 
-                // Formulate target button actions and UI styling parameters based on status parameters
+                // Formulate context action vectors, styles, and interactive state intercepts
                 let actionOnClick = '';
                 let buttonStyleClasses = '';
                 let buttonTitleText = '';
 
-                if (status === 'ongoing') {
-                    actionOnClick = `openFeeLedgerDropdownWorkspace(${parseInt(enrollmentId)}, '${escapeHtml(courseName)}', ${standardFee}, '${escapeHtml(status)}', '${escapeHtml(startDate)}', '${escapedPayments}', ${totalCourseFee.toFixed(2)})`;
-                    buttonStyleClasses = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 cursor-pointer';
-                    buttonTitleText = 'Manage Fee Collection Ledger';
+                if (status === 'hold') {
+                    actionOnClick = `showToast('Business Logic Guardrail: Fee transaction collections are suspended while a course track is on Hold.', '⚠️')`;
+                    buttonStyleClasses = 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-60';
+                    buttonTitleText = 'Collection Suspended (Track on Hold)';
                 } else {
-                    actionOnClick = `showToast('Business Logic Guardrail: Fee collections cannot be run for assigned tracks. Update status to ongoing first.', '⚠️')`;
-                    buttonStyleClasses = 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed';
-                    buttonTitleText = 'Course Not Set To Ongoing';
+                    // Pass advanced parameters into the transaction worksheet engine
+                    actionOnClick = `openFeeLedgerDropdownWorkspace(${parseInt(enrollmentId)}, '${escapeHtml(courseName)}', ${standardFee}, '${escapeHtml(status)}', '${escapeHtml(startDate)}', '${escapedPayments}', ${totalCourseFee.toFixed(2)}, '${escapeHtml(cancellationSource)}', '${escapeHtml(pauseStartDate)}', ${accumulatedPauseDays})`;
+                    buttonStyleClasses = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 cursor-pointer';
+                    buttonTitleText = 'Manage Fee Workspace';
                 }
 
                 const tr = document.createElement('tr');
@@ -2715,14 +2745,14 @@ include_once 'header.php';
     let payerPhoneInputInstance = null;
 
     /**
- * Triggers the targeted secondary Chanda-style Workspace collection overlay window configuration
- */
-    function openFeeLedgerDropdownWorkspace(enrollmentId, courseName, standardFee, trackStatus, startDateStr, paymentsRawString, totalCourseFee) {
-        // 1. Map Structural Identifiers into the View Space Form elements
+     * Triggers the targeted secondary Chanda-style Workspace collection overlay window configuration
+     */
+    function openFeeLedgerDropdownWorkspace(enrollmentId, courseName, standardFee, trackStatus, startDateStr, paymentsRawString, totalCourseFee, cancellationSource, pauseStartDate, accumulatedPauseDays) {
         document.getElementById('formEnrollmentId').value = enrollmentId;
         document.getElementById('dropdownCourseTitle').textContent = courseName;
 
-        document.getElementById('feePaymentSubmissionForm').reset();
+        const form = document.getElementById('feePaymentSubmissionForm');
+        form.reset();
         document.getElementById('formEnrollmentId').value = enrollmentId;
 
         // Explicitly reset the form layout views to default operational states
@@ -2734,15 +2764,15 @@ include_once 'header.php';
 
         let totalAmountPaid = 0.00;
 
-        // 2. Parse Historic Balance Payment Records directly from string matrices
+        // Parse Historic Balance Payment Records directly from string matrices
         if (paymentsRawString && paymentsRawString.trim() !== '') {
             const structuralRecords = paymentsRawString.split(';;;');
             structuralRecords.forEach(function (row) {
                 const tokens = row.split('||');
-                if (tokens.length < 5) return; // Shape matching: enrollment_id || receipt_no || amount_paid || payment_mode || payment_narrative || depositor_type || payer_name
+                if (tokens.length < 5) return;
 
                 const pEnrollmentId = parseInt(tokens[0]);
-                if (pEnrollmentId !== enrollmentId) return; // Isolate context only to current course track
+                if (pEnrollmentId !== enrollmentId) return;
 
                 const receiptNo = tokens[1];
                 const amountPaid = parseFloat(tokens[2]);
@@ -2753,7 +2783,6 @@ include_once 'header.php';
 
                 totalAmountPaid += amountPaid;
 
-                // Build structural row outputs matching new balance ledger parameters
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition-colors';
 
@@ -2772,7 +2801,6 @@ include_once 'header.php';
             });
         }
 
-        // Render fallback indicator row if ledger history is blank
         if (totalAmountPaid === 0.00) {
             historyTbody.innerHTML = `
             <tr>
@@ -2783,22 +2811,136 @@ include_once 'header.php';
         `;
         }
 
-        // 3. Dynamic Financial Balance Matrix Operations
-        const courseLiability = parseFloat(totalCourseFee) || 0.00;
-        const outstandingDue = Math.max(0.00, courseLiability - totalAmountPaid);
+        // --- Dynamic Financial Balance Matrix Operations Engine ---
+        let dynamicLiability = parseFloat(totalCourseFee) || 0.00;
+        const formGridWrapper = document.getElementById('feePaymentFormFieldsGrid');
+        const warningContainer = document.getElementById('workspaceLogicWarningContainer') || createWarningContainer();
 
-        document.getElementById('summaryTotalCourseFee').textContent = `₹${courseLiability.toFixed(2)}`;
+        warningContainer.classList.add('hidden');
+        formGridWrapper.classList.remove('hidden');
+
+        // Locate this section inside your openFeeLedgerDropdownWorkspace function:
+        if (trackStatus === 'cancelled' && (cancellationSource.toLowerCase() === 'student' || cancellationSource === '')) {
+            // Business Rule: Retain fees as non-refundable. Liability matches what was already collected.
+            dynamicLiability = totalAmountPaid;
+            const outstandingDue = 0.00;
+
+            document.getElementById('summaryTotalCourseFee').textContent = `₹${dynamicLiability.toFixed(2)}`;
+            document.getElementById('summaryAggregatePaid').textContent = `₹${totalAmountPaid.toFixed(2)}`;
+            document.getElementById('summaryOutstandingBalance').textContent = `₹${outstandingDue.toFixed(2)}`;
+
+            formGridWrapper.classList.add('hidden');
+            warningContainer.innerHTML = `<i class="fa-solid fa-circle-info mr-2"></i> This track was cancelled by the student. Retained fees are non-refundable; transaction ledger changes are frozen.`;
+            warningContainer.classList.remove('hidden');
+
+            // Ensure the modal actually opens by adding display overrides explicitly
+            const dropdownModal = document.getElementById('feeLedgerDropdownModal');
+            dropdownModal.classList.remove('hidden');
+            dropdownModal.classList.add('flex');
+            return;
+        }
+
+        if (trackStatus === 'cancelled' && cancellationSource === 'institution') {
+            let computedDays = 0;
+            let traceDaysText = '0 Days';
+
+            if (startDateStr && pauseStartDate) {
+                const start = new Date(startDateStr);
+                const stop = new Date(pauseStartDate);
+                const deltaMs = stop - start;
+                if (deltaMs > 0) {
+                    const rawDays = Math.floor(deltaMs / (1000 * 60 * 60 * 24));
+                    computedDays = Math.max(0, rawDays - accumulatedPauseDays);
+
+                    // Format math trace logs clearly
+                    traceDaysText = `${rawDays} Days (Raw Date Delta) - ${accumulatedPauseDays} Days (Leave Exclusions) = ${computedDays} Billable Days`;
+                }
+            }
+
+            // Calculate fractional financial rates
+            const dailyRate = (standardFee / 30.0);
+            dynamicLiability = parseFloat((dailyRate * computedDays).toFixed(2));
+            const netBalance = dynamicLiability - totalAmountPaid;
+
+            // --- Populate and Render Math Trace Log Elements ---
+            document.getElementById('traceFormulaActiveDays').querySelector('span:last-child').textContent = traceDaysText;
+            document.getElementById('traceFormulaDailyRate').querySelector('span:last-child').textContent = `(₹${standardFee.toFixed(2)} Base Fee / 30 Days) = ₹${dailyRate.toFixed(4)} / Day`;
+            document.getElementById('traceFormulaLiabilityValue').textContent = `₹${dailyRate.toFixed(4)} × ${computedDays} Days = ₹${dynamicLiability.toFixed(2)}`;
+
+            // Show the formula trace block layout card
+            document.getElementById('feeProRatedFormulaCard').classList.remove('hidden');
+
+            // ... Rest of your existing netBalance handling code (< 0, > 0, etc.) ...
+
+            document.getElementById('summaryTotalCourseFee').textContent = `₹${dynamicLiability.toFixed(2)} (Pro-rated)`;
+            document.getElementById('summaryAggregatePaid').textContent = `₹${totalAmountPaid.toFixed(2)}`;
+
+            const amountInput = document.getElementById('inputAmountPaid');
+
+            if (netBalance < 0) {
+                // Negative liability scenario: trigger payout/refund workflow elements
+                const refundValue = Math.abs(netBalance);
+                document.getElementById('summaryOutstandingBalance').textContent = `-₹${refundValue.toFixed(2)} (Refund Due)`;
+                amountInput.value = `-${refundValue.toFixed(2)}`;
+                amountInput.setAttribute('min', `-${refundValue.toFixed(2)}`);
+                amountInput.setAttribute('max', `-${refundValue.toFixed(2)}`);
+
+                warningContainer.innerHTML = `<i class="fa-solid fa-hand-holding-dollar mr-2"></i> Institutional cancellation pro-rating applied. Process the required refund entry of <strong class="mx-1">₹${refundValue.toFixed(2)}</strong> below.`;
+                warningContainer.classList.remove('hidden');
+            } else if (netBalance > 0) {
+                // Unpaid trailing balances remaining under the pro-rated window
+                document.getElementById('summaryOutstandingBalance').textContent = `₹${netBalance.toFixed(2)}`;
+                amountInput.value = netBalance.toFixed(2);
+                amountInput.setAttribute('max', netBalance.toFixed(2));
+                amountInput.setAttribute('min', '0.01');
+            } else {
+                document.getElementById('summaryOutstandingBalance').textContent = `₹0.00`;
+                formGridWrapper.classList.add('hidden');
+                warningContainer.innerHTML = `<i class="fa-solid fa-square-check mr-2"></i> Ledger balanced out to zero. No financial adjustment or payout required.`;
+                warningContainer.classList.remove('hidden');
+            }
+
+            const dropdownModal = document.getElementById('feeLedgerDropdownModal');
+            dropdownModal.classList.remove('hidden');
+            return;
+        }
+
+        // Standard fallback workflows handling normal tracking windows (ongoing & completed)
+        const outstandingDue = Math.max(0.00, dynamicLiability - totalAmountPaid);
+
+        document.getElementById('summaryTotalCourseFee').textContent = `₹${dynamicLiability.toFixed(2)}`;
         document.getElementById('summaryAggregatePaid').textContent = `₹${totalAmountPaid.toFixed(2)}`;
         document.getElementById('summaryOutstandingBalance').textContent = `₹${outstandingDue.toFixed(2)}`;
 
-        // Preset input payment values with remaining balance due to streamline workflows
         const amountInput = document.getElementById('inputAmountPaid');
-        amountInput.value = outstandingDue > 0 ? outstandingDue.toFixed(2) : "0.00";
-        amountInput.setAttribute('max', outstandingDue.toFixed(2));
+        amountInput.setAttribute('min', '0.01');
 
-        // 4. Reveal Modal Wrappers smoothly
+        if (outstandingDue <= 0) {
+            formGridWrapper.classList.add('hidden');
+            warningContainer.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> This course tracking profile has completely cleared its liability obligations.`;
+            warningContainer.classList.remove('hidden');
+        } else {
+            amountInput.value = outstandingDue.toFixed(2);
+            amountInput.setAttribute('max', outstandingDue.toFixed(2));
+        }
+
         const dropdownModal = document.getElementById('feeLedgerDropdownModal');
         dropdownModal.classList.remove('hidden');
+    }
+
+    /**
+     * Lazy-appends a flexible workspace layout alert box inside the overlay template structure
+     */
+    function createWarningContainer() {
+        const parentForm = document.getElementById('feePaymentSubmissionForm');
+        let container = document.getElementById('workspaceLogicWarningContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'workspaceLogicWarningContainer';
+            container.className = 'p-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-[11px] flex items-center mb-2 font-medium';
+            parentForm.insertBefore(container, parentForm.firstChild);
+        }
+        return container;
     }
 
     function togglePaymentNarrativeField(mode) {
@@ -2824,7 +2966,6 @@ include_once 'header.php';
             fieldWrapper.classList.remove('hidden');
             nameInput.setAttribute('required', 'required');
 
-            // Dynamic Setup Engine for intl-tel-input matching Tab 2 framework settings
             if (typeof intlTelInput !== 'undefined' && !payerPhoneInputInstance) {
                 payerPhoneInputInstance = intlTelInput(phoneInput, {
                     initialCountry: "in",
@@ -2832,7 +2973,6 @@ include_once 'header.php';
                     utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
                 });
 
-                // Fix layout overflow mechanics caused by intl-tel wrapper structures
                 const wrapper = phoneInput.closest('.iti');
                 if (wrapper) {
                     wrapper.classList.add('w-full');
@@ -2842,7 +2982,6 @@ include_once 'header.php';
             fieldWrapper.classList.add('hidden');
             nameInput.removeAttribute('required');
 
-            // Clear components instances upon cancellation paths
             if (payerPhoneInputInstance) {
                 payerPhoneInputInstance.destroy();
                 payerPhoneInputInstance = null;
@@ -2850,12 +2989,10 @@ include_once 'header.php';
         }
     }
 
-    // Global Validation Interceptor Hook: Form submission handling
     document.getElementById('feePaymentSubmissionForm').addEventListener('submit', function (e) {
         const depositorType = document.querySelector('input[name="depositor_type"]:checked').value;
 
         if (depositorType === 'Someone Else' && payerPhoneInputInstance) {
-            // Enforce parsing standard complete outputs down to database records paths
             const fullNumber = payerPhoneInputInstance.getNumber();
             if (!payerPhoneInputInstance.isValidNumber()) {
                 e.preventDefault();
@@ -2867,11 +3004,14 @@ include_once 'header.php';
     });
 
     function closeFeeLedgerDropdownWorkspace() {
-        document.getElementById('feeLedgerDropdownModal').classList.add('hidden');
-        if (payerPhoneInputInstance) {
-            payerPhoneInputInstance.destroy();
-            payerPhoneInputInstance = null;
+        const modal = document.getElementById('feeLedgerDropdownModal');
+        modal.classList.add('hidden'); // Hides the layout structure cleanly
+
+        const warningContainer = document.getElementById('workspaceLogicWarningContainer');
+        if (warningContainer) {
+            warningContainer.classList.add('hidden');
         }
+        document.getElementById('feeProRatedFormulaCard').classList.add('hidden');
     }
 
     // Global Validation Interceptor Engine for course enrolment status

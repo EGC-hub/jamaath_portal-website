@@ -2822,6 +2822,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // 2. Extract and Sanitize Base Input Matrix Fields
     $enrollment_id = isset($_POST['enrollment_id']) ? (int) $_POST['enrollment_id'] : 0;
     $receipt_no = isset($_POST['receipt_no']) ? strtoupper(trim($_POST['receipt_no'])) : '';
+    // MODIFIED: Dropped absolute positive constraints to allow signed negative decimals for standard refund logging
     $amount_paid = isset($_POST['amount_paid']) ? filter_var($_POST['amount_paid'], FILTER_VALIDATE_FLOAT) : 0.00;
     $payment_mode = isset($_POST['payment_mode']) ? trim($_POST['payment_mode']) : 'Cash';
     $payment_narrative = ($payment_mode !== 'Cash' && isset($_POST['payment_narrative'])) ? trim($_POST['payment_narrative']) : null;
@@ -2836,16 +2837,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $payer_phone = isset($_POST['payer_phone']) ? trim($_POST['payer_phone']) : null;
     }
 
-    // 4. Server-Side Operational Validations
-    if ($enrollment_id <= 0 || empty($receipt_no) || $amount_paid <= 0) {
+    // 4. Server-Side Operational Input Validations
+    // MODIFIED: Checked against absolute 0 boundary since payouts run strictly negative numbers
+    if ($enrollment_id <= 0 || empty($receipt_no) || $amount_paid == 0.00) {
         header("Location: academic.php?tab=fees&error=" . urlencode("Operational Failure: Missing or invalid required ledger input parameter metrics."));
         exit();
     }
 
     try {
-        // 5. Verification Checkpoint: Ensure target track state exists and is not 'assigned'
+        // 5. Verification Checkpoint: Pull advanced lifecycle state markers and pause records in single pass
         $status_check = $db->prepare("
-            SELECT e.status, c.standard_fee, c.duration_value, c.duration_unit 
+            SELECT 
+                e.status, 
+                e.start_date, 
+                e.pause_start_date, 
+                e.cancellation_source, 
+                e.accumulated_pause_days,
+                c.standard_fee, 
+                c.duration_value, 
+                c.duration_unit 
             FROM academic_enrollments e
             INNER JOIN academic_courses c ON e.course_id = c.id
             WHERE e.id = :enrollment_id
@@ -2858,8 +2868,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit();
         }
 
-        if ($enrollment_context['status'] === 'assigned') {
-            header("Location: academic.php?tab=fees&error=" . urlencode("Business Logic Guardrail: Fee collections cannot be run for 'assigned' tracks. Change status to 'ongoing' first."));
+        $current_status = $enrollment_context['status'];
+        $cancellation_source = $enrollment_context['cancellation_source'];
+
+        // --- Business Logic State Guardrail Matrix Intercepts ---
+        if ($current_status === 'assigned') {
+            header("Location: academic.php?tab=fees&error=" . urlencode("Business Logic Guardrail: Fee collections cannot be run for uncommenced scheduled tracks."));
+            exit();
+        }
+
+        if ($current_status === 'hold') {
+            header("Location: academic.php?tab=fees&error=" . urlencode("Business Logic Guardrail: Transaction processing is suspended while a track is on Hold."));
+            exit();
+        }
+
+        if ($current_status === 'cancelled' && $cancellation_source === 'student') {
+            header("Location: academic.php?tab=fees&error=" . urlencode("Ledger Lockdown: Student-cancelled tracks are frozen. Retained fees are non-refundable."));
             exit();
         }
 
@@ -2871,31 +2895,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit();
         }
 
-        // 7. Overpayment Prevention Engine: Dynamically calculate baseline liability vs cumulative payments
+        // 7. Dynamic Liability Calculation Engine
         $standard_fee = (float) $enrollment_context['standard_fee'];
         $duration_value = (int) $enrollment_context['duration_value'];
         $duration_unit = $enrollment_context['duration_unit'];
-
-        // Enforce structural pro-rated calculations matching the helper layout mechanics
-        $total_course_liability = 0.00;
-        if ($duration_value > 0) {
-            if (strcasecmp($duration_unit, 'Days') === 0) {
-                $total_course_liability = ($standard_fee / 30.0) * $duration_value;
-            } else {
-                $total_course_liability = $standard_fee * $duration_value;
-            }
-        }
 
         // Aggregate previously logged historical entries matching current track
         $history_check = $db->prepare("SELECT IFNULL(SUM(amount_paid), 0.00) FROM academic_fee_payments WHERE enrollment_id = ?");
         $history_check->execute([$enrollment_id]);
         $aggregate_already_paid = (float) $history_check->fetchColumn();
 
-        // Enforce strict bounding checks
+        $total_course_liability = 0.00;
+
+        if ($current_status === 'cancelled' && $cancellation_source === 'institution') {
+            // Institutional Cancellation: Pro-rate liability using exact active days delta
+            $start_date_str = $enrollment_context['start_date'];
+            $pause_date_str = $enrollment_context['pause_start_date'];
+            $accumulated_pause = (int) $enrollment_context['accumulated_pause_days'];
+
+            $computed_days = 0;
+            if (!empty($start_date_str) && !empty($pause_date_str)) {
+                $start_ts = strtotime($start_date_str);
+                $pause_ts = strtotime($pause_date_str);
+                if ($pause_ts > $start_ts) {
+                    $day_delta = floor(($pause_ts - $start_ts) / (60 * 60 * 24));
+                    $computed_days = max(0, (int) $day_delta - $accumulated_pause);
+                }
+            }
+
+            $daily_rate = ($standard_fee / 30.0);
+            $total_course_liability = round($daily_rate * $computed_days, 2);
+        } else {
+            // Standard tracking path calculations (ongoing & completed)
+            if ($duration_value > 0) {
+                if (strcasecmp($duration_unit, 'Days') === 0) {
+                    $total_course_liability = ($standard_fee / 30.0) * $duration_value;
+                } else {
+                    $total_course_liability = $standard_fee * $duration_value;
+                }
+            }
+            $total_course_liability = round($total_course_liability, 2);
+        }
+
         $remaining_due_balance = round($total_course_liability - $aggregate_already_paid, 2);
-        if (round($amount_paid, 2) > $remaining_due_balance) {
-            header("Location: academic.php?tab=fees&error=" . urlencode("Financial Overpayment Intercept: Submitted allocation of ₹" . number_format($amount_paid, 2) . " exceeds the maximum remaining balance due of ₹" . number_format($remaining_due_balance, 2) . "."));
-            exit();
+
+        // --- Overpayment & Refund Validation Enforcements ---
+        if ($remaining_due_balance < 0) {
+            // Refund Path: Input value must exactly equal the absolute remaining negative delta
+            if (round($amount_paid, 2) !== $remaining_due_balance) {
+                header("Location: academic.php?tab=fees&error=" . urlencode("Ledger Balance Error: Refund payout entry must balance the ledger structure to zero (Exact target: ₹" . number_format($remaining_due_balance, 2) . ")."));
+                exit();
+            }
+        } else {
+            // Standard Payer Tracking: Input cannot drive values past standing liabilities
+            if (round($amount_paid, 2) > $remaining_due_balance) {
+                header("Location: academic.php?tab=fees&error=" . urlencode("Financial Overpayment Intercept: Submitted allocation of ₹" . number_format($amount_paid, 2) . " exceeds the maximum remaining balance due of ₹" . number_format($remaining_due_balance, 2) . "."));
+                exit();
+            }
+            // Block structural negative inputs into standard collection streams
+            if ($amount_paid < 0) {
+                header("Location: academic.php?tab=fees&error=" . urlencode("Operational Failure: Negative adjustments are restricted to institutional refund actions."));
+                exit();
+            }
         }
 
         // 8. Execute Transactional Ledger Insertion
@@ -2922,7 +2983,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         ]);
 
         // 9. Execution Success: Redirect gracefully back to the Fee tab landscape interface
-        header("Location: academic.php?tab=fees&msg=" . urlencode("Transaction payment record successfully verified and logged into ledger registry."));
+        $success_msg = $amount_paid < 0
+            ? "Institutional refund processing transaction ledger entry successfully saved."
+            : "Transaction payment record successfully verified and logged into ledger registry.";
+
+        header("Location: academic.php?tab=fees&msg=" . urlencode($success_msg));
         exit;
 
     } catch (PDOException $e) {
