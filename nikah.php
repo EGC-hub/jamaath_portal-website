@@ -124,9 +124,6 @@ foreach ($dependents as $d) {
 require_once 'header.php';
 ?>
 
-<!-- HTML2PDF CDN Library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

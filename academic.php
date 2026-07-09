@@ -1636,7 +1636,6 @@ include_once 'header.php';
     <div class="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden relative z-10 transform scale-95 transition-transform duration-300 my-8"
         id="student-view-chassis">
 
-        <!-- Header Profile Banner Panel -->
         <div class="bg-emerald-950 text-white p-6 relative flex justify-between items-start select-none">
             <div class="flex items-center gap-4">
                 <div class="w-24 h-24 rounded-full bg-emerald-800/50 border-2 border-emerald-500/30 flex items-center justify-center text-white text-3xl font-bold tracking-wider font-mono shadow-inner overflow-hidden shrink-0"
@@ -1658,10 +1657,32 @@ include_once 'header.php';
                 class="text-white/60 hover:text-white transition-colors cursor-pointer text-xl font-semibold bg-white/10 hover:bg-white/20 w-7 h-7 rounded-full flex items-center justify-center">&times;</button>
         </div>
 
-        <!-- Main Dossier Content Body Grid -->
-        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto bg-slate-50/40">
+        <div class="p-6 space-y-4 max-h-[65vh] overflow-y-auto bg-slate-50/40">
 
-            <!-- Matrix 1: Core Institutional & Demographics Data Profile -->
+            <div id="certificate_workspace_panel"
+                class="hidden transition-all duration-300 bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                <div
+                    class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-bold tracking-wide select-none">
+                    <span class="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-slate-300">
+                        <i class="fa-solid fa-graduation-cap text-amber-400"></i> Course Certification Engine
+                    </span>
+                    <button onclick="toggleCertificateWorkspace(false)"
+                        class="text-slate-400 hover:text-white transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="p-4 space-y-3">
+                    <p class="text-[11px] text-slate-500 font-medium">
+                        Select a track below to verify parameters. Certificates require status verification (<span
+                            class="font-bold text-emerald-600">Completed</span>) and total asset clearance (<span
+                            class="font-bold text-emerald-600">Balance: ₹0.00</span>).
+                    </p>
+
+                    <div id="certificate_course_list_mount" class="space-y-2">
+                    </div>
+                </div>
+            </div>
+
             <div
                 class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 <div>
@@ -1699,7 +1720,6 @@ include_once 'header.php';
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-
                 <div
                     class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs flex flex-col justify-between gap-3 text-xs">
                     <div class="flex items-center gap-3 min-w-0">
@@ -1716,7 +1736,6 @@ include_once 'header.php';
                                 N/A</div>
                         </div>
                     </div>
-
                     <div class="flex items-center gap-3 min-w-0 pt-2 border-t border-slate-100 group">
                         <div
                             class="text-teal-600 bg-teal-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
@@ -1728,8 +1747,7 @@ include_once 'header.php';
                                 Email</span>
                             <div id="view_student_email"
                                 class="font-bold text-slate-800 font-mono text-[11px] hover:overflow-x-auto overflow-x-hidden whitespace-nowrap scroll-smooth custom-mini-scrollbar pb-0.5">
-                                N/A
-                            </div>
+                                N/A</div>
                         </div>
                     </div>
                 </div>
@@ -1748,7 +1766,6 @@ include_once 'header.php';
                             <div id="view_father_name" class="font-bold text-slate-800 truncate">N/A</div>
                         </div>
                     </div>
-
                     <div class="flex items-center gap-3 min-w-0 pt-2 border-t border-slate-100">
                         <div
                             class="text-slate-400 bg-slate-50/50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
@@ -1777,7 +1794,6 @@ include_once 'header.php';
                             <div id="view_guardian_name" class="font-bold text-slate-800 truncate">N/A</div>
                         </div>
                     </div>
-
                     <div class="flex items-center gap-3 min-w-0 pt-2 border-t border-slate-100">
                         <div
                             class="text-teal-500 bg-teal-50/50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
@@ -1792,10 +1808,8 @@ include_once 'header.php';
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- Identity Verification Document Container -->
             <div
                 class="bg-white p-4 rounded-xl border border-dashed border-slate-200 shadow-xs flex items-center justify-between text-xs">
                 <div class="flex items-center gap-3">
@@ -1806,7 +1820,8 @@ include_once 'header.php';
                     <div>
                         <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Aadhaar
                             Identity</span>
-                        <div id="view_aadhar_no" class="font-bold text-slate-800 tracking-wider">---- ---- ----</div>
+                        <div id="view_aadhar_no" class="font-bold text-slate-800 tracking-wider">[Identity Redacted]
+                        </div>
                     </div>
                 </div>
                 <div id="view_aadhar_link_wrapper"
@@ -1817,10 +1832,7 @@ include_once 'header.php';
                 </div>
             </div>
 
-            <!-- Matrix 3: Address Profiles Layout (Dual Column Stacked Cards) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Residential Address View Block -->
-                <!-- Residential Address View Block -->
                 <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs text-xs space-y-2">
                     <div class="flex items-center gap-1.5 font-bold text-slate-700 border-b border-slate-100 pb-1.5">
                         <i class="fa-solid fa-house-chimney text-emerald-600"></i> Residential Location Address
@@ -1833,7 +1845,6 @@ include_once 'header.php';
                     </div>
                 </div>
 
-                <!-- Communication Address View Block -->
                 <div class="bg-white p-4 rounded-xl border border-slate-150 shadow-xs text-xs space-y-2">
                     <div class="flex items-center gap-1.5 font-bold text-slate-700 border-b border-slate-100 pb-1.5">
                         <i class="fa-solid fa-briefcase text-teal-600"></i> Communication Contact Address
@@ -1849,8 +1860,12 @@ include_once 'header.php';
 
         </div>
 
-        <!-- Footer Dismiss Window Action Belt -->
-        <div class="bg-slate-50 px-5 py-3.5 border-t border-t-slate-150 flex items-center justify-end select-none">
+        <div class="bg-slate-50 px-5 py-3.5 border-t border-t-slate-150 flex items-center justify-between select-none">
+            <button onclick="toggleCertificateWorkspace(true)" id="btn_open_cert_engine"
+                class="px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all shadow-2xs flex items-center gap-2 cursor-pointer tracking-wide">
+                <i class="fa-solid fa-award text-[13px]"></i> Certificates
+            </button>
+
             <button onclick="closeStudentViewModal()"
                 class="px-5 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-all shadow-xs cursor-pointer tracking-wide">
                 Close Profile
@@ -2945,6 +2960,7 @@ include_once 'header.php';
     // View Modal Display Interface Controller Matrix
     function triggerStudentProfileView(student) {
         console.log("Invoking view pipeline layout parameters context tracker:", student);
+        window.current_view_student_id = student.id || ''
 
         const modal = document.getElementById('student-view-modal');
         const chassis = document.getElementById('student-view-chassis');
@@ -2954,6 +2970,36 @@ include_once 'header.php';
         // Force Modal Display Visibility States
         modal.classList.remove('invisible', 'opacity-0');
         setTimeout(() => chassis.classList.remove('scale-95'), 20);
+
+        // =========================================================================
+        // DEDICATED API CERTIFICATE TRACK RETRIEVAL
+        // =========================================================================
+        toggleCertificateWorkspace(false); // Hide workspace on fresh student click
+
+        if (student.id) {
+            // Clear mount point and show a subtle loading text state
+            document.getElementById('certificate_course_list_mount').innerHTML = `
+            <div class="p-3 text-center text-xs text-slate-400 font-medium font-mono">
+                <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Checking tracking parameters...
+            </div>`;
+
+            fetch(`fetch_certificates.php?student_id=${student.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        renderCertificateEligibilityRows(data.tracks);
+                    } else {
+                        document.getElementById('certificate_course_list_mount').innerHTML = `
+                        <div class="p-3 text-xs text-rose-600 bg-rose-50 rounded-xl font-bold border border-rose-100">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> API Fetch Failed
+                        </div>`;
+                    }
+                })
+                .catch(err => {
+                    console.error("Certificate API Fetch Error:", err);
+                });
+        }
+        // =========================================================================
 
         // Core Profile Name Identifiers
         const fName = student.first_name || '';
@@ -3035,12 +3081,16 @@ include_once 'header.php';
     }
 
     function closeStudentViewModal() {
+        // Force reset workspace display memory safely before structural removal
+        toggleCertificateWorkspace(false);
+
         const modal = document.getElementById('student-view-modal');
         const chassis = document.getElementById('student-view-chassis');
 
-        chassis.classList.add('scale-95');
-        modal.classList.add('opacity-0');
-        setTimeout(() => modal.classList.add('invisible'), 300);
+        if (chassis) chassis.classList.add('scale-95');
+        if (modal) {
+            setTimeout(() => modal.classList.add('invisible', 'opacity-0'), 150);
+        }
     }
 
     function syncResidentialToCommunicationAddress() {
@@ -4156,6 +4206,180 @@ include_once 'header.php';
     function clearCourseForm() {
         document.getElementById('academic_course_report_form').reset();
         clearCourseReportPreview();
+    }
+    /**
+     * Utility string matrix decoder transforming GROUP_CONCAT profiles into structural logic blocks
+     */
+    function parseSerializedCourses(serializedCourses, serializedPayments) {
+        // Fail safe escape gate if string properties are completely empty or missing
+        if (!serializedCourses || serializedCourses.trim() === "") {
+            console.warn("Certificate Engine: serialized_courses string context is blank.");
+            return [];
+        }
+
+        // 1. Process and map structural historical payment tracking lists
+        const paymentMap = {};
+        if (serializedPayments && serializedPayments.trim() !== "") {
+            serializedPayments.split(';;;').forEach(row => {
+                if (!row) return;
+                const parts = row.split('||');
+                const enrollmentId = parts[0];
+                const amountPaid = parseFloat(parts[2] || 0);
+
+                if (enrollmentId) {
+                    paymentMap[enrollmentId] = (paymentMap[enrollmentId] || 0) + amountPaid;
+                }
+            });
+        }
+
+        // 2. Decode the structured course tracking tokens safely 
+        const tracks = [];
+        serializedCourses.split(';;;').forEach(row => {
+            if (!row || row.trim() === "") return;
+
+            const parts = row.split('||');
+            if (parts.length < 5) return; // Skip corrupted tracks safely
+
+            const enrollmentId = parts[0];
+            const status = parts[1];
+            const courseCode = parts[2];
+            const courseName = parts[3];
+            const standardFee = parseFloat(parts[4] || 0);
+
+            // Explicitly extract parameters based on your query sequence mapping
+            // index 5 = start_date, index 6 = duration_value, index 7 = duration_unit
+            const durationValue = parseInt(parts[6] || 0);
+            const durationUnit = parts[7] || 'Months';
+
+            // Apply Phase 2 System Core Formula matching your specific currency logic
+            let computedLiability = 0;
+            if (durationUnit === 'Days') {
+                computedLiability = (standardFee / 30.0) * durationValue;
+            } else {
+                computedLiability = standardFee * durationValue;
+            }
+
+            // Clean trailing float calculation rounding anomalies (e.g., ₹333.33)
+            computedLiability = Math.round(computedLiability * 100) / 100;
+
+            tracks.push({
+                enrollment_id: enrollmentId,
+                status: status,
+                course_code: courseCode,
+                course_name: courseName,
+                standard_fee: standardFee,
+                computed_liability: computedLiability,
+                total_paid: Math.round((paymentMap[enrollmentId] || 0.00) * 100) / 100
+            });
+        });
+
+        console.log("Certificate Engine parsed tracks execution output:", tracks);
+        return tracks;
+    }
+
+    /**
+     * Renders the course rows dynamically inside the Certificate Workspace Panel
+     */
+    function renderCertificateEligibilityRows(enrollmentTracks = []) {
+        const mountPoint = document.getElementById('certificate_course_list_mount');
+        if (!mountPoint) return;
+
+        mountPoint.innerHTML = '';
+
+        if (enrollmentTracks.length === 0) {
+            mountPoint.innerHTML = `
+            <div class="p-4 text-center bg-slate-50 border border-slate-150 rounded-xl text-slate-400 font-medium text-[11px] select-none">
+                <i class="fa-solid fa-folder-open block text-base mb-1 text-slate-300"></i> No historical or active enrollment tracks linked to this profile.
+            </div>`;
+            return;
+        }
+
+        enrollmentTracks.forEach(track => {
+            const outstandingBalance = parseFloat(track.outstanding_balance || 0);
+
+            const isCompleted = (track.status === 'completed');
+            const isFullyPaid = (outstandingBalance < 0.01);
+            const isEligible = (isCompleted && isFullyPaid);
+
+            let statusBadge = '';
+            if (track.status === 'completed') {
+                statusBadge = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Completed</span>`;
+            } else {
+                statusBadge = `<span class="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">${track.status}</span>`;
+            }
+
+            const balanceBadge = isFullyPaid
+                ? `<span class="text-emerald-600 font-bold font-mono">₹0.00 (Cleared)</span>`
+                : `<span class="text-rose-600 font-bold font-mono">₹${outstandingBalance.toFixed(2)} Due</span>`;
+
+            const row = document.createElement('div');
+            row.className = "flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50/50 border border-slate-150 rounded-xl gap-3 text-xs mt-2";
+
+            row.innerHTML = `
+            <div class="space-y-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-slate-800 font-mono tracking-wide">${track.course_code}</span>
+                    <span class="text-slate-400 font-medium">—</span>
+                    <span class="font-semibold text-slate-700 truncate">${track.course_name}</span>
+                </div>
+                <div class="flex items-center gap-3 text-[11px] text-slate-500">
+                    <div class="flex items-center gap-1">Status: ${statusBadge}</div>
+                    <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
+                    <div>Balance: ${balanceBadge}</div>
+                </div>
+            </div>
+            <div class="shrink-0 flex items-center justify-end">
+                ${isEligible ? `
+                    <button type="button" onclick="triggerCertificateGeneration(${track.enrollment_id})" 
+                        class="w-full sm:w-auto px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-2xs text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+                        <i class="fa-solid fa-circle-check text-[12px]"></i> Generate Certificate
+                    </button>
+                ` : `
+                    <button type="button" disabled 
+                        class="w-full sm:w-auto px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 font-bold rounded-lg text-[11px] flex items-center justify-center gap-1.5 opacity-60 cursor-not-allowed select-none">
+                        <i class="fa-solid fa-ban text-[12px]"></i> Ineligible Track
+                    </button>
+                `}
+            </div>
+        `;
+
+            mountPoint.appendChild(row);
+        });
+    }
+
+    function toggleCertificateWorkspace(show) {
+        const panel = document.getElementById('certificate_workspace_panel');
+        if (!panel) return;
+
+        if (show) {
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            panel.classList.add('hidden');
+        }
+    }
+
+    function triggerCertificateGeneration(enrollmentId) {
+        console.log(`Routing certificate pipeline request to isolated print engine for enrollment ID: ${enrollmentId}`);
+
+        // Define clean popup dimensions optimized for a landscape document aspect ratio
+        const width = 1200;
+        const height = 850;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+
+        // Launch an isolated browser context window
+        const printWindow = window.open(
+            `print_certificate.php?enrollment_id=${enrollmentId}`,
+            `Certificate_Print_Engine_${enrollmentId}`,
+            `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+        );
+
+        if (printWindow) {
+            printWindow.focus();
+        } else {
+            alert("Pop-up Blocker Intercepted: Please allow pop-ups for this administration dashboard to view the certificate print window.");
+        }
     }
 </script>
 
