@@ -771,9 +771,352 @@ include_once 'header.php';
             </div>
         </div>
 
-        <div id="academic-panel-reports"
-            class="academic-tab-content hidden text-center text-slate-400 p-12 bg-white rounded-xl border border-slate-200 shadow-sm italic text-xs">
-            Combined filters panel and statements generator placeholder.
+        <div id="academic-panel-reports" class="academic-tab-content hidden space-y-4 w-full text-left">
+
+            <div
+                class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 tracking-tight">Reports & Analytics Dashboard</h3>
+                    <p class="text-xs text-slate-500 mt-1">Generate structural audit statements, track institutional
+                        cash flows, and manage data compliance logs.</p>
+                </div>
+                <div class="flex items-center gap-2 self-start sm:self-center">
+                    <button type="button" onclick="clearFinanceForm()"
+                        class="text-xs font-semibold text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 bg-white shadow-2xs cursor-pointer">
+                        <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i> Clear Filters
+                    </button>
+                    <div id="finance-match-badge"
+                        class="bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 uppercase tracking-wider">
+                        Ready
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="bg-slate-50/70 border-b border-slate-200 px-5 py-3.5 flex items-center gap-2.5">
+                    <div class="bg-teal-50 text-teal-700 p-1.5 rounded-lg border border-teal-100">
+                        <i class="fa-solid fa-scale-balanced text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Income vs. Expense Audit
+                            Ledger</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Cross-reference active dynamic student tuition
+                            balances against operational expenditures</p>
+                    </div>
+                </div>
+
+                <form id="academic_finance_form" method="GET" action="export_finance_report.php" target="_blank"
+                    class="p-5 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Statement
+                                Date From</label>
+                            <div class="relative">
+                                <span
+                                    class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-calendar text-xs"></i>
+                                </span>
+                                <input type="date" name="date_from" id="fin_date_from"
+                                    value="<?php echo date('Y-01-01'); ?>"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Statement
+                                Date To</label>
+                            <div class="relative">
+                                <span
+                                    class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-calendar text-xs"></i>
+                                </span>
+                                <input type="date" name="date_to" id="fin_date_to" value="<?php echo date('Y-m-d'); ?>"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Payment
+                                Mode Framework</label>
+                            <div class="relative">
+                                <select name="payment_mode" id="fin_payment_mode"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs appearance-none cursor-pointer">
+                                    <option value="All">All Transaction Modes</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                                <span
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" onclick="fetchFinanceReportPreview()" id="fin_preview_btn"
+                            class="w-full sm:flex-1 bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                            Compile Financial Preview
+                        </button>
+
+                        <button type="submit" id="fin_print_btn" name="format" value="print"
+                            class="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-print text-[11px]"></i>
+                            Print
+                        </button>
+
+                        <button type="submit" id="fin_excel_btn" name="format" value="excel"
+                            class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-file-excel text-[11px]"></i>
+                            Spreadsheet (.xls)
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden flex flex-col mt-4"
+                id="finance-preview-wrapper">
+                <div class="border-b border-slate-200 bg-slate-50/70 px-5 py-3 flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-display text-xs text-slate-400"></i> Live Sandbox Preview Canvas
+                    </span>
+
+                    <button type="button" onclick="clearFinanceReportPreview()"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-slate-200 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer uppercase tracking-wider">
+                        <i class="fa-solid fa-eye-slash"></i> Hide Preview
+                    </button>
+                </div>
+                <iframe id="finance-preview-frame" class="w-full h-[700px] border-0 m-0 p-0 bg-slate-100"
+                    src="about:blank"></iframe>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-4">
+                <div class="bg-slate-50/70 border-b border-slate-200 px-5 py-3.5 flex items-center gap-2.5">
+                    <div class="bg-blue-50 text-blue-700 p-1.5 rounded-lg border border-blue-100">
+                        <i class="fa-solid fa-graduation-cap text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Student Lifecycle & Cohort
+                            Matrix</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Filter demographics, track study status tracks, and
+                            monitor critical resumption ceilings</p>
+                    </div>
+                </div>
+
+                <form id="academic_student_report_form" method="GET" action="export_student_report.php" target="_blank"
+                    class="p-5 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Enrollment
+                                Status</label>
+                            <div class="relative">
+                                <select name="status" id="stud_report_status"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs appearance-none cursor-pointer">
+                                    <option value="All">All Tracks</option>
+                                    <option value="assigned">Assigned</option>
+                                    <option value="ongoing">Ongoing</option>
+                                    <option value="hold">On Hold</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="dropped">Dropped</option>
+                                    <option value="cancelled">Cancelled</option>
+                                    <option value="CRITICAL_PAUSE">At Resumption Ceiling (Risk)</option>
+                                </select>
+                                <span
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Study
+                                Level</label>
+                            <div class="relative">
+                                <input type="text" name="study_level" id="stud_report_level"
+                                    placeholder="e.g. Diploma, Degree..."
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Jamaath
+                                Status</label>
+                            <div class="relative">
+                                <select name="jamaath_status" id="stud_report_jamaath"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs appearance-none cursor-pointer">
+                                    <option value="All">All Sectors</option>
+                                    <option value="Within">Within Jamaath</option>
+                                    <option value="Outside">Outside Jamaath</option>
+                                </select>
+                                <span
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Gender
+                                Bounds</label>
+                            <div class="relative">
+                                <select name="gender" id="stud_report_gender"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs appearance-none cursor-pointer">
+                                    <option value="All">All Genders</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                                <span
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" onclick="fetchStudentReportPreview()" id="stud_preview_btn"
+                            class="w-full sm:flex-1 bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                            Compile Cohort Preview
+                        </button>
+
+                        <button type="submit" id="stud_print_btn" name="format" value="print"
+                            class="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-print text-[11px]"></i>
+                            Print
+                        </button>
+
+                        <button type="submit" id="stud_excel_btn" name="format" value="excel"
+                            class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-file-excel text-[11px]"></i>
+                            Spreadsheet (.xls)
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden flex flex-col mt-4"
+                id="student-preview-wrapper">
+                <div class="border-b border-slate-200 bg-slate-50/70 px-5 py-3 flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-display text-xs text-slate-400"></i> Student Live Sandbox Preview Canvas
+                    </span>
+
+                    <button type="button" onclick="clearStudentReportPreview()"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-slate-200 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer uppercase tracking-wider">
+                        <i class="fa-solid fa-eye-slash"></i> Hide Preview
+                    </button>
+                </div>
+                <iframe id="student-preview-frame" class="w-full h-[700px] border-0 m-0 p-0 bg-slate-100"
+                    src="about:blank"></iframe>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-4">
+                <div class="bg-slate-50/70 border-b border-slate-200 px-5 py-3.5 flex items-center gap-2.5">
+                    <div class="bg-amber-50 text-amber-700 p-1.5 rounded-lg border border-amber-100">
+                        <i class="fa-solid fa-book-bookmark text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Academic Course Yield
+                            Matrix</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Track total enrollment counts, identify attrition
+                            rates, and analyze realized curriculum revenues</p>
+                    </div>
+                </div>
+
+                <form id="academic_course_report_form" method="GET" action="export_course_report.php" target="_blank"
+                    class="p-5 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Course
+                                Status Framework</label>
+                            <div class="relative">
+                                <select name="is_active" id="course_report_active"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs appearance-none cursor-pointer">
+                                    <option value="All">All Courses</option>
+                                    <option value="1">Active Programs Only</option>
+                                    <option value="0">Inactive / Legacy Programs</option>
+                                </select>
+                                <span
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Duration
+                                Unit Scale</label>
+                            <div class="relative">
+                                <select name="duration_unit" id="course_report_unit"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-all shadow-2xs appearance-none cursor-pointer">
+                                    <option value="All">All Duration Types</option>
+                                    <option value="Days">Days</option>
+                                    <option value="Months">Months</option>
+                                    <option value="Years">Years</option>
+                                </select>
+                                <span
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" onclick="fetchCourseReportPreview()" id="course_preview_btn"
+                            class="w-full sm:flex-1 bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                            Compile Yield Preview
+                        </button>
+
+                        <button type="submit" id="course_print_btn" name="format" value="print"
+                            class="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-print text-[11px]"></i>
+                            Print
+                        </button>
+
+                        <button type="submit" id="course_excel_btn" name="format" value="excel"
+                            class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-file-excel text-[11px]"></i>
+                            Spreadsheet (.xls)
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden flex flex-col mt-4"
+                id="course-preview-wrapper">
+                <div class="border-b border-slate-200 bg-slate-50/70 px-5 py-3 flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-display text-xs text-slate-400"></i> Course Yield Live Sandbox Preview
+                        Canvas
+                    </span>
+
+                    <button type="button" onclick="clearCourseReportPreview()"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-slate-200 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer uppercase tracking-wider">
+                        <i class="fa-solid fa-eye-slash"></i> Hide Preview
+                    </button>
+                </div>
+                <iframe id="course-preview-frame" class="w-full h-[700px] border-0 m-0 p-0 bg-slate-100"
+                    src="about:blank"></iframe>
+            </div>
+
         </div>
 
     </div>
@@ -3686,6 +4029,133 @@ include_once 'header.php';
         setTimeout(() => {
             modalFrame.classList.add('hidden');
         }, 300);
+    }
+
+    // Report functions
+    function fetchFinanceReportPreview() {
+        var dateFrom = document.getElementById('fin_date_from').value;
+        var dateTo = document.getElementById('fin_date_to').value;
+        var payMode = document.getElementById('fin_payment_mode').value;
+
+        var wrapper = document.getElementById('finance-preview-wrapper');
+        var iframe = document.getElementById('finance-preview-frame');
+        var badge = document.getElementById('finance-match-badge');
+
+        badge.innerText = "Compiling...";
+        badge.className = "bg-amber-100 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse";
+
+        var url = 'export_finance_report.php?date_from=' + encodeURIComponent(dateFrom) +
+            '&date_to=' + encodeURIComponent(dateTo) +
+            '&payment_mode=' + encodeURIComponent(payMode) +
+            '&format=preview';
+
+        wrapper.classList.remove('hidden');
+        iframe.src = url;
+
+        iframe.onload = function () {
+            badge.innerText = "Compiled";
+            badge.className = "bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full";
+        };
+    }
+
+    function clearFinanceReportPreview() {
+        var wrapper = document.getElementById('finance-preview-wrapper');
+        var iframe = document.getElementById('finance-preview-frame');
+        var badge = document.getElementById('finance-match-badge');
+
+        wrapper.classList.add('hidden');
+        iframe.src = 'about:blank';
+        badge.innerText = "Ready";
+        badge.className = "bg-slate-100 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full";
+    }
+
+    function clearFinanceForm() {
+        document.getElementById('academic_finance_form').reset();
+        clearFinanceReportPreview();
+    }
+
+    function fetchStudentReportPreview() {
+        var status = document.getElementById('stud_report_status').value;
+        var level = document.getElementById('stud_report_level').value;
+        var jamaath = document.getElementById('stud_report_jamaath').value;
+        var gender = document.getElementById('stud_report_gender').value;
+
+        var wrapper = document.getElementById('student-preview-wrapper');
+        var iframe = document.getElementById('student-preview-frame');
+        var badge = document.getElementById('finance-match-badge'); // Reuse master indicator state tracking
+
+        badge.innerText = "Scanning Profiles...";
+        badge.className = "bg-amber-100 text-amber-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-200 uppercase tracking-wider animate-pulse";
+
+        var url = 'export_student_report.php?status=' + encodeURIComponent(status) +
+            '&study_level=' + encodeURIComponent(level) +
+            '&jamaath_status=' + encodeURIComponent(jamaath) +
+            '&gender=' + encodeURIComponent(gender) +
+            '&format=preview';
+
+        wrapper.classList.remove('hidden');
+        iframe.src = url;
+
+        iframe.onload = function () {
+            badge.innerText = "Compiled Cohort";
+            badge.className = "bg-emerald-100 text-emerald-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-emerald-200 uppercase tracking-wider";
+        };
+    }
+
+    function clearStudentReportPreview() {
+        var wrapper = document.getElementById('student-preview-wrapper');
+        var iframe = document.getElementById('student-preview-frame');
+        var badge = document.getElementById('finance-match-badge');
+
+        wrapper.classList.add('hidden');
+        iframe.src = 'about:blank';
+        badge.innerText = "Ready";
+        badge.className = "bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 uppercase tracking-wider";
+    }
+
+    function clearStudentForm() {
+        document.getElementById('academic_student_report_form').reset();
+        clearStudentReportPreview();
+    }
+
+    function fetchCourseReportPreview() {
+        var active = document.getElementById('course_report_active').value;
+        var unit = document.getElementById('course_report_unit').value;
+
+        var wrapper = document.getElementById('course-preview-wrapper');
+        var iframe = document.getElementById('course-preview-frame');
+        var badge = document.getElementById('finance-match-badge');
+
+        badge.innerText = "Analyzing Curriculums...";
+        badge.className = "bg-amber-100 text-amber-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-200 uppercase tracking-wider animate-pulse";
+
+        var url = 'export_course_report.php?is_active=' + encodeURIComponent(active) +
+            '&duration_unit=' + encodeURIComponent(unit) +
+            '&format=preview';
+
+        wrapper.classList.remove('hidden');
+        iframe.src = url;
+
+        iframe.onload = function () {
+            badge.innerText = "Compiled Yields";
+            badge.className = "bg-emerald-100 text-emerald-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-emerald-200 uppercase tracking-wider";
+        };
+    }
+
+    function clearCourseReportPreview() {
+        var wrapper = document.getElementById('course-preview-wrapper');
+        var iframe = document.getElementById('course-preview-frame');
+        var badge = document.getElementById('finance-match-badge');
+
+        wrapper.classList.add('hidden');
+        iframe.src = 'about:blank';
+        badge.innerText = "Ready";
+        badge.className = "bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 uppercase tracking-wider";
+    }
+
+    function clearCourseForm() {
+        document.getElementById('academic_course_report_form').reset();
+        clearCourseReportPreview();
     }
 </script>
 
