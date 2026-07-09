@@ -2998,6 +2998,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Check for the administrative record mutation intercept hook for expenses
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'log_academic_expense') {
+    // Invoke global administrative authorization verification interceptor if configured
+    if (function_exists('checkGlobalAuthorization')) {
+        checkGlobalAuthorization('edit');
+    }
+
+    // 1. Extract and Sanitize Base Input Matrix Fields
+    $expense_category = isset($_POST['expense_category']) ? trim($_POST['expense_category']) : '';
+    $recipient_name = isset($_POST['recipient_name']) ? trim($_POST['recipient_name']) : '';
+    $recipient_reference = isset($_POST['recipient_reference']) && trim($_POST['recipient_reference']) !== '' ? strtoupper(trim($_POST['recipient_reference'])) : null;
+    $amount_paid = isset($_POST['amount_paid']) ? filter_var($_POST['amount_paid'], FILTER_VALIDATE_FLOAT) : 0.00;
+    $payment_mode = isset($_POST['payment_mode']) ? trim($_POST['payment_mode']) : 'Cash';
+    $payment_date = isset($_POST['payment_date']) ? trim($_POST['payment_date']) : date('Y-m-d');
+    $expense_narrative = isset($_POST['expense_narrative']) && trim($_POST['expense_narrative']) !== '' ? trim($_POST['expense_narrative']) : null;
+
+    // Allowed Enum Validation Categories Array Matrix
+    $valid_categories = [
+        'Premise Rental',
+        'Staff Salary',
+        'Hardware Maintenance (AMC)',
+        'Software Subscription',
+        'Electricity Bill (EB)',
+        'Miscellaneous'
+    ];
+
+    // 2. Server-Side Operational Input Validations
+    if (!in_array($expense_category, $valid_categories) || empty($recipient_name) || $amount_paid <= 0.00) {
+        header("Location: academic.php?tab=expenses&error=" . urlencode("Operational Failure: Missing or invalid required ledger input parameter metrics."));
+        exit();
+    }
+
+    // --- Strict Miscellaneous Context Narrative Enforcement ---
+    if ($expense_category === 'Miscellaneous' && (is_null($expense_narrative) || strlen($expense_narrative) < 15)) {
+        header("Location: academic.php?tab=expenses&error=" . urlencode("Business Logic Guardrail: Miscellaneous entries require a descriptive structural narrative statement (min 15 chars)."));
+        exit();
+    }
+
+    try {
+        // 3. Automated Unique Voucher Code Generation Engine (Format: EX-YYYYMMDD-XXXX)
+        $date_token = date('Ymd', strtotime($payment_date));
+        $prefix = "EX-" . $date_token . "-";
+
+        $seq_stmt = $db->prepare("SELECT COUNT(*) FROM academic_expenses WHERE voucher_no LIKE ?");
+        $seq_stmt->execute([$prefix . "%"]);
+        $next_sequence = ((int) $seq_stmt->fetchColumn()) + 1;
+        $voucher_no = $prefix . str_pad($next_sequence, 4, '0', STR_PAD_LEFT);
+
+        // 4. File Attachment Security & Directory Handling Engine
+        $attachment_doc_path = null;
+        if (isset($_FILES['attachment_doc']) && $_FILES['attachment_doc']['error'] === UPLOAD_ERR_OK) {
+            $file_tmp = $_FILES['attachment_doc']['tmp_name'];
+            $file_name = $_FILES['attachment_doc']['name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+            $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+            if (!in_array($file_ext, $allowed_extensions)) {
+                header("Location: academic.php?tab=expenses&error=" . urlencode("Security Breach Intercept: Attached document format invalid. Only PDF, JPG, or PNG uploads permitted."));
+                exit();
+            }
+
+            // Ensure structural directory layer isolates assets securely
+            $upload_dir = 'uploads/academic_vouchers/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+
+            $target_filename = "voucher_" . bin2hex(random_bytes(8)) . "_" . time() . "." . $file_ext;
+            $attachment_doc_path = $upload_dir . $target_filename;
+
+            if (!move_uploaded_file($file_tmp, $attachment_doc_path)) {
+                header("Location: academic.php?tab=expenses&error=" . urlencode("Storage Error: Failed to write uploaded voucher file asset to physical disk directory layout."));
+                exit();
+            }
+        }
+
+        // 5. Execute Transactional Ledger Insertion
+        $insert_query = "
+            INSERT INTO academic_expenses (
+                expense_category, voucher_no, amount_paid, payment_mode, 
+                payment_date, recipient_name, recipient_reference, 
+                expense_narrative, attachment_doc_path
+            ) VALUES (
+                :expense_category, :voucher_no, :amount_paid, :payment_mode, 
+                :payment_date, :recipient_name, :recipient_reference, 
+                :expense_narrative, :attachment_doc_path
+            )
+        ";
+
+        $insert_stmt = $db->prepare($insert_query);
+        $insert_stmt->execute([
+            ':expense_category' => $expense_category,
+            ':voucher_no' => $voucher_no,
+            ':amount_paid' => $amount_paid,
+            ':payment_mode' => $payment_mode,
+            ':payment_date' => $payment_date,
+            ':recipient_name' => $recipient_name,
+            ':recipient_reference' => $recipient_reference,
+            ':expense_narrative' => $expense_narrative,
+            ':attachment_doc_path' => $attachment_doc_path
+        ]);
+
+        // 6. Execution Success: Redirect gracefully back to the Expense tab landscape interface
+        $success_msg = "Expense tracking record verified and committed to ledger under Reference '$voucher_no'.";
+        header("Location: academic.php?tab=expenses&msg=" . urlencode($success_msg));
+        exit;
+
+    } catch (PDOException $e) {
+        // Clean up uncommitted physical file assets to preserve disk sanitation bounds on catch
+        if (!is_null($attachment_doc_path) && file_exists($attachment_doc_path)) {
+            unlink($attachment_doc_path);
+        }
+
+        // Structural system isolation logging
+        error_log("Academic Module Expense Execution Exception: " . $e->getMessage());
+        header("Location: academic.php?tab=expenses&error=" . urlencode("Critical Engine Error: Database transactional operational processing crash."));
+        exit();
+    } catch (Exception $ge) {
+        error_log("Academic Module General Exception: " . $ge->getMessage());
+        header("Location: academic.php?tab=expenses&error=" . urlencode("Critical Engine Error: General transaction processing runtime failure."));
+        exit();
+    }
+}
+
 // Fallback catch-all diagnostic layer
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $received_action = $_POST['action'] ?? 'NOT SET';

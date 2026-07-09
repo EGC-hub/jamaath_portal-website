@@ -66,7 +66,36 @@ $stmt = $db->prepare($fee_students_query);
 $stmt->execute();
 $students_with_enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Include the standard system navigation layouts
+// Fetch master operational expenses along with comprehensive audit trail variables
+$expense_ledger_query = "
+    SELECT 
+        e.id,
+        e.expense_category,
+        e.voucher_no,
+        e.amount_paid,
+        e.payment_mode,
+        e.payment_date,
+        e.recipient_name,
+        -- Force fallback indicators for optional parameters to protect string rendering
+        IFNULL(e.recipient_reference, '') AS recipient_reference,
+        IFNULL(e.expense_narrative, '') AS expense_narrative,
+        IFNULL(e.attachment_doc_path, '') AS attachment_doc_path,
+        e.created_at
+    FROM academic_expenses e
+    -- Organizes output records to prioritize recent outflows and modern log sequences
+    ORDER BY e.payment_date DESC, e.id DESC
+";
+
+try {
+    $expense_stmt = $db->prepare($expense_ledger_query);
+    $expense_stmt->execute();
+    $logged_expenses = $expense_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Structural isolation error log tracking matching your framework metrics
+    error_log("Academic Module Expense Ledger Hydration Error: " . $e->getMessage());
+    $logged_expenses = [];
+}
+
 include_once 'header.php';
 ?>
 
@@ -99,6 +128,10 @@ include_once 'header.php';
         <button onclick="switchAcademicTab('fees')" id="tab-btn-fees"
             class="px-4 py-2 rounded-md font-medium text-xs uppercase tracking-wider transition-all cursor-pointer">
             Fee Collection
+        </button>
+        <button onclick="switchAcademicTab('expenses')" id="tab-btn-expenses"
+            class="px-4 py-2 rounded-md font-medium text-xs uppercase tracking-wider transition-all cursor-pointer">
+            Expense Management
         </button>
         <button onclick="switchAcademicTab('reports')" id="tab-btn-reports"
             class="px-4 py-2 rounded-md font-medium text-xs uppercase tracking-wider transition-all cursor-pointer">
@@ -631,6 +664,101 @@ include_once 'header.php';
                                                     onclick='openFeeAllocationModal(<?php echo json_encode($s); ?>)'
                                                     class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 rounded-lg border border-emerald-200 text-xs transition-colors cursor-pointer select-none">
                                                     <i class="fa-solid fa-wallet"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="academic-panel-expenses" class="academic-tab-content hidden space-y-4">
+
+            <div
+                class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">
+                        Expense Management Ledger
+                    </h2>
+                    <p class="text-xs text-slate-500">
+                        Log recurring operational costs, manage premise rental, utility bills, software subscriptions,
+                        and enforce strict audit trails.
+                    </p>
+                </div>
+                <div>
+                    <button type="button" onclick="openNewExpenseModal()"
+                        class="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs select-none">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Log Expense Voucher
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 tracking-wider uppercase select-none sticky top-0">
+                                <th class="px-6 py-4 w-44">Voucher No</th>
+                                <th class="px-6 py-4 w-48">Category</th>
+                                <th class="px-6 py-4">Recipient / Vendor</th>
+                                <th class="px-6 py-4 w-36 text-right">Amount Paid (₹)</th>
+                                <th class="px-6 py-4 w-36 text-center">Payment Date</th>
+                                <th class="px-6 py-4 text-center w-32">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
+                            <?php if (empty($logged_expenses)): ?>
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center text-slate-400 italic bg-white">
+                                        No operational expenses or active liability payout tracking vouchers found inside
+                                        the ledger logs.
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($logged_expenses as $exp): ?>
+                                    <tr class="hover:bg-slate-50/80 transition-colors">
+                                        <td class="px-6 py-4 font-mono font-bold text-slate-900">
+                                            <?php echo htmlspecialchars($exp['voucher_no']); ?>
+                                        </td>
+
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="inline-flex items-center bg-slate-100 text-slate-700 border border-slate-200 text-[10px] px-2 py-0.5 rounded-md font-medium uppercase select-none">
+                                                <?php echo htmlspecialchars($exp['expense_category']); ?>
+                                            </span>
+                                        </td>
+
+                                        <td class="px-6 py-4 font-medium text-slate-800">
+                                            <div>
+                                                <?php echo htmlspecialchars($exp['recipient_name']); ?>
+                                            </div>
+                                            <?php if (!empty($exp['recipient_reference'])): ?>
+                                                <div class="text-[10px] text-slate-400 font-mono mt-0.5">Ref:
+                                                    <?php echo htmlspecialchars($exp['recipient_reference']); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td class="px-6 py-4 text-right font-semibold text-slate-900 font-mono">
+                                            <?php echo number_format($exp['amount_paid'], 2); ?>
+                                        </td>
+
+                                        <td class="px-6 py-4 text-center text-slate-500 font-mono">
+                                            <?php echo date('Y-m-d', strtotime($exp['payment_date'])); ?>
+                                        </td>
+
+                                        <td class="px-6 py-4 text-center">
+                                            <div class="inline-flex items-center justify-center gap-1.5">
+                                                <button type="button" title="View Voucher Details"
+                                                    onclick='openExpenseViewModal(<?php echo json_encode($exp); ?>)'
+                                                    class="bg-slate-50 hover:bg-slate-100 text-slate-700 p-1.5 rounded-lg border border-slate-200 text-xs transition-colors cursor-pointer select-none">
+                                                    <i class="fa-solid fa-file-invoice"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -1770,8 +1898,306 @@ include_once 'header.php';
     </div>
 </div>
 
+<div id="expenseLogVoucherModal"
+    class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+    <div
+        class="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between bg-slate-50 border-b border-slate-200 px-5 py-4 select-none">
+            <div class="flex items-center gap-2 text-slate-900">
+                <i class="fa-solid fa-file-invoice-dollar text-slate-500 text-sm"></i>
+                <h3 class="text-sm font-bold">Log Expense Voucher</h3>
+            </div>
+            <button type="button" onclick="closeExpenseLogModal()"
+                class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+
+        <form id="expenseLogForm" action="actions.php" method="POST" enctype="multipart/form-data"
+            class="p-5 space-y-4 text-xs">
+            <input type="hidden" name="action" value="log_academic_expense">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-700">Expense Category <span
+                            class="text-rose-500">*</span></label>
+                    <select name="expense_category" required
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-slate-400 focus:outline-hidden transition-colors">
+                        <option value="">-- Choose Category --</option>
+                        <option value="Premise Rental">Premise Rental</option>
+                        <option value="Staff Salary">Staff Salary</option>
+                        <option value="Hardware Maintenance (AMC)">Hardware Maintenance (AMC)</option>
+                        <option value="Software Subscription">Software Subscription</option>
+                        <option value="Electricity Bill (EB)">Electricity Bill (EB)</option>
+                        <option value="Miscellaneous">Miscellaneous</option>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-700">Recipient Reference / Invoice #</label>
+                    <input type="text" name="recipient_reference" placeholder="e.g. INV-2026-009"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-slate-400 focus:outline-hidden transition-colors">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-700">Recipient / Payee Name <span
+                            class="text-rose-500">*</span></label>
+                    <input type="text" name="recipient_name" required placeholder="e.g. Landlord or Staff Member"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-slate-400 focus:outline-hidden transition-colors">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-700">Amount Paid (₹) <span
+                            class="text-rose-500">*</span></label>
+                    <input type="number" name="amount_paid" step="0.01" min="0.01" required placeholder="0.00"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-mono focus:border-slate-400 focus:outline-hidden transition-colors">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-700">Payment Mode <span
+                            class="text-rose-500">*</span></label>
+                    <select name="payment_mode" required
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-slate-400 focus:outline-hidden transition-colors">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-700">Payment Date <span
+                            class="text-rose-500">*</span></label>
+                    <input type="date" name="payment_date" required value="<?php echo date('Y-m-d'); ?>"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-mono focus:border-slate-400 focus:outline-hidden transition-colors">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block font-semibold text-slate-700">Attachment / Document Voucher <span
+                        class="text-slate-400 font-normal">(PDF, JPG, PNG)</span></label>
+                <input type="file" name="attachment_doc" accept=".pdf,.jpg,.jpeg,.png"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-500 text-[11px] focus:outline-hidden file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all cursor-pointer">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block font-semibold text-slate-700">Expense Narrative / Comments <span
+                        id="narrative-required-star" class="text-rose-500 hidden">*</span></label>
+                <textarea name="expense_narrative" rows="3"
+                    placeholder="Provide context or tracking specifics concerning this transaction..."
+                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-slate-400 focus:outline-hidden transition-colors resize-none"></textarea>
+                <p id="misc-warning-label" class="text-[10px] text-slate-400 hidden">Note: Miscellaneous entries require
+                    a clear structural comment statement.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 select-none">
+                <button type="button" onclick="closeExpenseLogModal()"
+                    class="px-4 py-2 bg-white text-slate-700 font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-xs transition-colors cursor-pointer">
+                    Commit Voucher
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="expenseViewAuditModal"
+    class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+    <div
+        class="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between bg-slate-50 border-b border-slate-200 px-5 py-4 select-none">
+            <div class="flex items-center gap-2 text-slate-900">
+                <i class="fa-solid fa-shield-halved text-slate-500 text-sm"></i>
+                <h3 class="text-sm font-bold">Voucher Audit Record</h3>
+            </div>
+            <button type="button" onclick="closeExpenseViewModal()"
+                class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+
+        <div class="p-5 space-y-4 text-xs">
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 uppercase tracking-wider font-semibold text-[10px]">System
+                        Reference</span>
+                    <span id="audit-voucher-no" class="font-mono font-bold text-slate-900 text-sm"></span>
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t border-slate-200/60">
+                    <span class="text-slate-400 font-medium">Accounting Balance</span>
+                    <span id="audit-amount" class="font-mono font-bold text-slate-900 text-sm"></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
+                <div>
+                    <div class="text-slate-400 font-medium mb-0.5">Category</div>
+                    <div id="audit-category" class="font-semibold text-slate-800"></div>
+                </div>
+                <div>
+                    <div class="text-slate-400 font-medium mb-0.5">Payment Date</div>
+                    <div id="audit-date" class="font-mono text-slate-800"></div>
+                </div>
+                <div>
+                    <div class="text-slate-400 font-medium mb-0.5">Recipient/Payee</div>
+                    <div id="audit-payee" class="font-semibold text-slate-800"></div>
+                </div>
+                <div>
+                    <div class="text-slate-400 font-medium mb-0.5">Payment Mode</div>
+                    <div id="audit-mode" class="font-medium text-slate-800"></div>
+                </div>
+            </div>
+
+            <div id="audit-ref-row" class="pt-1">
+                <div class="text-slate-400 font-medium mb-0.5">Reference Number</div>
+                <div id="audit-reference" class="font-mono text-slate-800"></div>
+            </div>
+
+            <div class="pt-1">
+                <div class="text-slate-400 font-medium mb-0.5">Narrative Log</div>
+                <div id="audit-narrative"
+                    class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-slate-600 leading-relaxed italic whitespace-pre-line">
+                </div>
+            </div>
+
+            <div
+                class="bg-amber-50/70 text-amber-800 border border-amber-200/60 p-3 rounded-lg flex items-start gap-2.5 select-none">
+                <i class="fa-solid fa-lock text-xs mt-0.5 text-amber-600"></i>
+                <p class="text-[11px] leading-normal font-medium">
+                    This ledger voucher is locked into a terminal audit tracking state. Modifications or structural
+                    profile purge overrides are strictly blocked to maintain regulatory compliance.
+                </p>
+            </div>
+
+            <div id="audit-attachment-container" class="pt-2 border-t border-slate-100 hidden select-none">
+                <a id="audit-download-link" href="#" target="_blank"
+                    class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 py-2 rounded-lg font-semibold transition-colors">
+                    <i class="fa-solid fa-paperclip text-xs"></i> Download Attached Voucher Asset
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="expense-view-modal"
+    class="fixed inset-0 z-50 hidden opacity-0 transition-all duration-300 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-xs">
+
+    <div class="bg-white border border-slate-200 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative z-10 transform scale-95 transition-transform duration-300 my-8"
+        id="expense-view-chassis">
+
+        <div class="bg-slate-950 text-white p-6 relative flex justify-between items-start select-none">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-14 h-14 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-xl font-bold tracking-wider font-mono shadow-inner shrink-0 animate-pulse">
+                    <i class="fa-solid fa-file-invoice-dollar text-slate-200"></i>
+                </div>
+                <div class="space-y-1">
+                    <h3 id="view_expense_voucher_no" class="text-xl font-bold font-mono tracking-tight text-white">
+                        EX-00000000-0000</h3>
+                    <div class="flex flex-wrap gap-1.5 items-center">
+                        <span id="view_expense_tag_category"
+                            class="bg-white/10 border border-white/20 text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider text-slate-200">
+                            Category
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeExpenseViewModal()"
+                class="text-white/60 hover:text-white transition-colors cursor-pointer text-xl font-semibold bg-white/10 hover:bg-white/20 w-7 h-7 rounded-full flex items-center justify-center">&times;</button>
+        </div>
+
+        <div class="p-6 space-y-4 max-h-[65vh] overflow-y-auto bg-slate-50/40 text-xs">
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs grid grid-cols-2 gap-4">
+                <div>
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Voucher
+                        Outflow Balance</span>
+                    <div id="view_expense_amount" class="text-lg font-black text-slate-900 font-mono">₹0.00</div>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Execution
+                        Target Date</span>
+                    <div id="view_expense_date" class="text-sm font-bold text-slate-800 font-mono pt-1">0000-00-00</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <span
+                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Recipient
+                            / Payee</span>
+                        <div id="view_expense_payee" class="font-bold text-slate-800">N/A</div>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Payment
+                            Mode</span>
+                        <div id="view_expense_mode" class="font-bold text-slate-800">N/A</div>
+                    </div>
+                </div>
+
+                <div id="view_expense_ref_wrapper" class="pt-2 border-t border-slate-100 hidden">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Recipient
+                        Reference / Invoice No</span>
+                    <div id="view_expense_reference" class="font-mono font-bold text-slate-700">N/A</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-1.5">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descriptive Narrative
+                    Statement</span>
+                <div id="view_expense_narrative"
+                    class="bg-slate-50 p-3 rounded-lg border border-slate-150 text-slate-600 leading-relaxed font-medium italic whitespace-pre-line">
+                    No structural remarks descriptive text provided for this entry.
+                </div>
+            </div>
+
+            <div id="view_expense_doc_wrapper"
+                class="bg-white p-4 rounded-xl border border-dashed border-slate-200 shadow-2xs flex items-center justify-between hidden">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="text-slate-700 bg-slate-100 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-slate-200">
+                        <i class="fa-solid fa-paperclip text-xs"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Invoice
+                            Documentation</span>
+                        <div class="font-bold text-slate-700">Receipt Voucher File Asset</div>
+                    </div>
+                </div>
+                <div>
+                    <a id="view_expense_doc_download" href="#" target="_blank"
+                        class="text-xs font-bold text-slate-800 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-200 transition-colors select-none">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Document Scan
+                    </a>
+                </div>
+            </div>
+
+            <div class="text-center text-[10px] text-slate-400 font-mono tracking-wide select-none">
+                System Entry Ref ID: <span id="view_expense_sys_id">0</span> &bull; Logged At: <span
+                    id="view_expense_timestamp">0000-00-00 00:00:00</span>
+            </div>
+
+        </div>
+
+        <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-end select-none">
+            <button onclick="closeExpenseViewModal()"
+                class="px-5 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-all shadow-xs cursor-pointer tracking-wide">
+                Close Audit View
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Tab Switching Controller (Matches the capsule navigation style cleanly)
+    // Tab  ing Controller (Matches the capsule navigation style cleanly)
     function switchAcademicTab(tabId) {
         document.querySelectorAll('.academic-tab-content').forEach(el => el.classList.add('hidden'));
 
@@ -3071,6 +3497,196 @@ include_once 'header.php';
             document.getElementById('form-instructor-id').removeAttribute('disabled');
         });
     });
+
+    /**
+ * Initialize and open the Log Expense entry layout container
+ */
+    function openNewExpenseModal() {
+        const modal = document.getElementById('expenseLogVoucherModal');
+        const form = document.getElementById('expenseLogForm');
+        if (form) form.reset();
+
+        // Reset structural validation indicators to baseline state
+        toggleExpenseNarrativeRequirement(false);
+
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    /**
+     * Close the Log Expense input workspace
+     */
+    function closeExpenseLogModal() {
+        const modal = document.getElementById('expenseLogVoucherModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    /**
+     * Close the Read-Only Ledger Audit View presentation card
+     */
+    function closeExpenseViewModal() {
+        const modal = document.getElementById('expenseViewAuditModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    /**
+     * Populates and presents the read-only historical audit tracker layout
+     * @param {Object} expenseDataObject - Row entry dataset parsed straight from the database fetch
+     */
+    function openExpenseViewModal(expenseDataObject) {
+        if (!expenseDataObject) return;
+
+        // Sync core contextual text elements
+        document.getElementById('audit-voucher-no').textContent = expenseDataObject.voucher_no || 'N/A';
+        document.getElementById('audit-amount').textContent = `$${parseFloat(expenseDataObject.amount_paid).toFixed(2)}`;
+        document.getElementById('audit-category').textContent = expenseDataObject.expense_category || 'N/A';
+        document.getElementById('audit-date').textContent = expenseDataObject.payment_date || 'N/A';
+        document.getElementById('audit-payee').textContent = expenseDataObject.recipient_name || 'N/A';
+        document.getElementById('audit-mode').textContent = expenseDataObject.payment_mode || 'Cash';
+
+        // Toggle reference row display based on presence of a tracking index
+        const refRow = document.getElementById('audit-ref-row');
+        if (expenseDataObject.recipient_reference) {
+            document.getElementById('audit-reference').textContent = expenseDataObject.recipient_reference;
+            refRow.classList.remove('hidden');
+        } else {
+            refRow.classList.add('hidden');
+        }
+
+        // Populate narrative comments or apply baseline fallback text
+        document.getElementById('audit-narrative').textContent = expenseDataObject.expense_narrative || 'No descriptive structural narrative logged for this voucher tracking instance.';
+
+        // Toggle file attachment interface metrics dynamically
+        const attachmentBox = document.getElementById('audit-attachment-container');
+        const attachmentLink = document.getElementById('audit-download-link');
+
+        if (expenseDataObject.attachment_doc_path && expenseDataObject.attachment_doc_path.trim() !== '') {
+            attachmentLink.href = expenseDataObject.attachment_doc_path;
+            attachmentBox.classList.remove('hidden');
+        } else {
+            attachmentBox.classList.add('hidden');
+            attachmentLink.href = '#';
+        }
+
+        document.getElementById('expenseViewAuditModal').classList.remove('hidden');
+    }
+
+    /**
+     * Toggle constraint requirements dynamically on the form's narrative textarea box
+     * @param {Boolean} shouldBeEnforced - True if current tracking scope demands minimum length validation
+     */
+    function toggleExpenseNarrativeRequirement(shouldBeEnforced) {
+        const textInput = document.querySelector('#expenseLogForm textarea[name="expense_narrative"]');
+        const star = document.getElementById('narrative-required-star');
+        const warning = document.getElementById('misc-warning-label');
+
+        if (!textInput) return;
+
+        if (shouldBeEnforced) {
+            textInput.setAttribute('required', 'required');
+            textInput.setAttribute('minlength', '15');
+            if (star) star.classList.remove('hidden');
+            if (warning) warning.classList.remove('hidden');
+        } else {
+            textInput.removeAttribute('required');
+            textInput.removeAttribute('minlength');
+            if (star) star.classList.add('hidden');
+            if (warning) warning.classList.add('hidden');
+        }
+    }
+
+    // Bind contextual execution changes directly to form select fields on script boot
+    document.addEventListener('DOMContentLoaded', () => {
+        const categorySelector = document.querySelector('#expenseLogForm select[name="expense_category"]');
+        if (categorySelector) {
+            categorySelector.addEventListener('change', (e) => {
+                // Intercept and assert strict validation rules if 'Miscellaneous' category is locked in
+                toggleExpenseNarrativeRequirement(e.target.value === 'Miscellaneous');
+            });
+        }
+    });
+
+    /**
+ * Opens and Populates the Specialized Expense Audit View Layout Card
+ * Matches the animation engine and opacity transitions of the Student modal profile
+ */
+    function openExpenseViewModal(expenseDataObject) {
+        if (!expenseDataObject) return;
+
+        // Populate variable nodes with entity field datasets
+        document.getElementById('view_expense_sys_id').textContent = expenseDataObject.id || '0';
+        document.getElementById('view_expense_voucher_no').textContent = expenseDataObject.voucher_no || 'N/A';
+        document.getElementById('view_expense_tag_category').textContent = expenseDataObject.expense_category || 'N/A';
+        document.getElementById('view_expense_amount').textContent = `₹${parseFloat(expenseDataObject.amount_paid).toFixed(2)}`;
+        document.getElementById('view_expense_date').textContent = expenseDataObject.payment_date || 'N/A';
+        document.getElementById('view_expense_payee').textContent = expenseDataObject.recipient_name || 'N/A';
+        document.getElementById('view_expense_mode').textContent = expenseDataObject.payment_mode || 'Cash';
+        document.getElementById('view_expense_timestamp').textContent = expenseDataObject.created_at || 'N/A';
+
+        // Parse reference string metrics
+        const refWrapper = document.getElementById('view_expense_ref_wrapper');
+        if (expenseDataObject.recipient_reference && expenseDataObject.recipient_reference.trim() !== '') {
+            document.getElementById('view_expense_reference').textContent = expenseDataObject.recipient_reference;
+            refWrapper.classList.remove('hidden');
+        } else {
+            refWrapper.classList.add('hidden');
+        }
+
+        // Parse text descriptive comments block
+        const narrativeContainer = document.getElementById('view_expense_narrative');
+        if (expenseDataObject.expense_narrative && expenseDataObject.expense_narrative.trim() !== '') {
+            narrativeContainer.textContent = expenseDataObject.expense_narrative;
+            narrativeContainer.classList.remove('text-slate-400', 'italic');
+        } else {
+            narrativeContainer.textContent = 'No structural remarks descriptive narrative log statement parsed for this voucher tracking instance.';
+            narrativeContainer.classList.add('text-slate-400', 'italic');
+        }
+
+        // Evaluate physical document scan path variables
+        const docWrapper = document.getElementById('view_expense_doc_wrapper');
+        const docDownloadLink = document.getElementById('view_expense_doc_download');
+        if (expenseDataObject.attachment_doc_path && expenseDataObject.attachment_doc_path.trim() !== '') {
+            docDownloadLink.href = expenseDataObject.attachment_doc_path;
+            docWrapper.classList.remove('hidden');
+        } else {
+            docWrapper.classList.add('hidden');
+            docDownloadLink.href = '#';
+        }
+
+        // Display container layout frame with standard transition timings
+        const modalFrame = document.getElementById('expense-view-modal');
+        const chassisFrame = document.getElementById('expense-view-chassis');
+
+        modalFrame.classList.remove('hidden');
+        // Request animation render frame to toggle visual transparency smoothly
+        requestAnimationFrame(() => {
+            modalFrame.classList.remove('invisible', 'opacity-0');
+            modalFrame.classList.add('opacity-100');
+            chassisFrame.classList.remove('scale-95');
+            chassisFrame.classList.add('scale-100');
+        });
+    }
+
+    /**
+     * Reset transitions and dismiss visibility of the Expense View container
+     */
+    function closeExpenseViewModal() {
+        const modalFrame = document.getElementById('expense-view-modal');
+        const chassisFrame = document.getElementById('expense-view-chassis');
+
+        if (!modalFrame) return;
+
+        modalFrame.classList.remove('opacity-100');
+        modalFrame.classList.add('opacity-0', 'invisible');
+        if (chassisFrame) {
+            chassisFrame.classList.remove('scale-100');
+            chassisFrame.classList.add('scale-95');
+        }
+
+        // Delay hiding structural layouts completely until completion of the 300ms transition framework
+        setTimeout(() => {
+            modalFrame.classList.add('hidden');
+        }, 300);
+    }
 </script>
 
 <?php
