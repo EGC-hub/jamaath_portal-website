@@ -87,7 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Decorative mosque background cover -->
             <div class="bg-gradient-to-r from-emerald-800 to-teal-950 p-8 text-center text-white relative">
                 <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-emerald-700/20 rounded-full"></div>
-                <div class="text-4xl mb-3">🕌</div>
+
+                <div class="flex justify-center mb-4">
+                    <div
+                        class="w-28 h-28 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center p-2.5 shadow-md border border-white/20">
+                        <img src="assets/images/logo.png" alt="NVK Muslim Jamaath Logo"
+                            class="h-full w-full object-contain" />
+                    </div>
+                </div>
+
                 <h2 class="text-2xl font-bold serif-title">NVK Muslim Jamaath</h2>
                 <p class="text-xs text-emerald-200 mt-1 uppercase tracking-widest font-semibold">Vadasery Central Portal
                 </p>
