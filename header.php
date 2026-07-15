@@ -52,6 +52,8 @@ $active_script = basename($_SERVER['PHP_SELF']);
     <!-- International Phone Code Library -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+    <!-- HTML2PDF CDN Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         /* Globally scale base font size to be larger and more legible */

@@ -195,9 +195,15 @@
 
 <!-- Slide-in notification banner -->
 <div id="toast"
-    class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center space-x-2 text-xs">
-    <span id="toast-icon">✨</span>
-    <span id="toast-message">Task updated!</span>
+    class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center justify-between gap-4 text-xs max-w-sm sm:max-w-md">
+    <div class="flex items-center space-x-2.5">
+        <span id="toast-icon" class="shrink-0">✨</span>
+        <span id="toast-message" class="leading-relaxed font-medium">Task updated!</span>
+    </div>
+    <button type="button" onclick="dismissToast()"
+        class="w-5 h-5 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer select-none font-bold shrink-0 text-[10px]">
+        ✕
+    </button>
 </div>
 
 <!-- Footer area -->
@@ -217,19 +223,38 @@
 
 <script>
 
-    // Slide-in toast controller
+    let toastTimeoutInstance = null; // Globally tracks active dismissal execution loops
+
     function showToast(message, icon = "✨") {
         const toast = document.getElementById('toast');
         document.getElementById('toast-icon').textContent = icon;
         document.getElementById('toast-message').textContent = message;
 
+        // Clear any previous active auto-dismiss loops instantly to avoid premature fade-outs
+        if (toastTimeoutInstance) {
+            clearTimeout(toastTimeoutInstance);
+        }
+
         toast.classList.remove('translate-y-20', 'opacity-0');
         toast.classList.add('translate-y-0', 'opacity-100');
 
-        setTimeout(() => {
-            toast.classList.remove('translate-y-0', 'opacity-100');
-            toast.classList.add('translate-y-20', 'opacity-0');
-        }, 3500);
+        // Extended display cycle timeout window to 7000ms (7 seconds) to allow tracking long notification strings
+        toastTimeoutInstance = setTimeout(() => {
+            dismissToast();
+        }, 7000);
+    }
+
+    function dismissToast() {
+        const toast = document.getElementById('toast');
+
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+
+        // Clean up tracking instances cleanly
+        if (toastTimeoutInstance) {
+            clearTimeout(toastTimeoutInstance);
+            toastTimeoutInstance = null;
+        }
     }
 
     // Member portrait base64 preview handler
@@ -376,6 +401,27 @@
                 }
             }, true);
         }
+
+        // Check if the current URL parameters contain tracking strings
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (urlParams.has('msg') || urlParams.has('error')) {
+            // Construct a clean URL stripping out just the message and error keys
+            urlParams.delete('msg');
+            urlParams.delete('error');
+
+            // Rebuild the clean path string
+            let cleanQuery = urlParams.toString();
+            let newRelativePath = window.location.pathname + (cleanQuery ? '?' + cleanQuery : '');
+
+            // Retain any active hash locations (like #tab-fees if applicable)
+            if (window.location.hash) {
+                newRelativePath += window.location.hash;
+            }
+
+            // Overwrite the address bar data silently without refreshing the viewport
+            window.history.replaceState({}, document.title, newRelativePath);
+        }
     });
 
     function getHijriDateJS(gregorianDateStr) {
@@ -400,6 +446,14 @@
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             showToast(<?php echo json_encode($_GET['msg']); ?>, "✅");
+        });
+    </script>
+<?php endif; ?>
+
+<?php if (isset($_GET['error'])): ?>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            showToast(<?php echo json_encode($_GET['error']); ?>, "❌");
         });
     </script>
 <?php endif; ?>
