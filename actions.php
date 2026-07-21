@@ -780,10 +780,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_POST['action'] === 'add_inflow') {
             $donor_name = trim($_POST['donor_name']);
             $type = $_POST['type'];
+            // Capture the voucher reference; set to null if empty
+            $reference_no = isset($_POST['reference_no']) && trim($_POST['reference_no']) !== '' ? trim($_POST['reference_no']) : null;
             $amount = (int) $_POST['amount'];
 
-            $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, type, amount) VALUES (?, ?, ?)");
-            $stmt->execute([$donor_name, $type, $amount]);
+            $stmt = $db->prepare("INSERT INTO baitulmal_inflows (donor_name, type, reference_no, amount) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$donor_name, $type, $reference_no, $amount]);
 
             header("Location: baitul_mal.php?msg=Contribution logged in Bait-Ul-Mal registry");
             exit;

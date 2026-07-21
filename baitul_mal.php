@@ -1124,8 +1124,13 @@ require_once 'header.php';
         document.getElementById('inflow-action').value = "edit_inflow";
         document.getElementById('inflow-id').value = item.id;
         document.getElementById('inflow_donor_name').value = item.donor_name;
-        document.getElementById('inflow_type').value = item.inflow_type;
-        document.getElementById('inflow_ref').value = item.reference_no;
+
+        // Fix: Changed from item.inflow_type to item.type
+        document.getElementById('inflow_type').value = item.type;
+
+        // Ensure fallback empty string if reference_no is null
+        document.getElementById('inflow_ref').value = item.reference_no || "";
+
         document.getElementById('inflow_amount').value = item.amount;
     }
 
